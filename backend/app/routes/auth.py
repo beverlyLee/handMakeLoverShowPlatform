@@ -6,6 +6,13 @@ from app.utils import generate_token, login_required, get_current_user
 
 auth_bp = Blueprint('auth', __name__)
 
+TEST_VERIFICATION_CODE = '123456'
+
+def verify_code(phone, code):
+    if current_app.config.get('DEBUG', True):
+        return code == TEST_VERIFICATION_CODE
+    return False
+
 def get_wechat_session(code):
     appid = current_app.config.get('WECHAT_APPID')
     secret = current_app.config.get('WECHAT_SECRET')
@@ -47,6 +54,13 @@ def login():
             return jsonify({
                 'code': 400,
                 'msg': '请输入手机号和验证码',
+                'data': None
+            }), 400
+        
+        if not verify_code(phone, code):
+            return jsonify({
+                'code': 400,
+                'msg': f'验证码错误（测试验证码：{TEST_VERIFICATION_CODE}）',
                 'data': None
             }), 400
         
@@ -177,6 +191,13 @@ def register():
         return jsonify({
             'code': 400,
             'msg': '请输入验证码',
+            'data': None
+        }), 400
+    
+    if not verify_code(phone, code):
+        return jsonify({
+            'code': 400,
+            'msg': f'验证码错误（测试验证码：{TEST_VERIFICATION_CODE}）',
             'data': None
         }), 400
     

@@ -11,7 +11,10 @@ Page({
     agreeAgreement: false,
     codeBtnText: '获取验证码',
     codeBtnDisabled: false,
-    countdown: 60
+    countdown: 60,
+    needBindPhone: false,
+    openid: '',
+    sessionKey: ''
   },
 
   onLoad(options) {
