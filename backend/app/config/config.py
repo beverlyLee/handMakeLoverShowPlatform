@@ -8,3 +8,10 @@ class Config:
     DEBUG = os.getenv('DEBUG', 'True').lower() in ('true', '1', 't')
     PORT = int(os.getenv('PORT', 5001))
     HOST = os.getenv('HOST', '0.0.0.0')
+    
+    WECHAT_APPID = os.getenv('WECHAT_APPID', 'your-wechat-appid')
+    WECHAT_SECRET = os.getenv('WECHAT_SECRET', 'your-wechat-secret')
+    
+    JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', SECRET_KEY)
+    JWT_ALGORITHM = 'HS256'
+    JWT_EXPIRE_HOURS = int(os.getenv('JWT_EXPIRE_HOURS', 72))
