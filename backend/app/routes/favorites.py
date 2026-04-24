@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify
 
 favorite_bp = Blueprint('favorites', __name__)
 
