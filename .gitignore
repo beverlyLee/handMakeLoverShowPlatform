@@ -1,0 +1,45 @@
+# Python 相关
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+ENV/
+env/
+.venv/
+*.egg-info/
+.eggs/
+*.egg
+.coverage
+htmlcov/
+.tox/
+.nox/
+.pytest_cache/
+.hypothesis/
+.idea/
+.vscode/
+*.log
+logs/
+
+# 微信小程序相关
+node_modules/
+.miniprogram/
+miniprogram_npm/
+project.private.config.json
+*.wxs~
+*.js~
+*.json~
+*.wxml~
+*.wxss~
+.DS_Store
+Thumbs.db
+
+# 其他
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+*.log
+*.tmp
+*.temp
