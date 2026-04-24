@@ -1,0 +1,140 @@
+/* pages/address-list/index.wxss */
+
+.address-list-container {
+  min-height: 100vh;
+  background-color: #FFF8E7;
+  padding-bottom: 120rpx;
+}
+
+.address-list {
+  padding: 16rpx;
+}
+
+.address-card {
+  background-color: #FFFFFF;
+  border-radius: 16rpx;
+  margin-bottom: 16rpx;
+  padding: 24rpx;
+  box-shadow: 0 2rpx 12rpx rgba(93, 64, 55, 0.06);
+}
+
+.address-card.selected {
+  border: 2rpx solid #E67E22;
+}
+
+.address-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.name-text {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #5D4037;
+  margin-right: 24rpx;
+}
+
+.phone-text {
+  font-size: 28rpx;
+  color: #795548;
+}
+
+.default-tag {
+  padding: 4rpx 16rpx;
+  background-color: rgba(230, 126, 34, 0.1);
+  color: #E67E22;
+  border-radius: 8rpx;
+  font-size: 22rpx;
+  margin-left: 16rpx;
+}
+
+.address-detail {
+  font-size: 26rpx;
+  color: #795548;
+  line-height: 1.6;
+  margin-bottom: 20rpx;
+}
+
+.address-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 20rpx;
+  border-top: 1rpx solid #F0E6D2;
+}
+
+.default-switch {
+  display: flex;
+  align-items: center;
+}
+
+.switch-text {
+  font-size: 24rpx;
+  color: #BCAAA4;
+  margin-right: 16rpx;
+}
+
+.address-actions {
+  display: flex;
+  gap: 32rpx;
+}
+
+.action-item {
+  display: flex;
+  align-items: center;
+  font-size: 24rpx;
+  color: #795548;
+}
+
+.action-icon {
+  font-size: 28rpx;
+  margin-right: 8rpx;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 160rpx 0;
+}
+
+.empty-icon {
+  font-size: 120rpx;
+  margin-bottom: 32rpx;
+  opacity: 0.5;
+}
+
+.empty-text {
+  font-size: 28rpx;
+  color: #BCAAA4;
+  margin-bottom: 32rpx;
+}
+
+.empty-btn {
+  padding: 16rpx 48rpx;
+  background-color: #E67E22;
+  color: #FFFFFF;
+  border-radius: 40rpx;
+  font-size: 28rpx;
+}
+
+.add-btn {
+  position: fixed;
+  left: 32rpx;
+  right: 32rpx;
+  bottom: 32rpx;
+  height: 96rpx;
+  line-height: 96rpx;
+  text-align: center;
+  background: linear-gradient(135deg, #E67E22 0%, #F39C12 100%);
+  color: #FFFFFF;
+  border-radius: 48rpx;
+  font-size: 32rpx;
+  font-weight: 500;
+  box-shadow: 0 8rpx 24rpx rgba(230, 126, 34, 0.3);
+  z-index: 100;
+  padding-bottom: calc(0rpx + constant(safe-area-inset-bottom));
+  padding-bottom: calc(0rpx + env(safe-area-inset-bottom));
+}

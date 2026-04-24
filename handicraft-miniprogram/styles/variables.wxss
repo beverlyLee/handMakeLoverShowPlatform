@@ -1,0 +1,118 @@
+/* ============================================
+   手工爱好者平台 - 主题变量定义
+   设计风格：温暖、自然、手工艺感
+   主色调：暖橙色系
+   ============================================ */
+
+/* ---------- 颜色系统 ---------- */
+
+/* 主色 - 暖橙色（代表手工的温暖感） */
+--color-primary: #E67E22;
+--color-primary-light: #F39C12;
+--color-primary-dark: #D35400;
+--color-primary-bg: rgba(230, 126, 34, 0.1);
+
+/* 辅助色 - 米色/棕色系（代表手工的自然感） */
+--color-secondary: #D2B48C;
+--color-secondary-light: #F5DEB3;
+--color-secondary-dark: #8B7355;
+
+/* 文字颜色 */
+--color-text-primary: #5D4037;
+--color-text-secondary: #795548;
+--color-text-tertiary: #BCAAA4;
+--color-text-hint: #9E9E9E;
+--color-text-white: #FFFFFF;
+
+/* 背景颜色 */
+--color-bg-page: #FFF8E7;
+--color-bg-card: #FFFFFF;
+--color-bg-gray: #F5F5F5;
+--color-bg-input: #FAFAFA;
+--color-bg-overlay: rgba(0, 0, 0, 0.5);
+
+/* 边框/分割线颜色 */
+--color-border: #E8E8E8;
+--color-divider: #F0E6D2;
+
+/* 功能色 */
+--color-success: #27AE60;
+--color-warning: #F39C12;
+--color-error: #E74C3C;
+--color-info: #3498DB;
+
+/* 订单状态色 */
+--color-order-pending: #FF9800;
+--color-order-confirm: #2196F3;
+--color-order-ship: #9C27B0;
+--color-order-shipped: #00BCD4;
+--color-order-completed: #4CAF50;
+--color-order-cancelled: #9E9E9E;
+
+/* ---------- 字体系统 ---------- */
+
+--font-size-xs: 20rpx;
+--font-size-sm: 24rpx;
+--font-size-base: 28rpx;
+--font-size-md: 30rpx;
+--font-size-lg: 32rpx;
+--font-size-xl: 36rpx;
+--font-size-xxl: 40rpx;
+--font-size-xxxl: 48rpx;
+
+--font-weight-normal: 400;
+--font-weight-medium: 500;
+--font-weight-semibold: 600;
+--font-weight-bold: 700;
+
+--line-height-tight: 1.25;
+--line-height-normal: 1.5;
+--line-height-relaxed: 1.75;
+
+/* ---------- 间距系统 ---------- */
+
+--spacing-xs: 8rpx;
+--spacing-sm: 16rpx;
+--spacing-md: 24rpx;
+--spacing-base: 32rpx;
+--spacing-lg: 40rpx;
+--spacing-xl: 48rpx;
+--spacing-xxl: 64rpx;
+
+--page-padding-h: 32rpx;
+--page-padding-v: 24rpx;
+
+/* ---------- 圆角系统 ---------- */
+
+--radius-sm: 8rpx;
+--radius-md: 16rpx;
+--radius-lg: 24rpx;
+--radius-xl: 32rpx;
+--radius-full: 9999rpx;
+
+/* ---------- 阴影系统 ---------- */
+
+--shadow-sm: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+--shadow-md: 0 4rpx 16rpx rgba(0, 0, 0, 0.08);
+--shadow-lg: 0 8rpx 32rpx rgba(0, 0, 0, 0.12);
+--shadow-card: 0 2rpx 12rpx rgba(93, 64, 55, 0.08);
+
+/* ---------- 组件尺寸 ---------- */
+
+--btn-height-xs: 56rpx;
+--btn-height-md: 80rpx;
+--btn-height-lg: 96rpx;
+
+--input-height: 88rpx;
+--nav-height: 88rpx;
+--tabbar-height: 100rpx;
+
+/* ---------- 动画时间 ---------- */
+
+--duration-fast: 150ms;
+--duration-normal: 300ms;
+--duration-slow: 500ms;
+
+--ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+--ease-out: cubic-bezier(0, 0, 0.2, 1);
+--ease-in: cubic-bezier(0.4, 0, 1, 1);

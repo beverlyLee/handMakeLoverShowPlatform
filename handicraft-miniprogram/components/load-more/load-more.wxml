@@ -1,0 +1,14 @@
+<view class="load-more" bindtap="onLoadMore">
+  <view wx:if="{{status === 'loading'}}" class="loading-container">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">{{loadingText}}</text>
+  </view>
+  
+  <view wx:elif="{{status === 'noMore'}}" class="no-more">
+    <text class="no-more-text">{{noMoreText}}</text>
+  </view>
+  
+  <view wx:elif="{{status === 'more'}}" class="load-more-btn">
+    <text class="load-more-text">{{loadMoreText}}</text>
+  </view>
+</view>

@@ -1,0 +1,18 @@
+<view class="bottom-bar" style="background-color: {{bgColor}}; {{showShadow ? 'box-shadow: 0 -4rpx 16rpx rgba(93, 64, 55, 0.08);' : ''}} padding-bottom: {{safeAreaBottom}}px;">
+  
+  <view class="bottom-left" bindtap="onLeftTap">
+    <slot name="left"></slot>
+  </view>
+  
+  <view class="bottom-center" bindtap="onCenterTap">
+    <slot name="center"></slot>
+  </view>
+  
+  <view class="bottom-right" bindtap="onRightTap">
+    <slot name="right"></slot>
+  </view>
+  
+  <slot></slot>
+</view>
+
+<view wx:if="{{safeArea}}" class="bottom-placeholder" style="height: {{120 + safeAreaBottom}}rpx;"></view>

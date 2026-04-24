@@ -1,0 +1,26 @@
+<view class="nav-header-wrapper" style="{{fixed ? 'position: fixed; top: 0; left: 0; right: 0; z-index: 999;' : ''}}">
+  <view class="nav-header" style="background-color: {{bgColor}}; padding-top: {{statusBarHeight}}px; height: {{statusBarHeight + navBarHeight}}px;">
+    
+    <view class="nav-left" style="width: {{leftWidth}}px;">
+      <view wx:if="{{showBack}}" class="nav-back" bindtap="onBackTap" style="color: {{iconColor}};">
+        <text class="back-icon">◀</text>
+        <text wx:if="{{backText}}" class="back-text">{{backText}}</text>
+      </view>
+      
+      <view wx:if="{{showHome && !showBack}}" class="nav-home" bindtap="onHomeTap" style="color: {{iconColor}};">
+        <text class="home-icon">🏠</text>
+      </view>
+    </view>
+    
+    <view class="nav-center" bindtap="onTitleTap" style="color: {{titleColor}};">
+      <view class="nav-title">{{title}}</view>
+    </view>
+    
+    <view class="nav-right" style="width: {{menuInfo ? (menuInfo.left + 16) : 0}}px;">
+      <slot name="right"></slot>
+    </view>
+    
+  </view>
+</view>
+
+<view wx:if="{{placeholder && fixed}}" class="nav-placeholder" style="height: {{statusBarHeight + navBarHeight}}px;"></view>

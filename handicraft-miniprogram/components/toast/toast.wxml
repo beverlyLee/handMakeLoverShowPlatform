@@ -1,0 +1,14 @@
+<view wx:if="{{isVisible}}" class="toast-container" catchtouchmove="preventDefault">
+  <view class="toast-content">
+    <view wx:if="{{type === 'loading'}}" class="toast-loading">
+      <view class="loading-spinner"></view>
+    </view>
+    
+    <view wx:elif="{{type !== 'text'}}" class="toast-icon">
+      <text class="icon-text">{{icon || iconMap[type]}}</text>
+    </view>
+    
+    <view wx:if="{{title}}" class="toast-title">{{title}}</view>
+    <view wx:if="{{message}}" class="toast-message">{{message}}</view>
+  </view>
+</view>

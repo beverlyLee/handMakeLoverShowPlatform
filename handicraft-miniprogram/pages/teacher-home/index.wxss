@@ -1,0 +1,249 @@
+/* pages/teacher-home/index.wxss */
+
+.teacher-home-container {
+  min-height: 100vh;
+  background-color: #FFF8E7;
+  padding-bottom: 24rpx;
+}
+
+.teacher-header {
+  background: linear-gradient(135deg, #E67E22 0%, #F39C12 100%);
+  padding: 60rpx 32rpx 80rpx;
+  color: #FFFFFF;
+}
+
+.teacher-info {
+  display: flex;
+  align-items: center;
+}
+
+.teacher-avatar {
+  width: 140rpx;
+  height: 140rpx;
+  border-radius: 50%;
+  background-color: #FFFFFF;
+  margin-right: 24rpx;
+  border: 4rpx solid rgba(255, 255, 255, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 56rpx;
+}
+
+.teacher-detail {
+  flex: 1;
+}
+
+.teacher-name {
+  font-size: 36rpx;
+  font-weight: 600;
+  margin-bottom: 12rpx;
+}
+
+.teacher-intro {
+  font-size: 26rpx;
+  opacity: 0.9;
+  line-height: 1.5;
+  margin-bottom: 16rpx;
+}
+
+.teacher-stats {
+  display: flex;
+  gap: 32rpx;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-num {
+  font-size: 36rpx;
+  font-weight: 600;
+}
+
+.stat-text {
+  font-size: 22rpx;
+  opacity: 0.8;
+  margin-top: 4rpx;
+}
+
+.edit-btn {
+  padding: 12rpx 28rpx;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 24rpx;
+  font-size: 24rpx;
+}
+
+.stats-section {
+  background-color: #FFFFFF;
+  margin: -40rpx 32rpx 24rpx;
+  border-radius: 16rpx;
+  padding: 32rpx;
+  box-shadow: 0 4rpx 16rpx rgba(93, 64, 55, 0.08);
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: space-around;
+}
+
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-card-num {
+  font-size: 40rpx;
+  font-weight: 600;
+  color: #E67E22;
+}
+
+.stat-card-text {
+  font-size: 24rpx;
+  color: #BCAAA4;
+  margin-top: 8rpx;
+}
+
+.product-tabs {
+  display: flex;
+  background-color: #FFFFFF;
+  margin-bottom: 16rpx;
+}
+
+.product-tab-item {
+  flex: 1;
+  text-align: center;
+  padding: 28rpx 0;
+  font-size: 28rpx;
+  color: #795548;
+  position: relative;
+}
+
+.product-tab-item.active {
+  color: #E67E22;
+  font-weight: 500;
+}
+
+.product-tab-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 48rpx;
+  height: 4rpx;
+  background-color: #E67E22;
+  border-radius: 2rpx;
+}
+
+.product-grid {
+  padding: 8rpx;
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.product-item {
+  width: 50%;
+  padding: 8rpx;
+  box-sizing: border-box;
+}
+
+.product-card {
+  background-color: #FFFFFF;
+  border-radius: 16rpx;
+  overflow: hidden;
+  box-shadow: 0 2rpx 12rpx rgba(93, 64, 55, 0.06);
+}
+
+.product-image {
+  width: 100%;
+  height: 320rpx;
+  background-color: #F5F5F5;
+  position: relative;
+}
+
+.product-status {
+  position: absolute;
+  top: 16rpx;
+  left: 16rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+  font-size: 20rpx;
+}
+
+.product-status.on-sale {
+  background-color: rgba(39, 174, 96, 0.9);
+  color: #FFFFFF;
+}
+
+.product-status.off-sale {
+  background-color: rgba(158, 158, 158, 0.9);
+  color: #FFFFFF;
+}
+
+.product-info {
+  padding: 16rpx;
+}
+
+.product-title {
+  font-size: 26rpx;
+  color: #5D4037;
+  font-weight: 500;
+  margin-bottom: 12rpx;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.product-price-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.product-price {
+  font-size: 30rpx;
+  color: #E67E22;
+  font-weight: 600;
+}
+
+.product-price::before {
+  content: '¥';
+  font-size: 0.8em;
+}
+
+.product-sales {
+  font-size: 22rpx;
+  color: #BCAAA4;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80rpx 0;
+}
+
+.empty-icon {
+  font-size: 100rpx;
+  margin-bottom: 24rpx;
+  opacity: 0.5;
+}
+
+.empty-text {
+  font-size: 26rpx;
+  color: #BCAAA4;
+  margin-bottom: 24rpx;
+}
+
+.empty-btn {
+  padding: 14rpx 40rpx;
+  background-color: #E67E22;
+  color: #FFFFFF;
+  border-radius: 36rpx;
+  font-size: 26rpx;
+}

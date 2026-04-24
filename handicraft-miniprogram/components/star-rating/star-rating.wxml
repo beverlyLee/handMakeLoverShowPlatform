@@ -1,0 +1,20 @@
+<view class="star-rating">
+  <view class="stars-container">
+    <view 
+      wx:for="{{stars}}" 
+      wx:key="index"
+      class="star-item {{item.type}}"
+      data-index="{{index}}"
+      bindtap="onStarTap"
+      style="font-size: {{size}}"
+    >
+      <text class="star-full" wx:if="{{item.type === 'full'}}" style="color: {{color}}">★</text>
+      <text class="star-half" wx:elif="{{item.type === 'half'}}">
+        <text class="star-half-left" style="color: {{color}}">★</text>
+        <text class="star-half-right" style="color: {{inactiveColor}}">★</text>
+      </text>
+      <text class="star-empty" wx:else style="color: {{inactiveColor}}">☆</text>
+    </view>
+  </view>
+  <text wx:if="{{showText}}" class="rating-text">{{getRatingText(value)}}</text>
+</view>

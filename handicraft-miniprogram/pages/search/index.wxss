@@ -1,0 +1,92 @@
+/* pages/search/index.wxss */
+
+.search-container {
+  min-height: 100vh;
+  background-color: #FFF8E7;
+  padding-bottom: 120rpx;
+}
+
+.search-header {
+  padding: 24rpx 32rpx;
+  background-color: #FFFFFF;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  background-color: #F5F5F5;
+  border-radius: 40rpx;
+  padding: 16rpx 24rpx;
+}
+
+.search-icon {
+  font-size: 32rpx;
+  margin-right: 16rpx;
+}
+
+.search-input {
+  flex: 1;
+  font-size: 28rpx;
+  color: #5D4037;
+}
+
+.search-input::placeholder {
+  color: #BCAAA4;
+}
+
+.search-btn {
+  margin-left: 24rpx;
+  font-size: 28rpx;
+  color: #E67E22;
+  font-weight: 500;
+}
+
+.search-content {
+  padding: 32rpx;
+}
+
+.history-section,
+.hot-section {
+  margin-bottom: 48rpx;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24rpx;
+}
+
+.section-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #5D4037;
+}
+
+.clear-btn {
+  font-size: 24rpx;
+  color: #BCAAA4;
+}
+
+.tags-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.tag-item {
+  padding: 12rpx 24rpx;
+  background-color: rgba(230, 126, 34, 0.1);
+  border-radius: 24rpx;
+  font-size: 26rpx;
+  color: #E67E22;
+}
+
+.tag-item.hot {
+  background-color: #FFFFFF;
+  border: 1rpx solid #E8E8E8;
+  color: #795548;
+}

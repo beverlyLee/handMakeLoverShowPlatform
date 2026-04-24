@@ -1,0 +1,28 @@
+<view wx:if="{{show}}" class="loading-container" catchtouchmove="preventDefault">
+  <view wx:if="{{mask}}" class="loading-mask"></view>
+  
+  <view class="loading-content">
+    <view wx:if="{{type === 'spinner'}}" class="spinner-wrapper">
+      <view class="spinner" style="width: {{sizeMap[size]}}; height: {{sizeMap[size]}}; border-color: {{color}}15; border-top-color: {{color}};"></view>
+    </view>
+    
+    <view wx:elif="{{type === 'dots'}}" class="dots-wrapper">
+      <view wx:for="{{3}}" wx:key="index" class="dot" style="background-color: {{color}}; animation-delay: {{index * 0.2}}s;"></view>
+    </view>
+    
+    <view wx:elif="{{type === 'pulse'}}" class="pulse-wrapper">
+      <view class="pulse" style="background-color: {{color}};"></view>
+    </view>
+    
+    <view wx:elif="{{type === 'skeleton'}}" class="skeleton-wrapper">
+      <view class="skeleton-line"></view>
+      <view class="skeleton-line short"></view>
+      <view class="skeleton-avatar"></view>
+      <view class="skeleton-title"></view>
+      <view class="skeleton-text"></view>
+      <view class="skeleton-text short"></view>
+    </view>
+    
+    <text wx:if="{{text}}" class="loading-text">{{text}}</text>
+  </view>
+</view>

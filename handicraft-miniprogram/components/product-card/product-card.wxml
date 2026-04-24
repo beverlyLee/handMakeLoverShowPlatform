@@ -1,0 +1,26 @@
+<view class="product-card" bindtap="onCardTap">
+  <view class="product-image-wrapper">
+    <image class="product-image" src="{{product.image || ''}}" mode="aspectFill" />
+    <view wx:if="{{product.tag}}" class="product-tag">{{product.tag}}</view>
+    <view wx:if="{{product.isFavorite !== undefined}}" class="favorite-btn" catchtap="onFavoriteTap">
+      <text class="favorite-icon">{{product.isFavorite ? '❤️' : '🤍'}}</text>
+    </view>
+  </view>
+  
+  <view class="product-info">
+    <view class="product-title">{{product.title}}</view>
+    
+    <view wx:if="{{showTeacher && product.teacherName}}" class="product-teacher" catchtap="onTeacherTap">
+      <image class="teacher-avatar" src="{{product.teacherAvatar || ''}}" />
+      <text class="teacher-name">{{product.teacherName}}</text>
+    </view>
+    
+    <view class="product-bottom">
+      <view class="product-price">
+        <text class="price-current">{{product.price}}</text>
+        <text wx:if="{{product.originalPrice}}" class="price-original">{{product.originalPrice}}</text>
+      </view>
+      <view wx:if="{{showSales && product.salesCount}}" class="product-sales">已售{{product.salesCount}}</view>
+    </view>
+  </view>
+</view>

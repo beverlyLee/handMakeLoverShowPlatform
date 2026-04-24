@@ -1,0 +1,43 @@
+.star-rating {
+  display: flex;
+  align-items: center;
+}
+
+.stars-container {
+  display: flex;
+  align-items: center;
+}
+
+.star-item {
+  margin-right: 8rpx;
+  line-height: 1;
+}
+
+.star-item:last-child {
+  margin-right: 0;
+}
+
+.star-half {
+  position: relative;
+  display: inline-block;
+}
+
+.star-half-left {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 50%;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.star-half-right {
+  position: relative;
+  z-index: 0;
+}
+
+.rating-text {
+  font-size: 24rpx;
+  color: #BCAAA4;
+  margin-left: 12rpx;
+}

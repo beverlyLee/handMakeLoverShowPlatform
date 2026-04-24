@@ -1,0 +1,77 @@
+<view class="login-container">
+  <view class="login-logo">🎨</view>
+  <view class="login-title">欢迎回来</view>
+  <view class="login-subtitle">登录手工爱好者平台</view>
+
+  <view class="login-form">
+    <view class="form-group">
+      <view class="form-label">手机号</view>
+      <view class="form-input-group">
+        <text class="input-icon">📱</text>
+        <input 
+          class="form-input" 
+          type="number" 
+          placeholder="请输入手机号" 
+          maxlength="11"
+          value="{{phone}}"
+          bindinput="onPhoneInput"
+        />
+      </view>
+    </view>
+
+    <view class="form-group">
+      <view class="form-label">验证码</view>
+      <view class="form-input-group">
+        <text class="input-icon">🔐</text>
+        <input 
+          class="form-input" 
+          type="number" 
+          placeholder="请输入验证码" 
+          maxlength="6"
+          value="{{code}}"
+          bindinput="onCodeInput"
+        />
+        <view 
+          class="code-btn {{codeBtnDisabled ? 'disabled' : ''}}" 
+          bindtap="getCode"
+        >
+          {{codeBtnText}}
+        </view>
+      </view>
+    </view>
+
+    <view class="agreement" bindtap="toggleAgreement">
+      <view class="checkbox-icon {{agreeAgreement ? 'checked' : ''}}">
+        <text wx:if="{{agreeAgreement}}">✓</text>
+      </view>
+      <view class="agreement-text">
+        我已阅读并同意
+        <text class="agreement-link">《用户协议》</text>
+        和
+        <text class="agreement-link">《隐私政策》</text>
+      </view>
+    </view>
+
+    <view class="login-btn {{!agreeAgreement ? 'disabled' : ''}}" bindtap="phoneLogin">
+      手机号登录
+    </view>
+
+    <view class="wechat-login" bindtap="wechatLogin">
+      <text class="wechat-icon">💬</text>
+      微信一键登录
+    </view>
+
+    <view class="other-login">
+      <view class="other-title">其他登录方式</view>
+    </view>
+
+    <view class="register-link">
+      还没有账号？
+      <text class="register-link-text" bindtap="goToRegister">立即注册</text>
+    </view>
+  </view>
+
+  <view class="login-footer">
+    手工爱好者平台 © 2024
+  </view>
+</view>

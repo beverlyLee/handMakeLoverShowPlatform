@@ -1,0 +1,23 @@
+<view class="price-tag">
+  <view wx:if="{{showTag && tagText}}" class="price-tag-tag" style="background-color: {{tagColorMap[tagType].bg}}; color: {{tagColorMap[tagType].color}};">
+    {{tagText}}
+  </view>
+  
+  <view class="price-main">
+    <text class="price-prefix" style="font-size: {{sizeMap[size].price}};">{{prefix}}</text>
+    <text class="price-value" style="font-size: {{sizeMap[size].price}};">{{formatPrice(price, decimalDigits)}}</text>
+    
+    <view wx:if="{{originalPrice && originalPrice > 0}}" class="price-original">
+      <text class="price-prefix-small">{{prefix}}</text>
+      <text class="price-value-small">{{formatPrice(originalPrice, decimalDigits)}}</text>
+    </view>
+    
+    <view wx:if="{{showDiscount && originalPrice && originalPrice > price}}" class="price-discount">
+      {{getDiscount()}}折
+    </view>
+  </view>
+  
+  <view wx:if="{{showSales && salesCount > 0}}" class="price-sales" style="font-size: {{sizeMap[size].sales}};">
+    已售{{salesCount}}
+  </view>
+</view>

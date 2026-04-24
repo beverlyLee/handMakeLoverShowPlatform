@@ -1,0 +1,243 @@
+/* pages/order-list/index.wxss */
+
+.order-list-container {
+  min-height: 100vh;
+  background-color: #FFF8E7;
+}
+
+.order-tabs {
+  display: flex;
+  background-color: #FFFFFF;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.order-tab-item {
+  flex: 1;
+  text-align: center;
+  padding: 28rpx 0;
+  font-size: 28rpx;
+  color: #795548;
+  position: relative;
+}
+
+.order-tab-item.active {
+  color: #E67E22;
+  font-weight: 500;
+}
+
+.order-tab-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 48rpx;
+  height: 4rpx;
+  background-color: #E67E22;
+  border-radius: 2rpx;
+}
+
+.order-tab-badge {
+  position: absolute;
+  top: 16rpx;
+  right: 40rpx;
+  min-width: 28rpx;
+  height: 28rpx;
+  background-color: #E74C3C;
+  border-radius: 14rpx;
+  font-size: 18rpx;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8rpx;
+}
+
+.order-list {
+  padding: 16rpx;
+}
+
+.order-card {
+  background-color: #FFFFFF;
+  border-radius: 16rpx;
+  margin-bottom: 16rpx;
+  overflow: hidden;
+  box-shadow: 0 2rpx 12rpx rgba(93, 64, 55, 0.06);
+}
+
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20rpx 24rpx;
+  border-bottom: 1rpx solid #F0E6D2;
+}
+
+.order-no {
+  font-size: 24rpx;
+  color: #BCAAA4;
+}
+
+.order-status {
+  font-size: 26rpx;
+  font-weight: 500;
+}
+
+.order-status.pending {
+  color: #FF9800;
+}
+
+.order-status.confirm {
+  color: #2196F3;
+}
+
+.order-status.ship {
+  color: #9C27B0;
+}
+
+.order-status.shipped {
+  color: #00BCD4;
+}
+
+.order-status.completed {
+  color: #4CAF50;
+}
+
+.order-status.cancelled {
+  color: #9E9E9E;
+}
+
+.order-product {
+  display: flex;
+  padding: 24rpx;
+  border-bottom: 1rpx solid #F0E6D2;
+}
+
+.product-image {
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 12rpx;
+  background-color: #F5F5F5;
+  margin-right: 20rpx;
+  flex-shrink: 0;
+}
+
+.product-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.product-title {
+  font-size: 28rpx;
+  color: #5D4037;
+  font-weight: 500;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.product-specs {
+  font-size: 24rpx;
+  color: #BCAAA4;
+  margin-top: 8rpx;
+}
+
+.product-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.product-price {
+  font-size: 30rpx;
+  color: #E67E22;
+  font-weight: 600;
+}
+
+.product-price::before {
+  content: '¥';
+  font-size: 0.8em;
+}
+
+.product-quantity {
+  font-size: 24rpx;
+  color: #BCAAA4;
+}
+
+.order-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20rpx 24rpx;
+}
+
+.order-total {
+  font-size: 26rpx;
+  color: #795548;
+}
+
+.total-price {
+  font-size: 32rpx;
+  color: #E67E22;
+  font-weight: 600;
+}
+
+.total-price::before {
+  content: '¥';
+  font-size: 0.8em;
+}
+
+.order-actions {
+  display: flex;
+  gap: 16rpx;
+}
+
+.action-btn {
+  padding: 12rpx 32rpx;
+  border-radius: 32rpx;
+  font-size: 24rpx;
+}
+
+.action-btn.primary {
+  background-color: #E67E22;
+  color: #FFFFFF;
+}
+
+.action-btn.secondary {
+  background-color: transparent;
+  border: 2rpx solid #BCAAA4;
+  color: #795548;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 160rpx 0;
+}
+
+.empty-icon {
+  font-size: 120rpx;
+  margin-bottom: 32rpx;
+  opacity: 0.5;
+}
+
+.empty-text {
+  font-size: 28rpx;
+  color: #BCAAA4;
+  margin-bottom: 32rpx;
+}
+
+.empty-btn {
+  padding: 16rpx 48rpx;
+  background-color: #E67E22;
+  color: #FFFFFF;
+  border-radius: 40rpx;
+  font-size: 28rpx;
+}

@@ -1,0 +1,7 @@
+<view wx:if="{{show}}" class="loading-overlay" catchtouchmove="preventDefault">
+  <view wx:if="{{mask}}" class="loading-mask" bindtap="onMaskTap"></view>
+  <view class="loading-content">
+    <view class="loading-spinner"></view>
+    <text wx:if="{{text}}" class="loading-text">{{text}}</text>
+  </view>
+</view>

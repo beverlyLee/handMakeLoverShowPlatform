@@ -1,0 +1,284 @@
+/* ============================================
+   手工爱好者平台 - 通用样式类
+   ============================================ */
+
+/* ---------- Flex 布局类 ---------- */
+
+.flex { display: flex; }
+.flex-col { display: flex; flex-direction: column; }
+.flex-wrap { flex-wrap: wrap; }
+
+.justify-start { justify-content: flex-start; }
+.justify-center { justify-content: center; }
+.justify-end { justify-content: flex-end; }
+.justify-between { justify-content: space-between; }
+.justify-around { justify-content: space-around; }
+
+.align-start { align-items: flex-start; }
+.align-center { align-items: center; }
+.align-end { align-items: flex-end; }
+.align-stretch { align-items: stretch; }
+
+.flex-1 { flex: 1; }
+.flex-2 { flex: 2; }
+.flex-3 { flex: 3; }
+
+.flex-center { display: flex; justify-content: center; align-items: center; }
+.flex-between { display: flex; justify-content: space-between; align-items: center; }
+.flex-between-top { display: flex; justify-content: space-between; align-items: flex-start; }
+
+/* ---------- 文字处理类 ---------- */
+
+.text-ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.text-ellipsis-2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.text-ellipsis-3 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.text-left { text-align: left; }
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+
+.font-normal { font-weight: 400; }
+.font-medium { font-weight: 500; }
+.font-semibold { font-weight: 600; }
+.font-bold { font-weight: 700; }
+
+.text-xs { font-size: 20rpx; }
+.text-sm { font-size: 24rpx; }
+.text-base { font-size: 28rpx; }
+.text-md { font-size: 30rpx; }
+.text-lg { font-size: 32rpx; }
+.text-xl { font-size: 36rpx; }
+.text-xxl { font-size: 40rpx; }
+.text-xxxl { font-size: 48rpx; }
+
+.text-primary { color: #5D4037; }
+.text-secondary { color: #795548; }
+.text-tertiary { color: #BCAAA4; }
+.text-hint { color: #9E9E9E; }
+.text-white { color: #FFFFFF; }
+.text-color-primary { color: #E67E22; }
+.text-success { color: #27AE60; }
+.text-warning { color: #F39C12; }
+.text-error { color: #E74C3C; }
+
+/* ---------- 边距类 ---------- */
+
+.m-0 { margin: 0; }
+.m-xs { margin: 8rpx; }
+.m-sm { margin: 16rpx; }
+.m-md { margin: 24rpx; }
+.m-base { margin: 32rpx; }
+.m-lg { margin: 40rpx; }
+.m-xl { margin: 48rpx; }
+
+.mt-0 { margin-top: 0; }
+.mt-xs { margin-top: 8rpx; }
+.mt-sm { margin-top: 16rpx; }
+.mt-md { margin-top: 24rpx; }
+.mt-base { margin-top: 32rpx; }
+.mt-lg { margin-top: 40rpx; }
+.mt-xl { margin-top: 48rpx; }
+
+.mb-0 { margin-bottom: 0; }
+.mb-xs { margin-bottom: 8rpx; }
+.mb-sm { margin-bottom: 16rpx; }
+.mb-md { margin-bottom: 24rpx; }
+.mb-base { margin-bottom: 32rpx; }
+.mb-lg { margin-bottom: 40rpx; }
+.mb-xl { margin-bottom: 48rpx; }
+
+.ml-0 { margin-left: 0; }
+.ml-xs { margin-left: 8rpx; }
+.ml-sm { margin-left: 16rpx; }
+.ml-md { margin-left: 24rpx; }
+.ml-base { margin-left: 32rpx; }
+.ml-lg { margin-left: 40rpx; }
+.ml-xl { margin-left: 48rpx; }
+
+.mr-0 { margin-right: 0; }
+.mr-xs { margin-right: 8rpx; }
+.mr-sm { margin-right: 16rpx; }
+.mr-md { margin-right: 24rpx; }
+.mr-base { margin-right: 32rpx; }
+.mr-lg { margin-right: 40rpx; }
+.mr-xl { margin-right: 48rpx; }
+
+.mx-0 { margin-left: 0; margin-right: 0; }
+.mx-xs { margin-left: 8rpx; margin-right: 8rpx; }
+.mx-sm { margin-left: 16rpx; margin-right: 16rpx; }
+.mx-md { margin-left: 24rpx; margin-right: 24rpx; }
+.mx-base { margin-left: 32rpx; margin-right: 32rpx; }
+.mx-lg { margin-left: 40rpx; margin-right: 40rpx; }
+.mx-xl { margin-left: 48rpx; margin-right: 48rpx; }
+
+.my-0 { margin-top: 0; margin-bottom: 0; }
+.my-xs { margin-top: 8rpx; margin-bottom: 8rpx; }
+.my-sm { margin-top: 16rpx; margin-bottom: 16rpx; }
+.my-md { margin-top: 24rpx; margin-bottom: 24rpx; }
+.my-base { margin-top: 32rpx; margin-bottom: 32rpx; }
+.my-lg { margin-top: 40rpx; margin-bottom: 40rpx; }
+.my-xl { margin-top: 48rpx; margin-bottom: 48rpx; }
+
+.p-0 { padding: 0; }
+.p-xs { padding: 8rpx; }
+.p-sm { padding: 16rpx; }
+.p-md { padding: 24rpx; }
+.p-base { padding: 32rpx; }
+.p-lg { padding: 40rpx; }
+.p-xl { padding: 48rpx; }
+
+.pt-0 { padding-top: 0; }
+.pt-xs { padding-top: 8rpx; }
+.pt-sm { padding-top: 16rpx; }
+.pt-md { padding-top: 24rpx; }
+.pt-base { padding-top: 32rpx; }
+.pt-lg { padding-top: 40rpx; }
+.pt-xl { padding-top: 48rpx; }
+
+.pb-0 { padding-bottom: 0; }
+.pb-xs { padding-bottom: 8rpx; }
+.pb-sm { padding-bottom: 16rpx; }
+.pb-md { padding-bottom: 24rpx; }
+.pb-base { padding-bottom: 32rpx; }
+.pb-lg { padding-bottom: 40rpx; }
+.pb-xl { padding-bottom: 48rpx; }
+
+.pl-0 { padding-left: 0; }
+.pl-xs { padding-left: 8rpx; }
+.pl-sm { padding-left: 16rpx; }
+.pl-md { padding-left: 24rpx; }
+.pl-base { padding-left: 32rpx; }
+.pl-lg { padding-left: 40rpx; }
+.pl-xl { padding-left: 48rpx; }
+
+.pr-0 { padding-right: 0; }
+.pr-xs { padding-right: 8rpx; }
+.pr-sm { padding-right: 16rpx; }
+.pr-md { padding-right: 24rpx; }
+.pr-base { padding-right: 32rpx; }
+.pr-lg { padding-right: 40rpx; }
+.pr-xl { padding-right: 48rpx; }
+
+.px-0 { padding-left: 0; padding-right: 0; }
+.px-xs { padding-left: 8rpx; padding-right: 8rpx; }
+.px-sm { padding-left: 16rpx; padding-right: 16rpx; }
+.px-md { padding-left: 24rpx; padding-right: 24rpx; }
+.px-base { padding-left: 32rpx; padding-right: 32rpx; }
+.px-lg { padding-left: 40rpx; padding-right: 40rpx; }
+.px-xl { padding-left: 48rpx; padding-right: 48rpx; }
+
+.py-0 { padding-top: 0; padding-bottom: 0; }
+.py-xs { padding-top: 8rpx; padding-bottom: 8rpx; }
+.py-sm { padding-top: 16rpx; padding-bottom: 16rpx; }
+.py-md { padding-top: 24rpx; padding-bottom: 24rpx; }
+.py-base { padding-top: 32rpx; padding-bottom: 32rpx; }
+.py-lg { padding-top: 40rpx; padding-bottom: 40rpx; }
+.py-xl { padding-top: 48rpx; padding-bottom: 48rpx; }
+
+/* ---------- 边框和圆角类 ---------- */
+
+.rounded-sm { border-radius: 8rpx; }
+.rounded-md { border-radius: 16rpx; }
+.rounded-lg { border-radius: 24rpx; }
+.rounded-xl { border-radius: 32rpx; }
+.rounded-full { border-radius: 9999rpx; }
+
+.border { border: 1rpx solid #E8E8E8; }
+.border-top { border-top: 1rpx solid #E8E8E8; }
+.border-bottom { border-bottom: 1rpx solid #E8E8E8; }
+.border-left { border-left: 1rpx solid #E8E8E8; }
+.border-right { border-right: 1rpx solid #E8E8E8; }
+
+/* ---------- 背景色类 ---------- */
+
+.bg-white { background-color: #FFFFFF; }
+.bg-page { background-color: #FFF8E7; }
+.bg-gray { background-color: #F5F5F5; }
+.bg-primary { background-color: #E67E22; }
+.bg-primary-light { background-color: rgba(230, 126, 34, 0.1); }
+.bg-success { background-color: #27AE60; }
+.bg-warning { background-color: #F39C12; }
+.bg-error { background-color: #E74C3C; }
+
+/* ---------- 显示类 ---------- */
+
+.hidden { display: none !important; }
+.visible { display: block !important; }
+
+/* ---------- 位置类 ---------- */
+
+.relative { position: relative; }
+.absolute { position: absolute; }
+.fixed { position: fixed; }
+.sticky { position: sticky; }
+
+/* ---------- 其他实用类 ---------- */
+
+.safe-area-bottom {
+  padding-bottom: constant(safe-area-inset-bottom);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.img-full { width: 100%; height: 100%; }
+.img-cover { width: 100%; height: 100%; object-fit: cover; }
+
+.divider { height: 1rpx; background-color: #F0E6D2; margin: 0 32rpx; }
+.divider-full { height: 1rpx; background-color: #F0E6D2; }
+
+.card {
+  background-color: #FFFFFF;
+  border-radius: 16rpx;
+  margin: 16rpx 32rpx;
+  padding: 24rpx;
+  box-shadow: 0 2rpx 12rpx rgba(93, 64, 55, 0.08);
+}
+
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 48rpx;
+  font-size: 28rpx;
+  font-weight: 500;
+  height: 80rpx;
+  line-height: 80rpx;
+}
+
+.btn-primary { background-color: #E67E22; color: #FFFFFF; }
+.btn-primary::after { border: none; }
+
+.btn-outline {
+  background-color: transparent;
+  border: 2rpx solid #E67E22;
+  color: #E67E22;
+}
+.btn-outline::after { border: none; }
+
+.btn-disabled { background-color: #BCAAA4; color: #FFFFFF; }
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+  font-size: 20rpx;
+}
+
+.tag-primary { background-color: rgba(230, 126, 34, 0.1); color: #E67E22; }
+.tag-success { background-color: rgba(39, 174, 96, 0.1); color: #27AE60; }
+.tag-warning { background-color: rgba(243, 156, 18, 0.1); color: #F39C12; }
+.tag-error { background-color: rgba(231, 76, 60, 0.1); color: #E74C3C; }

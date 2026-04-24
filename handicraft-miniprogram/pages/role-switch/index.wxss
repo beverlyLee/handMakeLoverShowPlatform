@@ -1,0 +1,206 @@
+/* pages/role-switch/index.wxss */
+
+.role-switch-container {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #FFF8E7 0%, #FFFFFF 100%);
+  padding: 60rpx 32rpx;
+}
+
+.switch-header {
+  text-align: center;
+  margin-bottom: 80rpx;
+}
+
+.switch-icon {
+  font-size: 80rpx;
+  margin-bottom: 24rpx;
+}
+
+.switch-title {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #5D4037;
+  margin-bottom: 12rpx;
+}
+
+.switch-subtitle {
+  font-size: 26rpx;
+  color: #BCAAA4;
+}
+
+.current-role {
+  background-color: #FFFFFF;
+  border-radius: 16rpx;
+  padding: 32rpx;
+  margin-bottom: 48rpx;
+  box-shadow: 0 4rpx 16rpx rgba(93, 64, 55, 0.06);
+}
+
+.current-label {
+  font-size: 24rpx;
+  color: #BCAAA4;
+  margin-bottom: 16rpx;
+}
+
+.current-info {
+  display: flex;
+  align-items: center;
+}
+
+.current-avatar {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  background-color: #F5F5F5;
+  margin-right: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40rpx;
+}
+
+.current-detail {
+  flex: 1;
+}
+
+.current-name {
+  font-size: 30rpx;
+  color: #5D4037;
+  font-weight: 500;
+  margin-bottom: 8rpx;
+}
+
+.current-role-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4rpx 16rpx;
+  background-color: rgba(230, 126, 34, 0.1);
+  border-radius: 8rpx;
+  font-size: 22rpx;
+  color: #E67E22;
+}
+
+.role-options {
+  margin-bottom: 60rpx;
+}
+
+.options-title {
+  font-size: 28rpx;
+  color: #5D4037;
+  font-weight: 500;
+  margin-bottom: 24rpx;
+}
+
+.role-option {
+  background-color: #FFFFFF;
+  border-radius: 16rpx;
+  padding: 32rpx;
+  margin-bottom: 20rpx;
+  display: flex;
+  align-items: center;
+  border: 2rpx solid transparent;
+  box-shadow: 0 2rpx 12rpx rgba(93, 64, 55, 0.04);
+}
+
+.role-option.active {
+  border-color: #E67E22;
+  background-color: rgba(230, 126, 34, 0.05);
+}
+
+.role-option.disabled {
+  opacity: 0.6;
+}
+
+.role-option-icon {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 50%;
+  background-color: #FFFAF0;
+  margin-right: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48rpx;
+}
+
+.role-option.active .role-option-icon {
+  background-color: rgba(230, 126, 34, 0.1);
+}
+
+.role-option-info {
+  flex: 1;
+}
+
+.role-option-name {
+  font-size: 30rpx;
+  color: #5D4037;
+  font-weight: 500;
+  margin-bottom: 8rpx;
+}
+
+.role-option-desc {
+  font-size: 24rpx;
+  color: #BCAAA4;
+}
+
+.role-option-check {
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 50%;
+  border: 2rpx solid #E8E8E8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.role-option.active .role-option-check {
+  background-color: #E67E22;
+  border-color: #E67E22;
+  color: #FFFFFF;
+  font-size: 24rpx;
+}
+
+.switch-tips {
+  background-color: rgba(230, 126, 34, 0.05);
+  border-radius: 12rpx;
+  padding: 24rpx;
+  margin-bottom: 60rpx;
+}
+
+.tips-title {
+  display: flex;
+  align-items: center;
+  font-size: 26rpx;
+  color: #E67E22;
+  font-weight: 500;
+  margin-bottom: 12rpx;
+}
+
+.tips-icon {
+  font-size: 28rpx;
+  margin-right: 8rpx;
+}
+
+.tips-content {
+  font-size: 24rpx;
+  color: #795548;
+  line-height: 1.6;
+}
+
+.confirm-btn {
+  width: 100%;
+  height: 96rpx;
+  line-height: 96rpx;
+  text-align: center;
+  background: linear-gradient(135deg, #E67E22 0%, #F39C12 100%);
+  color: #FFFFFF;
+  border-radius: 48rpx;
+  font-size: 32rpx;
+  font-weight: 500;
+  box-shadow: 0 8rpx 24rpx rgba(230, 126, 34, 0.3);
+}
+
+.confirm-btn.disabled {
+  background: #BCAAA4;
+  box-shadow: none;
+}

@@ -1,0 +1,58 @@
+{
+  "pages": [
+    "pages/home/index",
+    "pages/search/index",
+    "pages/favorites/index",
+    "pages/user-center/index",
+    "pages/product-detail/index",
+    "pages/search-result/index",
+    "pages/login/index",
+    "pages/register/index",
+    "pages/profile-edit/index",
+    "pages/order-list/index",
+    "pages/order-detail/index",
+    "pages/order-create/index",
+    "pages/address-list/index",
+    "pages/address-edit/index",
+    "pages/teacher-products/index",
+    "pages/product-publish/index",
+    "pages/teacher-orders/index",
+    "pages/teacher-home/index",
+    "pages/role-switch/index",
+    "pages/message-list/index",
+    "pages/message-detail/index"
+  ],
+  "window": {
+    "navigationBarBackgroundColor": "#795548",
+    "navigationBarTitleText": "手工爱好者平台",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#FFF8E7",
+    "backgroundTextStyle": "dark"
+  },
+  "tabBar": {
+    "color": "#BCAAA4",
+    "selectedColor": "#E67E22",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/home/index",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/search/index",
+        "text": "发现"
+      },
+      {
+        "pagePath": "pages/favorites/index",
+        "text": "收藏"
+      },
+      {
+        "pagePath": "pages/user-center/index",
+        "text": "我的"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

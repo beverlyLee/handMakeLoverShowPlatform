@@ -1,0 +1,26 @@
+<view wx:if="{{isVisible}}" class="action-sheet" catchtouchmove="preventDefault">
+  <view 
+    class="action-mask {{showAnimation ? 'fadeIn' : 'fadeOut'}}" 
+    bindtap="onMaskTap"
+  ></view>
+  <view class="action-content {{showAnimation ? 'slideUp' : 'slideDown'}}">
+    <view wx:if="{{title}}" class="action-title">{{title}}</view>
+    
+    <view class="action-list">
+      <view 
+        wx:for="{{actions}}" 
+        wx:key="index"
+        class="action-item {{item.danger ? 'danger' : ''}} {{item.disabled ? 'disabled' : ''}}"
+        data-index="{{index}}"
+        bindtap="onActionTap"
+      >
+        <text wx:if="{{item.icon}}" class="action-icon">{{item.icon}}</text>
+        <text class="action-text">{{item.name}}</text>
+      </view>
+    </view>
+    
+    <view wx:if="{{showCancel}}" class="action-cancel">
+      <view class="cancel-item" bindtap="onCancelTap">{{cancelText}}</view>
+    </view>
+  </view>
+</view>
