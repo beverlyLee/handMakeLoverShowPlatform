@@ -1,0 +1,24 @@
+<view class="home-container">
+  <view class="welcome-section">
+    <text class="welcome-text">{{welcomeText}}</text>
+  </view>
+  
+  <view class="description-section">
+    <text class="description-text">在这里，您可以分享您的手工作品，与其他手工爱好者交流学习，发现更多创意灵感！</text>
+  </view>
+  
+  <view class="features-section">
+    <view class="feature-item">
+      <text class="feature-icon">🎨</text>
+      <text class="feature-title">作品展示</text>
+    </view>
+    <view class="feature-item">
+      <text class="feature-icon">💬</text>
+      <text class="feature-title">交流互动</text>
+    </view>
+    <view class="feature-item">
+      <text class="feature-icon">🛒</text>
+      <text class="feature-title">手作市集</text>
+    </view>
+  </view>
+</view>

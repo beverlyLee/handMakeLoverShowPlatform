@@ -1,0 +1,14 @@
+{
+  "pages": [
+    "pages/home/index"
+  ],
+  "window": {
+    "navigationBarBackgroundColor": "#795548",
+    "navigationBarTitleText": "手工爱好者平台",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#FFF8E7",
+    "backgroundTextStyle": "dark"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}
