@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-
-=======
 # 手工爱好者展示平台
 
 ## 项目简介
@@ -20,25 +17,25 @@
 
 ### 前端技术栈
 
-| 技术 | 版本 | 说明 |
-|------|------|------|
-| 微信小程序 | - | 原生开发框架 |
-| 微信开发者工具 | 最新版 | 开发调试工具 |
-| WXML/WXSS | - | 小程序标记语言和样式语言 |
-| JavaScript | ES6+ | 小程序逻辑开发 |
+| 技术         | 版本   | 说明           |
+| ---------- | ---- | ------------ |
+| 微信小程序      | -    | 原生开发框架       |
+| 微信开发者工具    | 最新版  | 开发调试工具       |
+| WXML/WXSS  | -    | 小程序标记语言和样式语言 |
+| JavaScript | ES6+ | 小程序逻辑开发      |
 
 ### 后端技术栈
 
-| 技术 | 版本 | 说明 |
-|------|------|------|
-| Python | 3.8+ | 开发语言 |
-| Flask | 2.0+ | Web框架 |
-| SQLite | - | 开发环境数据库 |
-| MySQL | 5.7+ | 生产环境数据库 |
-| Flask-RESTful | - | RESTful API扩展 |
-| Flask-JWT-Extended | - | JWT身份认证 |
-| Flask-SQLAlchemy | - | ORM框架 |
-| Flask-CORS | - | 跨域支持 |
+| 技术                 | 版本   | 说明            |
+| ------------------ | ---- | ------------- |
+| Python             | 3.8+ | 开发语言          |
+| Flask              | 2.0+ | Web框架         |
+| SQLite             | -    | 开发环境数据库       |
+| MySQL              | 5.7+ | 生产环境数据库       |
+| Flask-RESTful      | -    | RESTful API扩展 |
+| Flask-JWT-Extended | -    | JWT身份认证       |
+| Flask-SQLAlchemy   | -    | ORM框架         |
+| Flask-CORS         | -    | 跨域支持          |
 
 ### 开发工具
 
@@ -52,6 +49,7 @@
 ### 客户功能模块
 
 #### 1. 作品浏览与搜索
+
 - 首页作品列表展示（按分类、热门、最新排序）
 - 作品分类筛选（手工饰品、手工皮具、陶艺、编织等）
 - 关键词搜索功能
@@ -59,6 +57,7 @@
 - 作品详情查看（价格、材料、制作周期、创作者信息）
 
 #### 2. 个人中心
+
 - 微信授权登录
 - 个人信息查看与编辑
 - 我的收藏夹
@@ -67,6 +66,7 @@
 - 系统消息通知
 
 #### 3. 订单管理
+
 - 创建订单（选择作品、确认地址、选择数量）
 - 订单状态跟踪
 - 订单详情查看
@@ -74,6 +74,7 @@
 - 订单取消（未付款状态）
 
 #### 4. 地址管理
+
 - 收货地址列表
 - 新增收货地址
 - 编辑收货地址
@@ -83,22 +84,26 @@
 ### 老师/创作者功能模块
 
 #### 1. 作品管理
+
 - 作品发布（上传图片、填写详情、设置价格、分类）
 - 作品列表管理（上下架、编辑、删除）
 - 作品库存管理
 - 作品销量统计
 
 #### 2. 订单管理
+
 - 订单列表查看（按状态筛选）
 - 订单详情查看
 - 订单状态更新（确认订单、发货、完成订单）
 - 订单消息通知
 
 #### 3. 角色切换
+
 - 客户/老师身份切换
 - 角色权限控制
 
 #### 4. 老师主页
+
 - 个人店铺展示
 - 作品列表展示
 - 店铺信息编辑
@@ -107,21 +112,25 @@
 ### 通用功能模块
 
 #### 1. 用户认证
+
 - 微信小程序授权登录
 - 手机号绑定
 - 登录状态维护
 - 权限控制
 
 #### 2. 收藏功能
+
 - 作品收藏/取消收藏
 - 收藏列表查看
 
 #### 3. 消息通知
+
 - 系统消息
 - 订单状态变更通知
 - 新订单提醒
 
 #### 4. 搜索功能
+
 - 作品关键词搜索
 - 搜索历史记录
 - 热门搜索推荐
@@ -204,24 +213,25 @@ handMakeLoverShowPlatform/
 }
 ```
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| code | int | 状态码，0表示成功，非0表示失败 |
-| msg | string | 消息描述 |
-| data | object/array | 返回数据 |
+| 字段   | 类型           | 说明               |
+| ---- | ------------ | ---------------- |
+| code | int          | 状态码，0表示成功，非0表示失败 |
+| msg  | string       | 消息描述             |
+| data | object/array | 返回数据             |
 
 ### 认证模块 (auth.py)
 
-| 接口 | 方法 | 描述 | 需要登录 |
-|------|------|------|----------|
-| `/api/auth/login` | POST | 微信登录 | 否 |
-| `/api/auth/register` | POST | 用户注册 | 否 |
-| `/api/auth/refresh` | POST | 刷新Token | 否 |
-| `/api/auth/profile` | GET | 获取当前用户信息 | 是 |
+| 接口                   | 方法   | 描述       | 需要登录 |
+| -------------------- | ---- | -------- | ---- |
+| `/api/auth/login`    | POST | 微信登录     | 否    |
+| `/api/auth/register` | POST | 用户注册     | 否    |
+| `/api/auth/refresh`  | POST | 刷新Token  | 否    |
+| `/api/auth/profile`  | GET  | 获取当前用户信息 | 是    |
 
 #### 登录接口示例
 
 **请求**：
+
 ```
 POST /api/auth/login
 Content-Type: application/json
@@ -234,6 +244,7 @@ Content-Type: application/json
 ```
 
 **响应**：
+
 ```json
 {
     "code": 0,
@@ -253,46 +264,49 @@ Content-Type: application/json
 
 ### 用户模块 (users.py)
 
-| 接口 | 方法 | 描述 | 需要登录 |
-|------|------|------|----------|
-| `/api/users/profile` | GET | 获取用户信息 | 是 |
-| `/api/users/profile` | PUT | 更新用户信息 | 是 |
-| `/api/users/role` | PUT | 切换角色 | 是 |
-| `/api/users/address` | GET | 获取地址列表 | 是 |
-| `/api/users/address` | POST | 新增地址 | 是 |
-| `/api/users/address/<id>` | PUT | 更新地址 | 是 |
-| `/api/users/address/<id>` | DELETE | 删除地址 | 是 |
-| `/api/users/address/<id>/default` | PUT | 设为默认地址 | 是 |
+| 接口                                | 方法     | 描述     | 需要登录 |
+| --------------------------------- | ------ | ------ | ---- |
+| `/api/users/profile`              | GET    | 获取用户信息 | 是    |
+| `/api/users/profile`              | PUT    | 更新用户信息 | 是    |
+| `/api/users/role`                 | PUT    | 切换角色   | 是    |
+| `/api/users/address`              | GET    | 获取地址列表 | 是    |
+| `/api/users/address`              | POST   | 新增地址   | 是    |
+| `/api/users/address/<id>`         | PUT    | 更新地址   | 是    |
+| `/api/users/address/<id>`         | DELETE | 删除地址   | 是    |
+| `/api/users/address/<id>/default` | PUT    | 设为默认地址 | 是    |
 
 ### 作品模块 (products.py)
 
-| 接口 | 方法 | 描述 | 需要登录 |
-|------|------|------|----------|
-| `/api/products` | GET | 获取作品列表 | 否 |
-| `/api/products/<id>` | GET | 获取作品详情 | 否 |
-| `/api/products` | POST | 发布作品 | 是（老师） |
-| `/api/products/<id>` | PUT | 更新作品 | 是（老师） |
-| `/api/products/<id>` | DELETE | 删除作品 | 是（老师） |
-| `/api/products/categories` | GET | 获取作品分类 | 否 |
-| `/api/products/my` | GET | 获取我的作品 | 是（老师） |
+| 接口                         | 方法     | 描述     | 需要登录  |
+| -------------------------- | ------ | ------ | ----- |
+| `/api/products`            | GET    | 获取作品列表 | 否     |
+| `/api/products/<id>`       | GET    | 获取作品详情 | 否     |
+| `/api/products`            | POST   | 发布作品   | 是（老师） |
+| `/api/products/<id>`       | PUT    | 更新作品   | 是（老师） |
+| `/api/products/<id>`       | DELETE | 删除作品   | 是（老师） |
+| `/api/products/categories` | GET    | 获取作品分类 | 否     |
+| `/api/products/my`         | GET    | 获取我的作品 | 是（老师） |
 
 #### 获取作品列表接口示例
 
 **请求**：
+
 ```
 GET /api/products?page=1&size=10&category=1&sort=new
 ```
 
 **参数**：
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| page | int | 否 | 页码，默认1 |
-| size | int | 否 | 每页数量，默认10 |
-| category | int | 否 | 分类ID |
-| sort | string | 否 | 排序方式：new(最新), hot(热门), price_asc(价格升序), price_desc(价格降序) |
-| keyword | string | 否 | 搜索关键词 |
+
+| 参数       | 类型     | 必填 | 说明                                                         |
+| -------- | ------ | -- | ---------------------------------------------------------- |
+| page     | int    | 否  | 页码，默认1                                                     |
+| size     | int    | 否  | 每页数量，默认10                                                  |
+| category | int    | 否  | 分类ID                                                       |
+| sort     | string | 否  | 排序方式：new(最新), hot(热门), price\_asc(价格升序), price\_desc(价格降序) |
+| keyword  | string | 否  | 搜索关键词                                                      |
 
 **响应**：
+
 ```json
 {
     "code": 0,
@@ -327,21 +341,22 @@ GET /api/products?page=1&size=10&category=1&sort=new
 
 ### 订单模块 (orders.py)
 
-| 接口 | 方法 | 描述 | 需要登录 |
-|------|------|------|----------|
-| `/api/orders` | GET | 获取订单列表 | 是 |
-| `/api/orders/<id>` | GET | 获取订单详情 | 是 |
-| `/api/orders` | POST | 创建订单 | 是 |
-| `/api/orders/<id>/cancel` | POST | 取消订单 | 是 |
-| `/api/orders/<id>/pay` | POST | 支付订单 | 是 |
-| `/api/orders/<id>/confirm` | POST | 确认收货 | 是 |
-| `/api/orders/<id>/review` | POST | 评价订单 | 是 |
-| `/api/orders/<id>/status` | PUT | 更新订单状态 | 是（老师） |
-| `/api/orders/teacher` | GET | 获取老师订单列表 | 是（老师） |
+| 接口                         | 方法   | 描述       | 需要登录  |
+| -------------------------- | ---- | -------- | ----- |
+| `/api/orders`              | GET  | 获取订单列表   | 是     |
+| `/api/orders/<id>`         | GET  | 获取订单详情   | 是     |
+| `/api/orders`              | POST | 创建订单     | 是     |
+| `/api/orders/<id>/cancel`  | POST | 取消订单     | 是     |
+| `/api/orders/<id>/pay`     | POST | 支付订单     | 是     |
+| `/api/orders/<id>/confirm` | POST | 确认收货     | 是     |
+| `/api/orders/<id>/review`  | POST | 评价订单     | 是     |
+| `/api/orders/<id>/status`  | PUT  | 更新订单状态   | 是（老师） |
+| `/api/orders/teacher`      | GET  | 获取老师订单列表 | 是（老师） |
 
 #### 创建订单接口示例
 
 **请求**：
+
 ```
 POST /api/orders
 Content-Type: application/json
@@ -356,6 +371,7 @@ Authorization: Bearer <token>
 ```
 
 **响应**：
+
 ```json
 {
     "code": 0,
@@ -370,110 +386,110 @@ Authorization: Bearer <token>
 
 ### 订单状态说明
 
-| 状态码 | 状态值 | 说明 |
-|--------|--------|------|
-| pending_payment | 待付款 | 订单创建后，等待用户付款 |
-| pending_confirm | 待确认 | 已付款，等待老师确认订单 |
-| pending_shipment | 待发货 | 老师已确认，等待发货 |
-| shipped | 已发货 | 已发货，等待收货 |
-| completed | 已完成 | 已确认收货 |
-| cancelled | 已取消 | 订单已取消 |
+| 状态码               | 状态值 | 说明           |
+| ----------------- | --- | ------------ |
+| pending\_payment  | 待付款 | 订单创建后，等待用户付款 |
+| pending\_confirm  | 待确认 | 已付款，等待老师确认订单 |
+| pending\_shipment | 待发货 | 老师已确认，等待发货   |
+| shipped           | 已发货 | 已发货，等待收货     |
+| completed         | 已完成 | 已确认收货        |
+| cancelled         | 已取消 | 订单已取消        |
 
 ### 收藏模块 (favorites.py)
 
-| 接口 | 方法 | 描述 | 需要登录 |
-|------|------|------|----------|
-| `/api/favorites` | GET | 获取收藏列表 | 是 |
-| `/api/favorites` | POST | 添加收藏 | 是 |
-| `/api/favorites/<product_id>` | DELETE | 取消收藏 | 是 |
+| 接口                            | 方法     | 描述     | 需要登录 |
+| ----------------------------- | ------ | ------ | ---- |
+| `/api/favorites`              | GET    | 获取收藏列表 | 是    |
+| `/api/favorites`              | POST   | 添加收藏   | 是    |
+| `/api/favorites/<product_id>` | DELETE | 取消收藏   | 是    |
 
 ### 搜索模块 (search.py)
 
-| 接口 | 方法 | 描述 | 需要登录 |
-|------|------|------|----------|
-| `/api/search` | GET | 搜索作品 | 否 |
-| `/api/search/history` | GET | 获取搜索历史 | 是 |
-| `/api/search/hot` | GET | 获取热门搜索 | 否 |
+| 接口                    | 方法  | 描述     | 需要登录 |
+| --------------------- | --- | ------ | ---- |
+| `/api/search`         | GET | 搜索作品   | 否    |
+| `/api/search/history` | GET | 获取搜索历史 | 是    |
+| `/api/search/hot`     | GET | 获取热门搜索 | 否    |
 
 ### 消息模块 (messages.py)
 
-| 接口 | 方法 | 描述 | 需要登录 |
-|------|------|------|----------|
-| `/api/messages` | GET | 获取消息列表 | 是 |
-| `/api/messages/<id>` | GET | 获取消息详情 | 是 |
-| `/api/messages/<id>/read` | PUT | 标记已读 | 是 |
-| `/api/messages/unread` | GET | 获取未读数量 | 是 |
+| 接口                        | 方法  | 描述     | 需要登录 |
+| ------------------------- | --- | ------ | ---- |
+| `/api/messages`           | GET | 获取消息列表 | 是    |
+| `/api/messages/<id>`      | GET | 获取消息详情 | 是    |
+| `/api/messages/<id>/read` | PUT | 标记已读   | 是    |
+| `/api/messages/unread`    | GET | 获取未读数量 | 是    |
 
 ## 数据库设计
 
 ### 用户表 (users)
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | Integer | 主键 |
-| openid | String(64) | 微信openid |
-| unionid | String(64) | 微信unionid |
-| nickname | String(64) | 昵称 |
-| avatar | String(255) | 头像URL |
-| phone | String(20) | 手机号 |
-| role | String(20) | 角色：customer/teacher |
-| is_teacher | Boolean | 是否为老师 |
-| teacher_verified | Boolean | 老师认证状态 |
-| introduction | Text | 个人简介 |
-| created_at | DateTime | 创建时间 |
-| updated_at | DateTime | 更新时间 |
+| 字段                | 类型          | 说明                  |
+| ----------------- | ----------- | ------------------- |
+| id                | Integer     | 主键                  |
+| openid            | String(64)  | 微信openid            |
+| unionid           | String(64)  | 微信unionid           |
+| nickname          | String(64)  | 昵称                  |
+| avatar            | String(255) | 头像URL               |
+| phone             | String(20)  | 手机号                 |
+| role              | String(20)  | 角色：customer/teacher |
+| is\_teacher       | Boolean     | 是否为老师               |
+| teacher\_verified | Boolean     | 老师认证状态              |
+| introduction      | Text        | 个人简介                |
+| created\_at       | DateTime    | 创建时间                |
+| updated\_at       | DateTime    | 更新时间                |
 
 ### 作品表 (products)
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | Integer | 主键 |
-| teacher_id | Integer | 创作者ID |
-| category_id | Integer | 分类ID |
-| title | String(128) | 作品标题 |
-| description | Text | 作品描述 |
-| price | Decimal(10,2) | 价格 |
-| original_price | Decimal(10,2) | 原价 |
-| stock | Integer | 库存 |
-| sales | Integer | 销量 |
-| cover | String(255) | 封面图 |
-| images | Text | 详情图（JSON数组） |
-| material | String(128) | 材料 |
-| craft | String(128) | 工艺 |
-| production_cycle | String(64) | 制作周期 |
-| is_on_sale | Boolean | 是否上架 |
-| is_hot | Boolean | 是否热门 |
-| view_count | Integer | 浏览量 |
-| favorite_count | Integer | 收藏量 |
-| created_at | DateTime | 创建时间 |
-| updated_at | DateTime | 更新时间 |
+| 字段                | 类型            | 说明          |
+| ----------------- | ------------- | ----------- |
+| id                | Integer       | 主键          |
+| teacher\_id       | Integer       | 创作者ID       |
+| category\_id      | Integer       | 分类ID        |
+| title             | String(128)   | 作品标题        |
+| description       | Text          | 作品描述        |
+| price             | Decimal(10,2) | 价格          |
+| original\_price   | Decimal(10,2) | 原价          |
+| stock             | Integer       | 库存          |
+| sales             | Integer       | 销量          |
+| cover             | String(255)   | 封面图         |
+| images            | Text          | 详情图（JSON数组） |
+| material          | String(128)   | 材料          |
+| craft             | String(128)   | 工艺          |
+| production\_cycle | String(64)    | 制作周期        |
+| is\_on\_sale      | Boolean       | 是否上架        |
+| is\_hot           | Boolean       | 是否热门        |
+| view\_count       | Integer       | 浏览量         |
+| favorite\_count   | Integer       | 收藏量         |
+| created\_at       | DateTime      | 创建时间        |
+| updated\_at       | DateTime      | 更新时间        |
 
 ### 订单表 (orders)
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | Integer | 主键 |
-| order_no | String(32) | 订单号 |
-| customer_id | Integer | 客户ID |
-| teacher_id | Integer | 老师ID |
-| product_id | Integer | 作品ID |
-| product_title | String(128) | 作品标题快照 |
-| product_price | Decimal(10,2) | 作品价格快照 |
-| product_image | String(255) | 作品图片快照 |
-| quantity | Integer | 数量 |
-| total_amount | Decimal(10,2) | 订单总金额 |
-| status | String(32) | 订单状态 |
-| address_name | String(64) | 收货人姓名 |
-| address_phone | String(20) | 收货人电话 |
-| address_detail | String(255) | 收货地址详情 |
-| remark | String(512) | 备注 |
-| cancel_reason | String(255) | 取消原因 |
-| payment_time | DateTime | 付款时间 |
-| confirm_time | DateTime | 确认时间 |
-| ship_time | DateTime | 发货时间 |
-| complete_time | DateTime | 完成时间 |
-| created_at | DateTime | 创建时间 |
-| updated_at | DateTime | 更新时间 |
+| 字段              | 类型            | 说明     |
+| --------------- | ------------- | ------ |
+| id              | Integer       | 主键     |
+| order\_no       | String(32)    | 订单号    |
+| customer\_id    | Integer       | 客户ID   |
+| teacher\_id     | Integer       | 老师ID   |
+| product\_id     | Integer       | 作品ID   |
+| product\_title  | String(128)   | 作品标题快照 |
+| product\_price  | Decimal(10,2) | 作品价格快照 |
+| product\_image  | String(255)   | 作品图片快照 |
+| quantity        | Integer       | 数量     |
+| total\_amount   | Decimal(10,2) | 订单总金额  |
+| status          | String(32)    | 订单状态   |
+| address\_name   | String(64)    | 收货人姓名  |
+| address\_phone  | String(20)    | 收货人电话  |
+| address\_detail | String(255)   | 收货地址详情 |
+| remark          | String(512)   | 备注     |
+| cancel\_reason  | String(255)   | 取消原因   |
+| payment\_time   | DateTime      | 付款时间   |
+| confirm\_time   | DateTime      | 确认时间   |
+| ship\_time      | DateTime      | 发货时间   |
+| complete\_time  | DateTime      | 完成时间   |
+| created\_at     | DateTime      | 创建时间   |
+| updated\_at     | DateTime      | 更新时间   |
 
 ### 其他表
 
@@ -514,11 +530,13 @@ python3 -m venv venv
 #### 3. 激活虚拟环境
 
 **macOS/Linux**：
+
 ```bash
 source venv/bin/activate
 ```
 
 **Windows**：
+
 ```bash
 venv\Scripts\activate
 ```
@@ -611,9 +629,9 @@ export default config;
 
 - 遵循 PEP 8 规范
 - 使用 4 空格缩进
-- 变量命名使用 snake_case
+- 变量命名使用 snake\_case
 - 类命名使用 PascalCase
-- 常量命名使用 UPPER_SNAKE_CASE
+- 常量命名使用 UPPER\_SNAKE\_CASE
 
 #### API设计规范
 
@@ -646,26 +664,26 @@ export default config;
 
 #### 错误码定义
 
-| 错误码 | 说明 |
-|--------|------|
-| 0 | 成功 |
-| 1001 | 参数错误 |
-| 1002 | 缺少必要参数 |
-| 2001 | 未登录 |
-| 2002 | Token无效 |
+| 错误码  | 说明       |
+| ---- | -------- |
+| 0    | 成功       |
+| 1001 | 参数错误     |
+| 1002 | 缺少必要参数   |
+| 2001 | 未登录      |
+| 2002 | Token无效  |
 | 2003 | Token已过期 |
-| 2004 | 权限不足 |
-| 3001 | 用户不存在 |
-| 3002 | 密码错误 |
-| 3003 | 用户已存在 |
-| 4001 | 作品不存在 |
-| 4002 | 作品已下架 |
-| 4003 | 库存不足 |
-| 5001 | 订单不存在 |
-| 5002 | 订单状态错误 |
-| 5003 | 订单已取消 |
-| 9001 | 服务器内部错误 |
-| 9002 | 数据库操作失败 |
+| 2004 | 权限不足     |
+| 3001 | 用户不存在    |
+| 3002 | 密码错误     |
+| 3003 | 用户已存在    |
+| 4001 | 作品不存在    |
+| 4002 | 作品已下架    |
+| 4003 | 库存不足     |
+| 5001 | 订单不存在    |
+| 5002 | 订单状态错误   |
+| 5003 | 订单已取消    |
+| 9001 | 服务器内部错误  |
+| 9002 | 数据库操作失败  |
 
 ### 前端开发规范
 
@@ -806,8 +824,8 @@ server {
 
 ## 版本历史
 
-| 版本 | 日期 | 更新内容 |
-|------|------|----------|
+| 版本     | 日期         | 更新内容          |
+| ------ | ---------- | ------------- |
 | v1.0.0 | 2024-01-15 | 初始版本，完成基础功能架构 |
 
 ## 技术支持
@@ -832,7 +850,7 @@ server {
 - 微信小程序团队提供开发平台
 - 所有贡献者的参与和支持
 
----
+***
 
 **注意**：本项目仅供学习和交流使用，请勿用于商业用途。如有商业需求，请联系开发者获取授权。
->>>>>>> backend-user-info-api
+
