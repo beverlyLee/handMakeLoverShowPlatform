@@ -1,5 +1,4 @@
 <view class="user-center-container">
-  <!-- 用户头像区域 -->
   <view class="user-header-section">
     <view class="avatar-wrapper" bindtap="chooseAvatar">
       <image class="user-avatar" src="{{userInfo.avatar || defaultAvatar}}" mode="aspectFill" />
@@ -10,13 +9,62 @@
     </view>
     <view class="user-basic-info">
       <text class="user-nickname">{{userInfo.nickname || '手作爱好者'}}</text>
-      <view class="user-role-badge">
-        <text class="role-text">{{userInfo.role === 'teacher' ? '手作老师' : '手作爱好者'}}</text>
+      <view class="user-role-section">
+        <view class="user-role-badge {{currentRole === 'teacher' ? 'role-teacher' : 'role-customer'}}">
+          <text class="role-text">{{currentRole === 'teacher' ? '手作老师' : '普通用户'}}</text>
+        </view>
+        <view 
+          class="role-switch-btn {{!canSwitchRole ? 'role-switch-btn-disabled' : ''}}" 
+          bindtap="onTapRoleSwitch"
+        >
+          <text class="switch-icon">🔄</text>
+          <text class="switch-text">{{canSwitchRole ? '切换身份' : '切换身份'}}</text>
+        </view>
       </view>
     </view>
   </view>
 
-  <!-- 个人信息卡片 -->
+  <view class="teacher-stats-section" wx:if="{{currentRole === 'teacher'}}">
+    <view class="stats-header">
+      <text class="stats-icon">📊</text>
+      <text class="stats-title">订单数据</text>
+    </view>
+    <view class="stats-grid">
+      <view class="stat-item">
+        <text class="stat-value">{{orderStats.total || 0}}</text>
+        <text class="stat-label">总订单</text>
+      </view>
+      <view class="stat-item">
+        <text class="stat-value stat-value-paid">{{orderStats.paid || 0}}</text>
+        <text class="stat-label">待发货</text>
+      </view>
+      <view class="stat-item">
+        <text class="stat-value stat-value-shipped">{{orderStats.shipped || 0}}</text>
+        <text class="stat-label">待收货</text>
+      </view>
+      <view class="stat-item">
+        <text class="stat-value stat-value-amount">¥{{orderStats.total_amount || 0}}</text>
+        <text class="stat-label">总收入</text>
+      </view>
+    </view>
+    <view class="view-orders-btn" bindtap="onTapViewOrders">
+      <text class="view-orders-text">查看全部订单</text>
+      <text class="view-orders-arrow">›</text>
+    </view>
+  </view>
+
+
+  <view class="apply-teacher-section" wx:if="{{currentRole === 'customer' && !isTeacher}}">
+    <view class="apply-card" bindtap="onTapApplyTeacher">
+      <view class="apply-icon">🎨</view>
+      <view class="apply-content">
+        <text class="apply-title">成为手作老师</text>
+        <text class="apply-desc">分享您的手作技艺，开启创作赚钱之旅</text>
+      </view>
+      <view class="apply-arrow">›</view>
+    </view>
+  </view>
+
   <view class="info-card-section">
     <view class="card-header">
       <view class="header-left">
@@ -93,7 +141,6 @@
     </view>
   </view>
 
-  <!-- 个人简介卡片 -->
   <view class="bio-card-section">
     <view class="card-header">
       <view class="header-left">
@@ -113,7 +160,6 @@
     </view>
   </view>
 
-  <!-- 快捷入口 -->
   <view class="quick-actions-section">
     <view class="card-header">
       <view class="header-left">
@@ -149,7 +195,6 @@
     </view>
   </view>
 
-  <!-- 退出登录按钮 -->
   <view class="logout-section">
     <button class="logout-btn" bindtap="handleLogout">
       <text class="logout-icon">🚪</text>
@@ -157,7 +202,6 @@
     </button>
   </view>
 
-  <!-- 底部装饰 -->
   <view class="bottom-decorator">
     <view class="decorator-icons">
       <text class="decor-icon">🧶</text>
@@ -170,7 +214,6 @@
   </view>
 </view>
 
-<!-- 编辑弹窗 -->
 <view class="edit-dialog-mask" wx:if="{{showEditDialog}}" catchtouchmove="preventMove">
   <view class="edit-dialog">
     <view class="dialog-header">
@@ -210,7 +253,22 @@
   </view>
 </view>
 
-<!-- 性别选择器 -->
+<view class="role-switch-dialog-mask" wx:if="{{showRoleSwitchDialog}}" catchtouchmove="preventMove">
+  <view class="role-switch-dialog">
+    <view class="switch-dialog-icon">🔄</view>
+    <text class="switch-dialog-title">确认切换身份</text>
+    <text class="switch-dialog-desc">
+      确定要切换到 {{targetRole === 'teacher' ? '手作老师' : '普通用户'}} 身份吗？
+    </text>
+    <view class="switch-dialog-btns">
+      <button class="switch-btn switch-btn-cancel" bindtap="closeRoleSwitchDialog">取消</button>
+      <button class="switch-btn switch-btn-confirm" bindtap="confirmSwitchRole" disabled="{{isSwitching}}">
+        <text class="switch-btn-text">{{isSwitching ? '切换中...' : '确认切换'}}</text>
+      </button>
+    </view>
+  </view>
+</view>
+
 <picker 
   wx:if="{{showGenderPicker}}"
   mode="selector" 

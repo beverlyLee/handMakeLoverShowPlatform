@@ -7,6 +7,8 @@ mock_user = {
     'email': 'handmade@example.com',
     'gender': 1,
     'role': 'customer',
+    'roles': ['customer'],
+    'current_role': 'customer',
     'bio': '热爱手作，喜欢制作各种手工制品',
     'create_time': '2024-01-15 10:30:00'
 }
@@ -21,6 +23,8 @@ mock_users = [
         'email': 'handmade@example.com',
         'gender': 1,
         'role': 'customer',
+        'roles': ['customer'],
+        'current_role': 'customer',
         'bio': '热爱手作，喜欢制作各种手工制品',
         'create_time': '2024-01-15 10:30:00'
     },
@@ -33,6 +37,22 @@ mock_users = [
         'email': 'craftmaster@example.com',
         'gender': 2,
         'role': 'teacher',
+        'roles': ['customer', 'teacher'],
+        'current_role': 'teacher',
+        'teacher_info': {
+            'teacher_id': 'T202306200001',
+            'real_name': '李艺',
+            'id_card': '110101199001011234',
+            'phone': '139****9999',
+            'specialties': ['编织', '陶艺', '刺绣'],
+            'intro': '资深手作老师，拥有10年手作教学经验',
+            'work_photos': [
+                'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=handmade%20craft%20workshop%20studio&image_size=square_hd',
+                'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=crafts%20display%20showcase&image_size=square_hd'
+            ],
+            'verified': True,
+            'verify_time': '2023-06-20 10:00:00'
+        },
         'bio': '资深手作老师，擅长编织、陶艺等多种手作技艺',
         'create_time': '2023-06-20 09:15:00'
     },
@@ -45,6 +65,8 @@ mock_users = [
         'email': 'diylover@example.com',
         'gender': 0,
         'role': 'customer',
+        'roles': ['customer'],
+        'current_role': 'customer',
         'bio': '喜欢尝试各种DIY项目，享受动手创造的乐趣',
         'create_time': '2024-03-10 14:45:00'
     }

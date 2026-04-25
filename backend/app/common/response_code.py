@@ -25,6 +25,7 @@ class ResponseCode(Enum):
     
     PERMISSION_DENIED = 5001
     ROLE_NOT_ALLOWED = 5002
+    OPERATION_FAILED = 5003
     
     SYSTEM_ERROR = 9999
 
@@ -53,5 +54,6 @@ class ResponseCodeMsg(Enum):
     
     PERMISSION_DENIED = "权限不足"
     ROLE_NOT_ALLOWED = "角色不允许"
+    OPERATION_FAILED = "操作失败"
     
     SYSTEM_ERROR = "系统错误"

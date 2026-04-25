@@ -16,11 +16,41 @@ function updateUserInfo(data) {
 }
 
 /**
+ * 获取用户角色信息
+ */
+function getUserRoles() {
+  return get('/users/roles');
+}
+
+/**
  * 切换角色
  * @param {Object} data - { role: 'customer' | 'teacher' }
  */
 function switchRole(data) {
   return put('/users/role', data);
+}
+
+/**
+ * 验证手作老师身份
+ * @param {Object} data
+ */
+function verifyTeacherIdentity(data) {
+  return post('/users/teacher/verify', data);
+}
+
+/**
+ * 申请成为手作老师（入驻）
+ * @param {Object} data
+ */
+function applyTeacher(data) {
+  return post('/users/teacher/apply', data);
+}
+
+/**
+ * 获取手作老师信息
+ */
+function getTeacherInfo() {
+  return get('/users/teacher/info');
 }
 
 /**
@@ -66,7 +96,11 @@ function setDefaultAddress(addressId) {
 module.exports = {
   getUserInfo,
   updateUserInfo,
+  getUserRoles,
   switchRole,
+  verifyTeacherIdentity,
+  applyTeacher,
+  getTeacherInfo,
   getAddressList,
   createAddress,
   updateAddress,

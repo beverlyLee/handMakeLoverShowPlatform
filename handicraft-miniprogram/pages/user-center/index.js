@@ -1,4 +1,5 @@
-const { getUserInfo, updateUserInfo } = require('../../api/users');
+const { getUserInfo, updateUserInfo, switchRole, getUserRoles } = require('../../api/users');
+const { getTeacherOrderStats } = require('../../api/orders');
 const { logout } = require('../../api/auth');
 const { showToast } = require('../../utils/util');
 const storage = require('../../utils/storage');
@@ -18,9 +19,23 @@ Page({
     showGenderPicker: false,
     genderOptions: [
       { value: 0, label: '未知' },
-      { value: 1, label: '男' },      { value: 2, label: '女' }
+      { value: 1, label: '男' },
+      { value: 2, label: '女' }
     ],
-    bioLength: 0
+    bioLength: 0,
+
+    canSwitchRole: false,
+    userRoles: [],
+    currentRole: 'customer',
+    showRoleSwitchDialog: false,
+    targetRole: '',
+    isSwitching: false,
+
+    orderStats: {},
+
+    isTeacher: false,
+    isCustomer: true,
+    hasMultipleRoles: false
   },
 
   onLoad() {
@@ -39,6 +54,7 @@ Page({
 
   onShow() {
     console.log('用户中心页面显示');
+    this.loadUserInfo();
   },
 
   onReady() {
@@ -59,19 +75,49 @@ Page({
       console.log('获取用户信息成功:', userInfo);
 
       const genderText = this.getGenderText(userInfo.gender);
-
       const bioLength = (userInfo.bio || '').length;
+
+      const roles = userInfo.roles || ['customer'];
+      const currentRole = userInfo.current_role || userInfo.role || 'customer';
+      const hasMultipleRoles = roles.length > 1;
+      const isTeacher = roles.includes('teacher');
+      const isCustomer = roles.includes('customer');
+
+      storage.setUserInfo(userInfo);
 
       this.setData({
         userInfo: userInfo,
         genderText: genderText,
         bioLength: bioLength,
-        isLoading: false
+        isLoading: false,
+        userRoles: roles,
+        currentRole: currentRole,
+        canSwitchRole: hasMultipleRoles,
+        hasMultipleRoles: hasMultipleRoles,
+        isTeacher: isTeacher,
+        isCustomer: isCustomer
       });
+
+      if (currentRole === 'teacher' && isTeacher) {
+        this.loadTeacherOrderStats();
+      }
     } catch (error) {
       console.error('获取用户信息失败:', error);
       this.setData({ isLoading: false });
       showToast('获取用户信息失败');
+    }
+  },
+
+  async loadTeacherOrderStats() {
+    try {
+      const result = await getTeacherOrderStats();
+      console.log('获取老师订单统计成功:', result);
+
+      this.setData({
+        orderStats: result.stats || {}
+      });
+    } catch (error) {
+      console.error('获取老师订单统计失败:', error);
     }
   },
 
@@ -86,6 +132,108 @@ Page({
       default:
         return '未知';
     }
+  },
+
+
+  onTapRoleSwitch() {
+    if (!this.data.canSwitchRole) {
+      if (this.data.currentRole === 'customer' && !this.data.isTeacher) {
+        wx.showModal({
+          title: '提示',
+          content: '您还没有手作老师身份，是否申请入驻？',
+          confirmText: '去申请',
+          success: (res) => {
+            if (res.confirm) {
+              wx.navigateTo({
+                url: '/pages/teacher-apply/index'
+              });
+            }
+          }
+        });
+      } else if (this.data.currentRole === 'teacher' && !this.data.isCustomer) {
+        showToast('您只有手作老师身份');
+      } else {
+        showToast('无法切换身份');
+      }
+      return;
+    }
+
+    const currentRole = this.data.currentRole;
+    const userRoles = this.data.userRoles;
+    const targetRole = userRoles.find(r => r !== currentRole) || currentRole;
+
+    const roleNames = {
+      customer: '普通用户',
+      teacher: '手作老师'
+    };
+
+    this.setData({
+      targetRole: targetRole,
+      showRoleSwitchDialog: true
+    });
+  },
+
+  closeRoleSwitchDialog() {
+    this.setData({
+      showRoleSwitchDialog: false,
+      targetRole: ''
+    });
+  },
+
+  async confirmSwitchRole() {
+    if (this.data.isSwitching) {
+      return;
+    }
+
+    this.setData({ isSwitching: true });
+    wx.showLoading({ title: '切换中...', mask: true });
+
+    try {
+      const result = await switchRole({ role: this.data.targetRole });
+      console.log('角色切换成功:', result);
+
+      if (result.user) {
+        storage.setUserInfo(result.user);
+      }
+
+      wx.hideLoading();
+
+      const roleNames = {
+        customer: '普通用户',
+        teacher: '手作老师'
+      };
+
+      this.setData({
+        showRoleSwitchDialog: false,
+        isSwitching: false,
+        currentRole: this.data.targetRole,
+        isTeacher: this.data.targetRole === 'teacher',
+        isCustomer: this.data.targetRole === 'customer'
+      });
+
+      if (this.data.targetRole === 'teacher') {
+        this.loadTeacherOrderStats();
+      }
+
+      showToast(`已切换到${roleNames[this.data.targetRole]}`, 'success');
+    } catch (error) {
+      console.error('角色切换失败:', error);
+      wx.hideLoading();
+      this.setData({ isSwitching: false });
+      showToast('角色切换失败，请重试');
+    }
+  },
+
+  onTapApplyTeacher() {
+    wx.navigateTo({
+      url: '/pages/teacher-apply/index'
+    });
+  },
+
+  onTapViewOrders() {
+    wx.switchTab({
+      url: '/pages/orders/index'
+    });
   },
 
   chooseAvatar() {

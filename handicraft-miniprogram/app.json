@@ -4,7 +4,8 @@
     "pages/products/index",
     "pages/orders/index",
     "pages/messages/index",
-    "pages/user-center/index"
+    "pages/user-center/index",
+    "pages/teacher-apply/index"
   ],
   "window": {
     "navigationBarBackgroundColor": "#795548",

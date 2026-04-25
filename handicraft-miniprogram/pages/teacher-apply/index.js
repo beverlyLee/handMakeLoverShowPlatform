@@ -1,0 +1,213 @@
+const { applyTeacher } = require('../../api/users');
+const { showToast } = require('../../utils/util');
+const storage = require('../../utils/storage');
+
+Page({
+  data: {
+    formData: {
+      real_name: '',
+      id_card: '',
+      phone: '',
+      specialties: [],
+      intro: '',
+      work_photos: []
+    },
+    specialtyOptions: [
+      { label: '编织', value: '编织', checked: false },
+      { label: '陶艺', value: '陶艺', checked: false },
+      { label: '刺绣', value: '刺绣', checked: false },
+      { label: '皮革', value: '皮革', checked: false },
+      { label: '木工', value: '木工', checked: false },
+      { label: '纸艺', value: '纸艺', checked: false },
+      { label: '串珠', value: '串珠', checked: false },
+      { label: '其他', value: '其他', checked: false }
+    ],
+    showSpecialtyPicker: false,
+    introMaxLength: 500,
+    introCurrentLength: 0,
+    maxPhotos: 5,
+    isSubmitting: false
+  },
+
+  onLoad() {
+    console.log('手作老师入驻页面加载');
+  },
+
+  onInputChange(e) {
+    const { field } = e.currentTarget.dataset;
+    const value = e.detail.value;
+    const updateKey = `formData.${field}`;
+    
+    this.setData({
+      [updateKey]: value
+    });
+
+    if (field === 'intro') {
+      this.setData({
+        introCurrentLength: value.length
+      });
+    }
+  },
+
+  toggleSpecialtyPicker() {
+    this.setData({
+      showSpecialtyPicker: !this.data.showSpecialtyPicker
+    });
+  },
+
+  onSpecialtyChange(e) {
+    const { index } = e.currentTarget.dataset;
+    const specialtyOptions = [...this.data.specialtyOptions];
+    specialtyOptions[index].checked = !specialtyOptions[index].checked;
+    
+    const selectedSpecialties = specialtyOptions
+      .filter(item => item.checked)
+      .map(item => item.value);
+    
+    this.setData({
+      specialtyOptions,
+      'formData.specialties': selectedSpecialties
+    });
+  },
+
+  confirmSpecialty() {
+    this.setData({
+      showSpecialtyPicker: false
+    });
+  },
+
+  chooseWorkPhoto() {
+    const { formData, maxPhotos } = this.data;
+    const currentCount = formData.work_photos.length;
+    
+    if (currentCount >= maxPhotos) {
+      showToast(`最多只能上传${maxPhotos}张作品照片`);
+      return;
+    }
+
+    const remainingCount = maxPhotos - currentCount;
+    
+    wx.chooseMedia({
+      count: remainingCount,
+      mediaType: ['image'],
+      sourceType: ['album', 'camera'],
+      success: (res) => {
+        const tempFiles = res.tempFiles.map(file => file.tempFilePath);
+        const newPhotos = [...formData.work_photos, ...tempFiles];
+        
+        this.setData({
+          'formData.work_photos': newPhotos
+        });
+      }
+    });
+  },
+
+  deletePhoto(e) {
+    const { index } = e.currentTarget.dataset;
+    const work_photos = [...this.data.formData.work_photos];
+    work_photos.splice(index, 1);
+    
+    this.setData({
+      'formData.work_photos': work_photos
+    });
+  },
+
+  previewPhoto(e) {
+    const { index } = e.currentTarget.dataset;
+    const { work_photos } = this.data.formData;
+    
+    wx.previewImage({
+      current: work_photos[index],
+      urls: work_photos
+    });
+  },
+
+  validateForm() {
+    const { formData } = this.data;
+    
+    if (!formData.real_name.trim()) {
+      showToast('请输入真实姓名');
+      return false;
+    }
+    
+    if (!formData.id_card.trim()) {
+      showToast('请输入身份证号');
+      return false;
+    }
+    
+    const idCardReg = /(^\d{15}$)|(^\d{18}$)|(^\d{17}(\d|X|x)$)/;
+    if (!idCardReg.test(formData.id_card)) {
+      showToast('请输入正确的身份证号');
+      return false;
+    }
+    
+    if (!formData.phone.trim()) {
+      showToast('请输入手机号');
+      return false;
+    }
+    
+    const phoneReg = /^1[3-9]\d{9}$/;
+    if (!phoneReg.test(formData.phone)) {
+      showToast('请输入正确的手机号');
+      return false;
+    }
+    
+    if (formData.specialties.length === 0) {
+      showToast('请至少选择一项擅长领域');
+      return false;
+    }
+    
+    return true;
+  },
+
+  async submitApply() {
+    if (!this.validateForm()) {
+      return;
+    }
+
+    if (this.data.isSubmitting) {
+      return;
+    }
+
+    this.setData({ isSubmitting: true });
+    wx.showLoading({ title: '提交中...', mask: true });
+
+    try {
+      const result = await applyTeacher(this.data.formData);
+      console.log('入驻申请成功:', result);
+
+      if (result.user) {
+        storage.setUserInfo(result.user);
+      }
+
+      wx.hideLoading();
+      
+      wx.showModal({
+        title: '入驻成功',
+        content: '恭喜您成功成为手作老师！现在可以切换到老师身份查看订单了。',
+        showCancel: false,
+        confirmText: '去看看',
+        success: () => {
+          wx.switchTab({
+            url: '/pages/user-center/index'
+          });
+        }
+      });
+    } catch (error) {
+      console.error('入驻申请失败:', error);
+      wx.hideLoading();
+      this.setData({ isSubmitting: false });
+      
+      const errMsg = error.message || '入驻申请失败，请重试';
+      wx.showModal({
+        title: '申请失败',
+        content: errMsg,
+        showCancel: false
+      });
+    }
+  },
+
+  preventMove() {
+    return;
+  }
+});

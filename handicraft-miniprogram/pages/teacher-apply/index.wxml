@@ -1,0 +1,172 @@
+<view class="apply-container">
+  <view class="apply-header">
+    <view class="header-icon">🎨</view>
+    <text class="header-title">成为手作老师</text>
+    <text class="header-desc">分享您的手作技艺，开启创作之旅</text>
+  </view>
+
+  <view class="form-section">
+    <view class="section-title">
+      <text class="title-icon">📋</text>
+      <text class="title-text">基本信息</text>
+      <text class="required-mark">*</text>
+    </view>
+
+    <view class="form-item">
+      <view class="form-label">
+        <text class="label-text">真实姓名</text>
+        <text class="required-mark">*</text>
+      </view>
+      <input 
+        class="form-input" 
+        placeholder="请输入真实姓名" 
+        value="{{formData.real_name}}"
+        data-field="real_name"
+        bindinput="onInputChange"
+        maxlength="20"
+      />
+    </view>
+
+    <view class="form-item">
+      <view class="form-label">
+        <text class="label-text">身份证号</text>
+        <text class="required-mark">*</text>
+      </view>
+      <input 
+        class="form-input" 
+        placeholder="请输入身份证号" 
+        value="{{formData.id_card}}"
+        data-field="id_card"
+        bindinput="onInputChange"
+        maxlength="18"
+      />
+    </view>
+
+    <view class="form-item">
+      <view class="form-label">
+        <text class="label-text">联系电话</text>
+        <text class="required-mark">*</text>
+      </view>
+      <input 
+        class="form-input" 
+        type="number"
+        placeholder="请输入手机号" 
+        value="{{formData.phone}}"
+        data-field="phone"
+        bindinput="onInputChange"
+        maxlength="11"
+      />
+    </view>
+  </view>
+
+  <view class="form-section">
+    <view class="section-title">
+      <text class="title-icon">✨</text>
+      <text class="title-text">擅长领域</text>
+      <text class="required-mark">*</text>
+    </view>
+
+    <view class="form-item form-item-picker" bindtap="toggleSpecialtyPicker">
+      <view class="form-label">
+        <text class="label-text">选择擅长领域</text>
+      </view>
+      <view class="picker-value">
+        <text class="{{formData.specialties.length > 0 ? 'picker-text' : 'picker-placeholder'}}">
+          {{formData.specialties.length > 0 ? formData.specialties.join('、') : '请选择擅长领域'}}
+        </text>
+        <text class="picker-arrow">›</text>
+      </view>
+    </view>
+
+    <view class="selected-tags" wx:if="{{formData.specialties.length > 0}}">
+      <view class="tag-item" wx:for="{{formData.specialties}}" wx:key="*this">
+        <text class="tag-text">{{item}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="form-section">
+    <view class="section-title">
+      <text class="title-icon">📝</text>
+      <text class="title-text">个人简介</text>
+    </view>
+
+    <view class="form-item form-item-textarea">
+      <textarea 
+        class="form-textarea" 
+        placeholder="请介绍您的手作经历、教学经验等（选填）" 
+        value="{{formData.intro}}"
+        data-field="intro"
+        bindinput="onInputChange"
+        maxlength="{{introMaxLength}}"
+        auto-height
+      />
+      <view class="textarea-count">
+        <text class="count-text">{{introCurrentLength}}/{{introMaxLength}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="form-section">
+    <view class="section-title">
+      <text class="title-icon">🖼️</text>
+      <text class="title-text">作品展示</text>
+    </view>
+    <text class="section-tip">上传您的手作作品照片，最多{{maxPhotos}}张（选填）</text>
+
+    <view class="photo-upload-area">
+      <view class="photo-list">
+        <view class="photo-item" wx:for="{{formData.work_photos}}" wx:key="*this">
+          <image class="photo-image" src="{{item}}" mode="aspectFill" bindtap="previewPhoto" data-index="{{index}}" />
+          <view class="photo-delete" bindtap="deletePhoto" data-index="{{index}}">
+            <text class="delete-icon">×</text>
+          </view>
+        </view>
+        <view class="photo-add" wx:if="{{formData.work_photos.length < maxPhotos}}" bindtap="chooseWorkPhoto">
+          <text class="add-icon">+</text>
+          <text class="add-text">添加图片</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="submit-section">
+    <button 
+      class="submit-btn {{isSubmitting ? 'submit-btn-disabled' : ''}}" 
+      bindtap="submitApply"
+      disabled="{{isSubmitting}}"
+    >
+      <text class="submit-text">{{isSubmitting ? '提交中...' : '提交申请'}}</text>
+    </button>
+  </view>
+
+  <view class="agreement-section">
+    <text class="agreement-text">提交申请即表示您同意</text>
+    <text class="agreement-link">《手作老师入驻协议》</text>
+  </view>
+</view>
+
+<view class="specialty-picker-mask" wx:if="{{showSpecialtyPicker}}" catchtouchmove="preventMove">
+  <view class="specialty-picker">
+    <view class="picker-header">
+      <text class="picker-title">选择擅长领域</text>
+      <view class="picker-confirm" bindtap="confirmSpecialty">
+        <text class="confirm-text">确定</text>
+      </view>
+    </view>
+    <view class="picker-content">
+      <view class="specialty-grid">
+        <view 
+          class="specialty-item {{item.checked ? 'specialty-item-selected' : ''}}" 
+          wx:for="{{specialtyOptions}}" 
+          wx:key="value"
+          data-index="{{index}}"
+          bindtap="onSpecialtyChange"
+        >
+          <text class="specialty-label">{{item.label}}</text>
+          <text class="specialty-check" wx:if="{{item.checked}}">✓</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

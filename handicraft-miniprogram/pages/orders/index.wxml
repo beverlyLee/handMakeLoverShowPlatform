@@ -1,4 +1,18 @@
 <view class="orders-container">
+  <view class="role-banner" wx:if="{{currentRole === 'teacher'}}">
+    <view class="banner-content">
+      <text class="banner-icon">🎨</text>
+      <text class="banner-text">商家视图 - 管理您的销售订单</text>
+    </view>
+  </view>
+
+  <view class="role-banner role-banner-customer" wx:else>
+    <view class="banner-content">
+      <text class="banner-icon">🛒</text>
+      <text class="banner-text">用户视图 - 查看您的购买订单</text>
+    </view>
+  </view>
+
   <view class="tabs-section">
     <scroll-view class="tabs-scroll" scroll-x>
       <view class="tabs-list">
@@ -20,18 +34,22 @@
     <view 
       wx:for="{{orders}}" 
       wx:key="id" 
-      class="order-card"
+      class="order-card {{currentRole === 'teacher' ? 'teacher-order-card' : ''}}"
       bindtap="goToOrderDetail"
       data-id="{{item.id}}"
     >
       <view class="order-header">
-        <view class="shop-info">
+        <view class="shop-info" wx:if="{{currentRole !== 'teacher'}}">
           <text class="shop-icon">🏠</text>
           <text class="shop-name">手作工作室</text>
           <text class="arrow-icon">›</text>
         </view>
+        <view class="shop-info teacher-shop-info" wx:else>
+          <text class="shop-icon">👤</text>
+          <text class="shop-name">买家：{{item.address.name || '用户'}}</text>
+        </view>
         <view class="order-status {{item.status}}">
-          <text class="status-text">{{getStatusText(item.status)}}</text>
+          <text class="status-text">{{currentRole === 'teacher' ? getTeacherStatusText(item.status) : getStatusText(item.status)}}</text>
         </view>
       </view>
 
@@ -56,41 +74,65 @@
         <view class="order-summary">
           <text class="summary-text">共{{item.items.length}}件商品</text>
           <view class="total-price">
-            <text class="total-label">实付：</text>
+            <text class="total-label">{{currentRole === 'teacher' ? '销售额：' : '实付：'}}</text>
             <text class="total-amount">¥{{item.pay_amount}}</text>
           </view>
         </view>
         <view class="order-actions" catchtap="stopPropagation">
           <button 
-            wx:if="{{item.status === 'pending'}}" 
+            wx:if="{{currentRole !== 'teacher' && item.status === 'pending'}}" 
             class="action-btn primary"
             bindtap="payOrder"
             data-id="{{item.id}}"
           >立即支付</button>
           <button 
-            wx:if="{{item.status === 'pending'}}" 
+            wx:if="{{currentRole !== 'teacher' && item.status === 'pending'}}" 
             class="action-btn secondary"
             bindtap="cancelOrder"
             data-id="{{item.id}}"
           >取消订单</button>
           <button 
-            wx:if="{{item.status === 'delivered'}}" 
+            wx:if="{{currentRole !== 'teacher' && item.status === 'delivered'}}" 
             class="action-btn primary"
             bindtap="confirmOrder"
             data-id="{{item.id}}"
           >确认收货</button>
           <button 
-            wx:if="{{item.status === 'completed' && !item.is_reviewed}}" 
+            wx:if="{{currentRole !== 'teacher' && item.status === 'completed' && !item.is_reviewed}}" 
             class="action-btn primary"
             bindtap="goToReview"
             data-id="{{item.id}}"
           >评价</button>
+
           <button 
-            wx:if="{{item.status === 'cancelled' || item.status === 'completed'}}" 
+            wx:if="{{currentRole === 'teacher' && item.status === 'paid'}}" 
+            class="action-btn primary"
+            bindtap="showShipOrderDialog"
+            data-id="{{item.id}}"
+          >发货</button>
+          <button 
+            wx:if="{{currentRole === 'teacher' && item.status === 'cancelled'}}" 
+            class="action-btn secondary"
+            style="opacity: 0.6;"
+          >已取消</button>
+
+          <button 
+            wx:if="{{(currentRole !== 'teacher' && (item.status === 'cancelled' || item.status === 'completed')) || (currentRole === 'teacher' && (item.status === 'completed' || item.status === 'delivered' || item.status === 'shipped'))}}" 
             class="action-btn secondary"
             bindtap="deleteOrder"
             data-id="{{item.id}}"
           >删除</button>
+        </view>
+      </view>
+
+      <view class="order-meta" wx:if="{{currentRole === 'teacher' && item.address}}">
+        <view class="meta-item">
+          <text class="meta-label">📦 收货地址：</text>
+          <text class="meta-value">{{item.address.province}}{{item.address.city}}{{item.address.district}}{{item.address.detail}}</text>
+        </view>
+        <view class="meta-item">
+          <text class="meta-label">📞 联系电话：</text>
+          <text class="meta-value">{{item.address.phone}}</text>
         </view>
       </view>
     </view>
@@ -100,5 +142,41 @@
     <text class="empty-icon">📋</text>
     <text class="empty-text">暂无订单</text>
     <button class="go-shopping-btn" bindtap="goToProducts">去逛逛</button>
+  </view>
+</view>
+
+<view class="ship-dialog-mask" wx:if="{{showShipDialog && selectedOrder}}" catchtouchmove="stopPropagation">
+  <view class="ship-dialog">
+    <view class="ship-dialog-header">
+      <text class="ship-dialog-title">确认发货</text>
+      <view class="ship-dialog-close" bindtap="closeShipDialog">
+        <text class="close-icon">×</text>
+      </view>
+    </view>
+    <view class="ship-dialog-content">
+      <view class="ship-info-item">
+        <text class="ship-info-label">订单编号：</text>
+        <text class="ship-info-value">{{selectedOrder.id}}</text>
+      </view>
+      <view class="ship-info-item">
+        <text class="ship-info-label">商品数量：</text>
+        <text class="ship-info-value">{{selectedOrder.items.length}}件</text>
+      </view>
+      <view class="ship-info-item">
+        <text class="ship-info-label">订单金额：</text>
+        <text class="ship-info-value">¥{{selectedOrder.pay_amount}}</text>
+      </view>
+      <view class="ship-info-item ship-info-address">
+        <text class="ship-info-label">收货地址：</text>
+        <text class="ship-info-value">{{selectedOrder.address.province}}{{selectedOrder.address.city}}{{selectedOrder.address.district}}{{selectedOrder.address.detail}}</text>
+      </view>
+      <view class="ship-tip">
+        <text class="ship-tip-text">📦 发货后订单状态将更新为"待收货"</text>
+      </view>
+    </view>
+    <view class="ship-dialog-footer">
+      <button class="ship-btn ship-btn-cancel" bindtap="closeShipDialog">取消</button>
+      <button class="ship-btn ship-btn-confirm" bindtap="shipOrder">确认发货</button>
+    </view>
   </view>
 </view>

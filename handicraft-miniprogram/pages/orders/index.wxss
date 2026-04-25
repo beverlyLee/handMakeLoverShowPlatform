@@ -3,6 +3,33 @@
   background-color: #F5F5F5;
 }
 
+/* 角色标识横幅 */
+.role-banner {
+  background: linear-gradient(135deg, #FFE0B2 0%, #FFCC80 100%);
+  padding: 20rpx 30rpx;
+}
+
+.role-banner-customer {
+  background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+}
+
+.banner-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.banner-icon {
+  font-size: 32rpx;
+  margin-right: 12rpx;
+}
+
+.banner-text {
+  font-size: 26rpx;
+  color: #5D4037;
+  font-weight: 500;
+}
+
 .tabs-section {
   background-color: #fff;
   position: sticky;
@@ -58,6 +85,10 @@
   box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
 }
 
+.teacher-order-card {
+  border-left: 8rpx solid #FFB74D;
+}
+
 .order-header {
   display: flex;
   justify-content: space-between;
@@ -80,6 +111,10 @@
   font-size: 28rpx;
   color: #333;
   font-weight: 500;
+}
+
+.teacher-shop-info .shop-name {
+  color: #E65100;
 }
 
 .arrow-icon {
@@ -115,6 +150,14 @@
 
 .order-status.shipped .status-text {
   color: #7B1FA2;
+}
+
+.order-status.delivered {
+  background-color: #E0F7FA;
+}
+
+.order-status.delivered .status-text {
+  color: #00838F;
 }
 
 .order-status.completed {
@@ -257,6 +300,35 @@
   border: 1rpx solid #DDD;
 }
 
+/* 订单元信息（老师视图） */
+.order-meta {
+  padding: 16rpx 20rpx 24rpx;
+  background-color: #FFF8E7;
+}
+
+.meta-item {
+  display: flex;
+  margin-bottom: 12rpx;
+}
+
+.meta-item:last-child {
+  margin-bottom: 0;
+}
+
+.meta-label {
+  font-size: 24rpx;
+  color: #8D6E63;
+  width: 140rpx;
+  flex-shrink: 0;
+}
+
+.meta-value {
+  font-size: 24rpx;
+  color: #5D4037;
+  flex: 1;
+  line-height: 1.5;
+}
+
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -283,4 +355,121 @@
   padding: 16rpx 48rpx;
   font-size: 28rpx;
   border: none;
+}
+
+/* 发货确认弹窗 */
+.ship-dialog-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.ship-dialog {
+  width: 85%;
+  background-color: #fff;
+  border-radius: 24rpx;
+  overflow: hidden;
+}
+
+.ship-dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 30rpx;
+  background: linear-gradient(135deg, #FFE0B2 0%, #FFCC80 100%);
+}
+
+.ship-dialog-title {
+  font-size: 32rpx;
+  color: #5D4037;
+  font-weight: bold;
+}
+
+.ship-dialog-close {
+  width: 48rpx;
+  height: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-icon {
+  font-size: 40rpx;
+  color: #8D6E63;
+  line-height: 1;
+}
+
+.ship-dialog-content {
+  padding: 30rpx;
+}
+
+.ship-info-item {
+  display: flex;
+  margin-bottom: 20rpx;
+}
+
+.ship-info-label {
+  font-size: 26rpx;
+  color: #666;
+  width: 160rpx;
+  flex-shrink: 0;
+}
+
+.ship-info-value {
+  font-size: 26rpx;
+  color: #333;
+  flex: 1;
+  word-break: break-all;
+}
+
+.ship-info-address .ship-info-value {
+  line-height: 1.6;
+}
+
+.ship-tip {
+  margin-top: 30rpx;
+  padding: 20rpx;
+  background-color: #FFF8E7;
+  border-radius: 12rpx;
+}
+
+.ship-tip-text {
+  font-size: 24rpx;
+  color: #8D6E63;
+}
+
+.ship-dialog-footer {
+  display: flex;
+  padding: 20rpx 30rpx 30rpx;
+  gap: 20rpx;
+}
+
+.ship-btn {
+  flex: 1;
+  height: 88rpx;
+  border-radius: 44rpx;
+  font-size: 28rpx;
+  border: none;
+  margin: 0;
+}
+
+.ship-btn::after {
+  border: none;
+}
+
+.ship-btn-cancel {
+  background-color: #F5F5F5;
+  color: #666;
+}
+
+.ship-btn-confirm {
+  background: linear-gradient(135deg, #795548 0%, #6D4C41 100%);
+  color: #fff;
 }

@@ -1,13 +1,20 @@
+#!/usr/bin/env python3
+"""
+数据库初始化脚本
+1. 创建数据库表
+2. 从 JSON 文件迁移数据到 SQLite
+"""
 import os
 import sys
 import json
 from datetime import datetime
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 from app import create_app
-from app.config import Config
 from app.database import db
 from app.models import User, Address, TeacherProfile, Order, OrderItem
-
-app = create_app()
+from app.config import Config
 
 MOCK_DATA_DIR = os.path.join(os.path.dirname(__file__), 'mock-data')
 
@@ -30,25 +37,27 @@ def load_json_file(filename):
     return {}
 
 def init_database():
+    app = create_app(Config)
+    
     with app.app_context():
+        print("创建数据库表...")
         db.create_all()
-        print("数据库表已创建！")
+        print("数据库表创建完成！")
+        
+        users_data = load_json_file('users.json')
+        teachers_data = load_json_file('teachers.json')
+        orders_data = load_json_file('orders.json')
         
         if User.query.first():
             print("数据库已有数据，跳过迁移。")
             print("如果需要重新迁移，请先删除 handicraft.db 文件。")
             return
         
-        print("\n开始从 JSON 迁移数据...")
-        
-        users_data = load_json_file('users.json')
-        teachers_data = load_json_file('teachers.json')
-        orders_data = load_json_file('orders.json')
+        print("\n开始迁移用户数据...")
         
         users_list = users_data.get('users', [])
         addresses_list = users_data.get('addresses', [])
         teachers_list = teachers_data.get('teachers', [])
-        orders_list = orders_data.get('orders', [])
         
         user_id_map = {}
         
@@ -140,6 +149,7 @@ def init_database():
         print(f"已迁移 {teacher_count} 个老师入驻数据")
         
         print("\n开始迁移订单数据...")
+        orders_list = orders_data.get('orders', [])
         order_count = 0
         order_item_count = 0
         
@@ -204,12 +214,5 @@ def init_database():
         print(f"订单数: {Order.query.count()}")
         print(f"订单项数: {OrderItem.query.count()}")
 
-with app.app_context():
-    init_database()
-
 if __name__ == '__main__':
-    app.run(
-        host=Config.HOST,
-        port=Config.PORT,
-        debug=Config.DEBUG
-    )
+    init_database()

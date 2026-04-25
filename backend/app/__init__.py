@@ -1,12 +1,16 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
 from app.config import Config
+from app.database import db
+from app.models import *
 
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
 
     CORS(app, supports_credentials=True)
+    
+    db.init_app(app)
 
     @app.route('/', methods=['GET'])
     def index():

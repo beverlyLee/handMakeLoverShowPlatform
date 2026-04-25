@@ -79,6 +79,12 @@
   text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.3);
 }
 
+.user-role-section {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
 .user-role-badge {
   padding: 10rpx 32rpx;
   background-color: rgba(255, 248, 231, 0.35);
@@ -86,10 +92,292 @@
   border: 2rpx solid rgba(255, 248, 231, 0.6);
 }
 
+.user-role-badge.role-teacher {
+  background: linear-gradient(135deg, rgba(255, 183, 77, 0.6) 0%, rgba(255, 152, 0, 0.6) 100%);
+  border-color: rgba(255, 248, 231, 0.8);
+}
+
+.user-role-badge.role-customer {
+  background-color: rgba(255, 248, 231, 0.35);
+}
+
 .role-text {
   font-size: 26rpx;
   color: #FFF8E7;
   font-weight: 500;
+}
+
+.role-switch-btn {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 10rpx 24rpx;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 30rpx;
+  border: 2rpx solid rgba(255, 248, 231, 0.5);
+}
+
+.role-switch-btn.role-switch-btn-disabled {
+  opacity: 0.5;
+}
+
+.switch-icon {
+  font-size: 24rpx;
+}
+
+.switch-text {
+  font-size: 24rpx;
+  color: #FFF8E7;
+}
+
+/* 老师订单统计区域 */
+.teacher-stats-section {
+  margin: 40rpx 30rpx 0;
+  background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%);
+  border-radius: 24rpx;
+  padding: 30rpx;
+  box-shadow: 0 6rpx 20rpx rgba(255, 152, 0, 0.15);
+}
+
+.stats-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 30rpx;
+}
+
+.stats-icon {
+  font-size: 36rpx;
+  margin-right: 12rpx;
+}
+
+.stats-title {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #5D4037;
+}
+
+.stats-grid {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 24rpx;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+}
+
+.stat-value {
+  font-size: 40rpx;
+  font-weight: bold;
+  color: #5D4037;
+  margin-bottom: 8rpx;
+}
+
+.stat-value-paid {
+  color: #2196F3;
+}
+
+.stat-value-shipped {
+  color: #9C27B0;
+}
+
+.stat-value-amount {
+  color: #E65100;
+  font-size: 32rpx;
+}
+
+.stat-label {
+  font-size: 22rpx;
+  color: #8D6E63;
+}
+
+.view-orders-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20rpx 0;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 16rpx;
+  margin-top: 16rpx;
+}
+
+.view-orders-text {
+  font-size: 26rpx;
+  color: #8D6E63;
+  margin-right: 8rpx;
+}
+
+.view-orders-arrow {
+  font-size: 28rpx;
+  color: #A1887F;
+}
+
+/* 最近订单区域 */
+.recent-orders-section {
+  margin: 40rpx 30rpx 0;
+  background-color: #fff;
+  border-radius: 24rpx;
+  box-shadow: 0 6rpx 20rpx rgba(121, 85, 72, 0.08);
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  padding: 32rpx 36rpx;
+  background-color: rgba(121, 85, 72, 0.03);
+  border-bottom: 1rpx solid rgba(121, 85, 72, 0.08);
+}
+
+.section-icon {
+  font-size: 36rpx;
+  margin-right: 12rpx;
+}
+
+.section-title {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #5D4037;
+}
+
+.order-list {
+  padding: 0 36rpx;
+}
+
+.order-item {
+  padding: 24rpx 0;
+  border-bottom: 1rpx dashed rgba(121, 85, 72, 0.12);
+}
+
+.order-item:last-child {
+  border-bottom: none;
+}
+
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.order-id {
+  font-size: 24rpx;
+  color: #A1887F;
+}
+
+.order-status {
+  font-size: 24rpx;
+  font-weight: 500;
+}
+
+.order-content {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.order-items {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.order-item-image {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 12rpx;
+  margin-right: 20rpx;
+}
+
+.order-item-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.order-item-title {
+  font-size: 26rpx;
+  color: #5D4037;
+  margin-bottom: 8rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.order-item-price {
+  font-size: 24rpx;
+  color: #8D6E63;
+}
+
+.order-total {
+  margin-left: auto;
+}
+
+.order-more {
+  font-size: 22rpx;
+  color: #A1887F;
+}
+
+.order-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.order-time {
+  font-size: 22rpx;
+  color: #BCAAA4;
+}
+
+.order-amount {
+  font-size: 26rpx;
+  color: #E65100;
+  font-weight: 500;
+}
+
+/* 入驻按钮区域 */
+.apply-teacher-section {
+  margin: 40rpx 30rpx 0;
+}
+
+.apply-card {
+  display: flex;
+  align-items: center;
+  background: linear-gradient(135deg, #FFE0B2 0%, #FFCC80 100%);
+  border-radius: 20rpx;
+  padding: 30rpx;
+  box-shadow: 0 6rpx 20rpx rgba(255, 152, 0, 0.2);
+}
+
+.apply-icon {
+  font-size: 60rpx;
+  margin-right: 24rpx;
+}
+
+.apply-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.apply-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #5D4037;
+  margin-bottom: 8rpx;
+}
+
+.apply-desc {
+  font-size: 24rpx;
+  color: #8D6E63;
+}
+
+.apply-arrow {
+  font-size: 40rpx;
+  color: #A1887F;
 }
 
 /* 卡片通用样式 */
@@ -447,4 +735,88 @@ page {
 .safe-area-bottom {
   padding-bottom: constant(safe-area-inset-bottom);
   padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* 角色切换确认弹窗 */
+.role-switch-dialog-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.role-switch-dialog {
+  width: 80%;
+  background-color: #fff;
+  border-radius: 24rpx;
+  padding: 48rpx;
+  box-shadow: 0 10rpx 40rpx rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.switch-dialog-icon {
+  font-size: 80rpx;
+  margin-bottom: 24rpx;
+}
+
+.switch-dialog-title {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #5D4037;
+  margin-bottom: 16rpx;
+}
+
+.switch-dialog-desc {
+  font-size: 28rpx;
+  color: #8D6E63;
+  text-align: center;
+  line-height: 1.6;
+  margin-bottom: 40rpx;
+}
+
+.switch-dialog-btns {
+  display: flex;
+  width: 100%;
+  gap: 24rpx;
+}
+
+.switch-btn {
+  flex: 1;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 44rpx;
+  border: none;
+  font-size: 28rpx;
+}
+
+.switch-btn::after {
+  border: none;
+}
+
+.switch-btn-cancel {
+  background-color: rgba(121, 85, 72, 0.1);
+  color: #8D6E63;
+}
+
+.switch-btn-confirm {
+  background: linear-gradient(135deg, #8D6E63 0%, #6D4C41 100%);
+  color: #FFFFFF;
+}
+
+.switch-btn-confirm[disabled] {
+  opacity: 0.6;
+}
+
+.switch-btn-text {
+  font-size: 28rpx;
 }

@@ -75,6 +75,14 @@ function getTeacherOrders(params = {}) {
   return get('/orders/teacher', params);
 }
 
+/**
+ * 获取老师订单统计数据
+ * @param {Object} params
+ */
+function getTeacherOrderStats(params = {}) {
+  return get('/orders/teacher/stats', params);
+}
+
 module.exports = {
   getOrders,
   getOrderDetail,
@@ -84,5 +92,6 @@ module.exports = {
   confirmOrder,
   reviewOrder,
   updateOrderStatus,
-  getTeacherOrders
+  getTeacherOrders,
+  getTeacherOrderStats
 };
