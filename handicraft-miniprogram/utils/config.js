@@ -1,7 +1,7 @@
 const config = {
   // 开发环境
   development: {
-    baseUrl: 'http://127.0.0.1:5001/api',
+    baseUrl: 'http://localhost:5001/api',
     timeout: 10000
   },
   // 生产环境

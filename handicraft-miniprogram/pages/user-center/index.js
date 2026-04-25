@@ -176,11 +176,21 @@ Page({
   async saveEdit() {
     const { editField, editValue, userInfo } = this.data;
 
+    console.log('【调试】saveEdit 被调用');
+    console.log('【调试】editField:', editField);
+    console.log('【调试】editValue:', editValue);
+
     const originalValue = this.getOriginalValue(editField, userInfo);
+    console.log('【调试】originalValue:', originalValue);
+    console.log('【调试】是否相等:', editValue === originalValue);
+
     if (editValue === originalValue) {
+      console.log('【调试】值未改变，不调用接口');
       this.closeEditDialog();
       return;
     }
+
+    console.log('【调试】准备调用 updateUserInfo 接口');
 
     wx.showLoading({ title: '保存中...', mask: true });
 
