@@ -1,0 +1,81 @@
+<view class="products-container">
+  <view class="search-section">
+    <view class="search-box" bindtap="goToSearch">
+      <text class="search-icon">🔍</text>
+      <text class="search-placeholder">搜索手作作品</text>
+    </view>
+  </view>
+
+  <view class="category-section">
+    <scroll-view class="category-scroll" scroll-x>
+      <view class="category-list">
+        <view 
+          wx:for="{{categories}}" 
+          wx:key="id" 
+          class="category-item {{currentCategoryId === item.id ? 'active' : ''}}"
+          bindtap="switchCategory"
+          data-id="{{item.id}}"
+        >
+          <image class="category-icon" src="{{item.icon}}" mode="aspectFit" />
+          <text class="category-name">{{item.name}}</text>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <view class="products-section">
+    <view class="section-header">
+      <text class="section-title">推荐作品</text>
+      <view class="sort-options">
+        <text 
+          class="sort-item {{currentSort === 'default' ? 'active' : ''}}"
+          bindtap="changeSort"
+          data-sort="default"
+        >默认</text>
+        <text 
+          class="sort-item {{currentSort === 'sales' ? 'active' : ''}}"
+          bindtap="changeSort"
+          data-sort="sales"
+        >销量</text>
+        <text 
+          class="sort-item {{currentSort === 'price' ? 'active' : ''}}"
+          bindtap="changeSort"
+          data-sort="price"
+        >价格</text>
+      </view>
+    </view>
+
+    <view class="products-grid" wx:if="{{products.length > 0}}">
+      <view 
+        wx:for="{{products}}" 
+        wx:key="id" 
+        class="product-card"
+        bindtap="goToProductDetail"
+        data-id="{{item.id}}"
+      >
+        <image class="product-image" src="{{item.cover_image}}" mode="aspectFill" />
+        <view class="product-info">
+          <text class="product-title" lines="2">{{item.title}}</text>
+          <view class="product-tags">
+            <text wx:for="{{item.tags}}" wx:for-item="tag" wx:key="*this" class="product-tag">{{tag}}</text>
+          </view>
+          <view class="product-price-row">
+            <view class="price-section">
+              <text class="price-symbol">¥</text>
+              <text class="product-price">{{item.price}}</text>
+              <text class="original-price" wx:if="{{item.original_price > item.price}}">¥{{item.original_price}}</text>
+            </view>
+            <view class="sales-section">
+              <text class="sales-count">已售{{item.sales_count}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="empty-state" wx:else>
+      <text class="empty-icon">🎨</text>
+      <text class="empty-text">暂无作品</text>
+    </view>
+  </view>
+</view>

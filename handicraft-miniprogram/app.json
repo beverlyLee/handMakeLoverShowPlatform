@@ -1,6 +1,10 @@
 {
   "pages": [
-    "pages/home/index"
+    "pages/home/index",
+    "pages/products/index",
+    "pages/orders/index",
+    "pages/messages/index",
+    "pages/user-center/index"
   ],
   "window": {
     "navigationBarBackgroundColor": "#795548",
@@ -8,6 +12,35 @@
     "navigationBarTextStyle": "white",
     "backgroundColor": "#FFF8E7",
     "backgroundTextStyle": "dark"
+  },
+  "tabBar": {
+    "custom": true,
+    "color": "#999999",
+    "selectedColor": "#795548",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/home/index",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/products/index",
+        "text": "作品"
+      },
+      {
+        "pagePath": "pages/orders/index",
+        "text": "订单"
+      },
+      {
+        "pagePath": "pages/messages/index",
+        "text": "消息"
+      },
+      {
+        "pagePath": "pages/user-center/index",
+        "text": "我的"
+      }
+    ]
   },
   "style": "v2",
   "sitemapLocation": "sitemap.json"

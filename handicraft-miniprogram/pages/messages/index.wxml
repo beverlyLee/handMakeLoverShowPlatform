@@ -1,0 +1,82 @@
+<view class="messages-container">
+  <view class="message-types">
+    <view class="message-type-item" bindtap="goToNotification" data-type="system">
+      <view class="type-icon-wrapper system">
+        <text class="type-icon">📢</text>
+        <view class="badge" wx:if="{{unreadCounts.system > 0}}">
+          <text class="badge-text">{{unreadCounts.system}}</text>
+        </view>
+      </view>
+      <view class="type-info">
+        <text class="type-title">系统通知</text>
+        <text class="type-desc">{{lastMessages.system || '暂无系统消息'}}</text>
+      </view>
+      <text class="arrow-icon">›</text>
+    </view>
+
+    <view class="message-type-item" bindtap="goToNotification" data-type="order">
+      <view class="type-icon-wrapper order">
+        <text class="type-icon">📦</text>
+        <view class="badge" wx:if="{{unreadCounts.order > 0}}">
+          <text class="badge-text">{{unreadCounts.order}}</text>
+        </view>
+      </view>
+      <view class="type-info">
+        <text class="type-title">订单消息</text>
+        <text class="type-desc">{{lastMessages.order || '暂无订单消息'}}</text>
+      </view>
+      <text class="arrow-icon">›</text>
+    </view>
+
+    <view class="message-type-item" bindtap="goToNotification" data-type="activity">
+      <view class="type-icon-wrapper activity">
+        <text class="type-icon">🎉</text>
+        <view class="badge" wx:if="{{unreadCounts.activity > 0}}">
+          <text class="badge-text">{{unreadCounts.activity}}</text>
+        </view>
+      </view>
+      <view class="type-info">
+        <text class="type-title">活动消息</text>
+        <text class="type-desc">{{lastMessages.activity || '暂无活动消息'}}</text>
+      </view>
+      <text class="arrow-icon">›</text>
+    </view>
+  </view>
+
+  <view class="chat-section">
+    <view class="section-header">
+      <text class="section-title">聊天消息</text>
+    </view>
+
+    <view class="chat-list" wx:if="{{chatList.length > 0}}">
+      <view 
+        wx:for="{{chatList}}" 
+        wx:key="id" 
+        class="chat-item"
+        bindtap="goToChat"
+        data-id="{{item.id}}"
+      >
+        <view class="avatar-wrapper">
+          <image class="chat-avatar" src="{{item.avatar}}" mode="aspectFill" />
+          <view class="badge" wx:if="{{item.unread_count > 0}}">
+            <text class="badge-text">{{item.unread_count}}</text>
+          </view>
+        </view>
+        <view class="chat-info">
+          <view class="chat-header">
+            <text class="chat-name">{{item.name}}</text>
+            <text class="chat-time">{{item.last_message_time}}</text>
+          </view>
+          <view class="chat-preview">
+            <text class="chat-last-message" lines="1">{{item.last_message}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="empty-chat" wx:else>
+      <text class="empty-icon">💬</text>
+      <text class="empty-text">暂无聊天消息</text>
+    </view>
+  </view>
+</view>

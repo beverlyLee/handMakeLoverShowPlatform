@@ -13,6 +13,9 @@ Page({
 
   onShow() {
     console.log('首页显示')
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setSelected(0)
+    }
   },
 
   onHide() {

@@ -1,0 +1,297 @@
+.user-center-container {
+  min-height: 100vh;
+  background-color: #FFF8E7;
+  padding-bottom: 60rpx;
+}
+
+/* 用户头像区域 */
+.user-header-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60rpx 40rpx 40rpx;
+  background: linear-gradient(180deg, #795548 0%, #8D6E63 100%);
+  position: relative;
+}
+
+.user-header-section::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40rpx;
+  background-color: #FFF8E7;
+  border-radius: 40rpx 40rpx 0 0;
+}
+
+.avatar-wrapper {
+  position: relative;
+  margin-bottom: 30rpx;
+  z-index: 1;
+}
+
+.user-avatar {
+  width: 180rpx;
+  height: 180rpx;
+  border-radius: 50%;
+  border: 6rpx solid #FFF8E7;
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.15);
+}
+
+.avatar-decorator {
+  position: absolute;
+  bottom: 10rpx;
+  right: 10rpx;
+  width: 50rpx;
+  height: 50rpx;
+  background-color: #FFD54F;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
+}
+
+.decorator-icon {
+  font-size: 28rpx;
+}
+
+.user-basic-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 1;
+}
+
+.user-nickname {
+  font-size: 40rpx;
+  font-weight: bold;
+  color: #FFF8E7;
+  margin-bottom: 16rpx;
+  text-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.2);
+}
+
+.user-role-badge {
+  padding: 8rpx 24rpx;
+  background-color: rgba(255, 248, 231, 0.3);
+  border-radius: 30rpx;
+  border: 2rpx solid rgba(255, 248, 231, 0.5);
+}
+
+.role-text {
+  font-size: 24rpx;
+  color: #FFF8E7;
+  font-weight: 500;
+}
+
+/* 卡片通用样式 */
+.info-card-section,
+.bio-card-section {
+  margin: 30rpx 30rpx 0;
+  background-color: #fff;
+  border-radius: 20rpx;
+  box-shadow: 0 4rpx 16rpx rgba(121, 85, 72, 0.1);
+  overflow: hidden;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 30rpx;
+  background-color: rgba(121, 85, 72, 0.05);
+  border-bottom: 1rpx solid rgba(121, 85, 72, 0.1);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+}
+
+.header-icon {
+  font-size: 36rpx;
+  margin-right: 16rpx;
+}
+
+.header-title {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #5D4037;
+}
+
+.header-decorator {
+  width: 60rpx;
+  height: 6rpx;
+  background: linear-gradient(90deg, #795548, #D7CCC8);
+  border-radius: 3rpx;
+}
+
+/* 信息列表 */
+.info-list {
+  padding: 0 30rpx;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 30rpx 0;
+  border-bottom: 1rpx dashed rgba(121, 85, 72, 0.15);
+}
+
+.info-item:last-child {
+  border-bottom: none;
+}
+
+.info-label-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.info-icon {
+  font-size: 32rpx;
+  margin-right: 16rpx;
+}
+
+.info-label {
+  font-size: 28rpx;
+  color: #6D4C41;
+  font-weight: 500;
+}
+
+.info-value {
+  font-size: 28rpx;
+  color: #8D6E63;
+  max-width: 400rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 编辑按钮 */
+.edit-btn {
+  padding: 10rpx 28rpx;
+  background-color: #795548;
+  border-radius: 30rpx;
+  transition: all 0.3s ease;
+}
+
+.edit-btn-text {
+  font-size: 24rpx;
+  color: #FFF8E7;
+  font-weight: 500;
+}
+
+.save-btn {
+  background-color: #4CAF50;
+}
+
+/* 个人简介内容 */
+.bio-content {
+  padding: 30rpx;
+}
+
+.bio-display {
+  position: relative;
+}
+
+.bio-text {
+  font-size: 28rpx;
+  color: #5D4037;
+  line-height: 1.8;
+  text-align: justify;
+}
+
+.bio-decorator {
+  margin-top: 30rpx;
+  padding-top: 20rpx;
+  border-top: 1rpx dashed rgba(121, 85, 72, 0.2);
+  text-align: center;
+}
+
+.bio-decorator-text {
+  font-size: 22rpx;
+  color: #A1887F;
+  font-style: italic;
+}
+
+/* 编辑状态 */
+.bio-edit-wrapper {
+  position: relative;
+}
+
+.bio-textarea {
+  width: 100%;
+  min-height: 200rpx;
+  padding: 24rpx;
+  font-size: 28rpx;
+  color: #5D4037;
+  line-height: 1.8;
+  background-color: rgba(121, 85, 72, 0.03);
+  border: 2rpx solid rgba(121, 85, 72, 0.2);
+  border-radius: 16rpx;
+  box-sizing: border-box;
+}
+
+.bio-textarea::placeholder {
+  color: #BCAAA4;
+}
+
+.textarea-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16rpx;
+}
+
+.char-count {
+  font-size: 22rpx;
+  color: #A1887F;
+}
+
+/* 底部装饰 */
+.bottom-decorator {
+  margin-top: 60rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.decorator-line {
+  width: 80%;
+  height: 2rpx;
+  background: linear-gradient(90deg, transparent, #D7CCC8, transparent);
+  margin-bottom: 30rpx;
+}
+
+.decorator-icons {
+  display: flex;
+  justify-content: center;
+  gap: 40rpx;
+}
+
+.decor-icon {
+  font-size: 40rpx;
+  opacity: 0.6;
+}
+
+/* 适配安全区域 */
+page {
+  background-color: #FFF8E7;
+}
+
+/* 加载状态占位 */
+.skeleton-placeholder {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
