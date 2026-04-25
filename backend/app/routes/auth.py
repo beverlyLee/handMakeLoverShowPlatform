@@ -32,7 +32,7 @@ def login():
     is_new_user = False
     
     if user:
-        UserService.update_user(user['id'], session_key=session_key)
+        UserService.update_user(user.id, session_key=session_key)
     else:
         user = UserService.create_user(
             openid=openid,
@@ -42,7 +42,7 @@ def login():
         )
         is_new_user = True
     
-    token = generate_token(user['id'])
+    token = generate_token(user.id)
     
     user_info = UserService.get_user_public_info(user)
     

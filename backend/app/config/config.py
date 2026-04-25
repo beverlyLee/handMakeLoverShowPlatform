@@ -15,3 +15,11 @@ class Config:
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', SECRET_KEY)
     JWT_ALGORITHM = 'HS256'
     JWT_EXPIRE_HOURS = int(os.getenv('JWT_EXPIRE_HOURS', 72))
+    
+    basedir = os.path.abspath(os.path.dirname(__file__))
+    basedir = os.path.dirname(os.path.dirname(basedir))
+    SQLALCHEMY_DATABASE_URI = os.getenv(
+        'DATABASE_URL', 
+        f'sqlite:///{os.path.join(basedir, "data", "handicraft.db")}'
+    )
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
