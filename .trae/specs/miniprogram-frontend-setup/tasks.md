@@ -1,0 +1,372 @@
+# 手工爱好者展示平台小程序前端 - The Implementation Plan (Decomposed and Prioritized Task List)
+
+## [ ] Task 1: 创建小程序基础工程结构
+- **Priority**: P0
+- **Depends On**: None
+- **Description**: 
+  - 在`handicraft-miniprogram`目录下创建标准微信小程序工程结构
+  - 创建并配置三大入口文件：`app.js`、`app.json`、`app.wxss`
+  - 创建标准目录结构：`pages/`、`components/`、`utils/`、`assets/`、`styles/`
+  - 配置项目基础配置（窗口样式、导航栏等）
+- **Acceptance Criteria Addressed**: [AC-1]
+- **Test Requirements**:
+  - `programmatic` TR-1.1: 检查`app.js`、`app.json`、`app.wxss`三个文件是否存在且语法正确
+  - `programmatic` TR-1.2: 检查目录结构是否包含`pages`、`components`、`utils`、`assets`、`styles`
+  - `human-judgement` TR-1.3: 微信开发者工具导入项目后无编译错误，能够正常启动
+- **Notes**: app.json中需要配置基础窗口属性（navigationBarTitleText、navigationBarBackgroundColor等）
+
+## [ ] Task 2: 封装HTTP请求工具库
+- **Priority**: P0
+- **Depends On**: [Task 1]
+- **Description**: 
+  - 创建`utils/request.js`封装`wx.request`
+  - 支持GET/POST/PUT/DELETE四种HTTP方法
+  - 自动在请求头中添加`Authorization: Bearer <token>`
+  - 统一解析后端响应格式：`{code, msg, data}`
+  - 统一错误处理：网络错误、业务错误（code != 0）
+  - 支持请求超时配置和基础URL配置
+- **Acceptance Criteria Addressed**: [AC-2, AC-8]
+- **Test Requirements**:
+  - `programmatic` TR-2.1: 调用request工具访问`/api/health`能正确返回`{status: 'healthy'}`
+  - `programmatic` TR-2.2: 携带token的请求能够正确添加Authorization头
+  - `programmatic` TR-2.3: 当后端返回code != 0时，能够正确触发错误回调
+- **Notes**: 参考README中的API响应格式进行封装
+
+## [ ] Task 3: 创建API配置和接口封装
+- **Priority**: P0
+- **Depends On**: [Task 2]
+- **Description**: 
+  - 创建`utils/config.js`配置文件
+  - 配置开发环境API地址：`http://127.0.0.1:5000/api`
+  - 配置请求超时：10000ms
+  - 按后端模块创建API封装文件：
+    - `api/auth.js` - 认证相关接口
+    - `api/products.js` - 作品相关接口
+    - `api/orders.js` - 订单相关接口
+    - `api/users.js` - 用户相关接口
+    - `api/messages.js` - 消息相关接口
+    - `api/favorites.js` - 收藏相关接口
+    - `api/search.js` - 搜索相关接口
+  - 每个API文件导出对应的函数，内部调用request工具
+- **Acceptance Criteria Addressed**: [AC-2]
+- **Test Requirements**:
+  - `programmatic` TR-3.1: 检查`api/`目录下是否包含所有模块对应的API文件
+  - `programmatic` TR-3.2: 调用`products.getProducts()`能够正确发起GET请求到`/api/products`
+  - `programmatic` TR-3.3: config.js中可切换开发/生产环境配置
+- **Notes**: API函数命名应与后端路由对应，如`getProducts()`对应`GET /api/products`
+
+## [ ] Task 4: 封装通用工具函数库
+- **Priority**: P0
+- **Depends On**: [Task 1]
+- **Description**: 
+  - 创建`utils/storage.js` - 本地存储封装
+    - 封装`setStorage`、`getStorage`、`removeStorage`
+    - 提供Token和用户信息的专用存取方法
+  - 创建`utils/format.js` - 格式化工具
+    - 价格格式化（保留2位小数、添加¥符号）
+    - 日期格式化（YYYY-MM-DD HH:mm:ss等）
+  - 创建`utils/util.js` - 通用工具
+    - 防抖、节流函数
+    - 对象深拷贝
+    - 空值判断
+- **Acceptance Criteria Addressed**: [AC-8]
+- **Test Requirements**:
+  - `programmatic` TR-4.1: 调用`storage.setToken('test')`后，`storage.getToken()`能返回'test'
+  - `programmatic` TR-4.2: `format.price(199)`返回'¥199.00'
+  - `programmatic` TR-4.3: `format.date(new Date())`返回格式化日期字符串
+- **Notes**: Token和用户信息的key建议使用常量定义
+
+## [ ] Task 5: 配置TabBar底部导航和页面路由
+- **Priority**: P0
+- **Depends On**: [Task 1]
+- **Description**: 
+  - 在`app.json`中配置`tabBar`
+  - 4个Tab配置（贴合手工主题的图标和文字）：
+    - 首页 → `pages/home/index`
+    - 分类/搜索 → `pages/category/index` 或 `pages/search/index`
+    - 购物车/收藏 → `pages/favorites/index` 或 `pages/cart/index`
+    - 我的 → `pages/user-center/index`
+  - 在`app.json`的`pages`数组中注册所有页面路由
+  - 创建手工风格的Tab图标（使用温暖色系）
+- **Acceptance Criteria Addressed**: [AC-3, AC-4]
+- **Test Requirements**:
+  - `human-judgement` TR-5.1: 小程序启动后底部TabBar正常显示，图标和文字正确
+  - `programmatic` TR-5.2: 点击Tab能正确切换到对应页面，`getCurrentPages()`能获取到正确页面
+  - `human-judgement` TR-5.3: Tab图标风格统一，符合手工主题（温暖色调）
+- **Notes**: Tab图标建议使用PNG格式，大小81*81px，选中和未选中两种状态
+
+## [ ] Task 6: 建立全局样式系统和主题设计Token
+- **Priority**: P0
+- **Depends On**: [Task 1]
+- **Description**: 
+  - 创建`styles/variables.wxss` - 主题变量定义
+    - 手工主题色板：
+      - 主色：暖橙色 `#E67E22`（代表手工的温暖感）
+      - 辅助色：米色 `#FDF6E3`、浅棕色 `#D2B48C`
+      - 文字色：深棕色 `#5D4037`、中棕色 `#795548`、浅棕色 `#BCAAA4`
+      - 背景色：米白色 `#FFF8E7`、浅米色 `#FFFAF0`
+    - 字体规范：
+      - 标题：`font-size: 36rpx; font-weight: 600;`
+      - 正文：`font-size: 28rpx;`
+      - 辅助文字：`font-size: 24rpx; color: #999;`
+    - 间距和圆角：
+      - 间距：`spacing-xs: 8rpx`、`spacing-sm: 16rpx`、`spacing-md: 24rpx`、`spacing-lg: 32rpx`
+      - 圆角：`radius-sm: 8rpx`、`radius-md: 16rpx`、`radius-lg: 24rpx`
+  - 创建`styles/common.wxss` - 通用样式类
+    - flex布局类（flex-center、flex-between等）
+    - 文字截断类（text-ellipsis）
+    - 边距类（mt、mb、ml、mr、pt、pb等）
+  - 在`app.wxss`中引入变量和通用样式
+- **Acceptance Criteria Addressed**: [AC-5]
+- **Test Requirements**:
+  - `programmatic` TR-6.1: 检查`styles/`目录下是否存在`variables.wxss`和`common.wxss`
+  - `human-judgement` TR-6.2: 色板定义完整，包含主色、辅助色、文字色、背景色
+  - `human-judgement` TR-6.3: 配色方案符合手工主题（温暖、自然、不刺眼）
+- **Notes**: 所有颜色使用CSS变量定义，便于后续主题切换
+
+## [ ] Task 7: 创建通用基础组件
+- **Priority**: P1
+- **Depends On**: [Task 1, Task 6]
+- **Description**: 
+  - 创建`components/loading/` - 加载动画组件
+    - 多种加载样式：旋转圈、骨架屏、下拉刷新动画
+    - 手工风格：温暖色调、柔和动画
+  - 创建`components/empty/` - 空状态组件
+    - 空数据、网络错误等场景
+    - 可爱的手绘风格图标
+  - 创建`components/toast/` - 轻量提示组件
+    - 成功、失败、警告、加载四种状态
+    - 统一的动画效果
+  - 创建`components/price-tag/` - 价格标签组件
+    - 显示现价、原价（划线）
+    - 促销标签（如"热卖"、"新品"）
+- **Acceptance Criteria Addressed**: [AC-7]
+- **Test Requirements**:
+  - `programmatic` TR-7.1: 检查`components/`目录下是否包含loading、empty、toast、price-tag组件
+  - `human-judgement` TR-7.2: 组件样式符合手工主题风格
+  - `human-judgement` TR-7.3: 在页面中引用组件后能正常渲染
+- **Notes**: 组件使用json文件的`usingComponents`进行注册
+
+## [ ] Task 8: 创建作品浏览模块页面框架
+- **Priority**: P1
+- **Depends On**: [Task 1, Task 5]
+- **Description**: 
+  - 创建`pages/home/index` - 首页
+    - 顶部搜索栏入口
+    - 轮播图区域（swiper组件）
+    - 分类导航（手工饰品、手工皮具、陶艺、编织等）
+    - 作品列表（瀑布流或网格布局）
+    - 下拉刷新和上拉加载
+  - 创建`pages/product-detail/index` - 作品详情页
+    - 作品图片轮播
+    - 作品信息区域（标题、价格、销量）
+    - 创作者信息卡片
+    - 作品详情（材料、工艺、制作周期）
+    - 底部操作栏（收藏、加入购物车、立即购买）
+  - 页面结构使用骨架屏加载状态
+- **Acceptance Criteria Addressed**: [AC-4, AC-6]
+- **Test Requirements**:
+  - `programmatic` TR-8.1: 检查两个页面目录和4个文件（js/json/wxml/wxss）是否存在
+  - `programmatic` TR-8.2: 首页`pages/home/index`已在app.json中注册
+  - `human-judgement` TR-8.3: 页面布局合理，样式符合手工主题
+- **Notes**: 作品列表项使用`components/product-card/`组件（如果已创建）
+
+## [ ] Task 9: 创建搜索模块页面框架
+- **Priority**: P1
+- **Depends On**: [Task 1, Task 5]
+- **Description**: 
+  - 创建`pages/search/index` - 搜索页
+    - 顶部搜索框（支持实时输入）
+    - 搜索历史记录区域
+    - 热门搜索推荐标签
+    - 搜索发现（热门作品）
+  - 创建`pages/search-result/index` - 搜索结果页
+    - 搜索结果列表（与首页作品列表类似）
+    - 筛选和排序（综合、销量、价格、最新）
+    - 空状态展示
+- **Acceptance Criteria Addressed**: [AC-4, AC-6]
+- **Test Requirements**:
+  - `programmatic` TR-9.1: 检查两个页面的4个文件是否存在
+  - `programmatic` TR-9.2: 页面已在app.json中注册
+  - `human-judgement` TR-9.3: 搜索历史标签样式使用圆角、温暖色背景
+- **Notes**: 搜索结果页可复用首页的作品列表样式
+
+## [ ] Task 10: 创建用户认证和个人中心模块页面框架
+- **Priority**: P1
+- **Depends On**: [Task 1, Task 5]
+- **Description**: 
+  - 创建`pages/login/index` - 登录授权页
+    - 微信授权登录按钮（button open-type="getUserInfo"）
+    - 手机号授权登录
+    - 隐私协议和用户协议勾选
+  - 创建`pages/user-center/index` - 个人中心主页
+    - 用户信息区域（头像、昵称、角色标识）
+    - 订单入口区（全部、待付款、待发货、待收货、待评价）
+    - 功能入口列表（我的收藏、收货地址、角色切换、老师主页等）
+    - 底部客服/关于入口
+  - 创建`pages/profile-edit/index` - 个人信息编辑页
+    - 头像上传
+    - 昵称编辑
+    - 简介编辑
+  - 创建`pages/favorites/index` - 我的收藏页
+    - 收藏作品列表（网格布局）
+    - 空状态展示
+- **Acceptance Criteria Addressed**: [AC-4, AC-6]
+- **Test Requirements**:
+  - `programmatic` TR-10.1: 检查4个页面的文件是否存在
+  - `programmatic` TR-10.2: 页面已在app.json中注册
+  - `human-judgement` TR-10.3: 个人中心的功能入口使用卡片式布局，温暖色调
+- **Notes**: 登录页遵循微信小程序最新的登录规范（使用wx.getUserProfile或wx.login）
+
+## [ ] Task 11: 创建订单管理模块页面框架
+- **Priority**: P1
+- **Depends On**: [Task 1, Task 5]
+- **Description**: 
+  - 创建`pages/order-list/index` - 订单列表页
+    - 顶部状态Tab（全部、待付款、待发货、待收货、待评价）
+    - 订单卡片列表
+      - 订单状态标签
+      - 作品缩略图、标题、价格、数量
+      - 订单金额
+      - 底部操作按钮（取消订单、去付款、确认收货、评价等）
+  - 创建`pages/order-detail/index` - 订单详情页
+    - 订单状态和进度条
+    - 收货地址信息
+    - 作品信息
+    - 订单信息（订单号、创建时间、支付方式等）
+    - 底部操作栏
+  - 创建`pages/order-create/index` - 创建订单页
+    - 收货地址选择区域
+    - 作品清单
+    - 备注输入
+    - 订单金额汇总
+    - 提交订单按钮
+- **Acceptance Criteria Addressed**: [AC-4, AC-6]
+- **Test Requirements**:
+  - `programmatic` TR-11.1: 检查3个页面的文件是否存在
+  - `programmatic` TR-11.2: 页面已在app.json中注册
+  - `human-judgement` TR-11.3: 订单状态标签使用不同颜色（待付款橙色、待发货蓝色、已完成绿色）
+- **Notes**: 订单状态配色参考：待付款`#FF9800`、待发货`#2196F3`、待收货`#9C27B0`、已完成`#4CAF50`
+
+## [ ] Task 12: 创建地址管理模块页面框架
+- **Priority**: P1
+- **Depends On**: [Task 1, Task 5]
+- **Description**: 
+  - 创建`pages/address-list/index` - 收货地址列表页
+    - 地址卡片列表
+      - 收货人、电话、详细地址
+      - 默认地址标签
+      - 编辑、删除操作
+    - 底部新增地址按钮
+  - 创建`pages/address-edit/index` - 地址新增/编辑页
+    - 收货人姓名输入
+    - 手机号输入
+    - 省市区选择（picker）
+    - 详细地址输入
+    - 设为默认地址开关
+    - 保存按钮
+- **Acceptance Criteria Addressed**: [AC-4, AC-6]
+- **Test Requirements**:
+  - `programmatic` TR-12.1: 检查2个页面的文件是否存在
+  - `programmatic` TR-12.2: 页面已在app.json中注册
+  - `human-judgement` TR-12.3: 默认地址标签使用主色（暖橙色）背景
+- **Notes**: 省市区选择使用微信原生`picker mode="region"`组件
+
+## [ ] Task 13: 创建老师端模块页面框架
+- **Priority**: P1
+- **Depends On**: [Task 1, Task 5]
+- **Description**: 
+  - 创建`pages/teacher-products/index` - 我的作品管理页
+    - 作品列表（上下架状态、销量）
+    - 新增作品按钮
+    - 操作入口（编辑、上下架、删除）
+  - 创建`pages/product-publish/index` - 作品发布/编辑页
+    - 图片上传区域
+    - 标题输入
+    - 分类选择
+    - 价格/原价输入
+    - 库存输入
+    - 材料、工艺、制作周期输入
+    - 详细描述
+    - 上架开关
+  - 创建`pages/teacher-orders/index` - 老师订单列表页
+    - 状态Tab（待确认、待发货、已发货、已完成）
+    - 订单卡片（与客户订单列表类似）
+    - 操作按钮（确认订单、发货、查看详情）
+  - 创建`pages/teacher-home/index` - 老师主页/店铺
+    - 店铺头部（头像、昵称、简介、粉丝数）
+    - 作品Tab（全部、分类筛选）
+    - 作品列表（网格布局）
+  - 创建`pages/role-switch/index` - 角色切换页
+    - 当前角色显示
+    - 角色选项卡（客户/老师）
+    - 切换确认
+- **Acceptance Criteria Addressed**: [AC-4, AC-6]
+- **Test Requirements**:
+  - `programmatic` TR-13.1: 检查5个页面的文件是否存在
+  - `programmatic` TR-13.2: 页面已在app.json中注册
+  - `human-judgement` TR-13.3: 作品发布页表单布局合理，字段分组清晰
+- **Notes**: 图片上传区域使用温暖色调的虚线框和上传图标
+
+## [ ] Task 14: 创建消息通知模块页面框架
+- **Priority**: P2
+- **Depends On**: [Task 1, Task 5]
+- **Description**: 
+  - 创建`pages/message-list/index` - 消息列表页
+    - 消息类型Tab（系统消息、订单消息、互动消息）
+    - 消息列表项
+      - 消息图标
+      - 标题
+      - 内容摘要
+      - 时间
+      - 未读数红点
+  - 创建`pages/message-detail/index` - 消息详情页
+    - 消息标题
+    - 消息内容
+    - 发送时间
+    - 相关跳转入口（如查看订单）
+- **Acceptance Criteria Addressed**: [AC-4, AC-6]
+- **Test Requirements**:
+  - `programmatic` TR-14.1: 检查2个页面的文件是否存在
+  - `programmatic` TR-14.2: 页面已在app.json中注册
+  - `human-judgement` TR-14.3: 未读数红点使用醒目但柔和的红色
+- **Notes**: 消息图标建议使用暖色系的线性图标
+
+## [ ] Task 15: 创建作品卡片等业务组件并完善组件库
+- **Priority**: P2
+- **Depends On**: [Task 7]
+- **Description**: 
+  - 创建`components/product-card/` - 作品卡片组件
+    - 封面图、标题、价格、销量
+    - 创作者头像昵称（可选）
+    - 收藏按钮（可选）
+  - 创建`components/nav-header/` - 自定义导航栏组件
+    - 支持返回按钮、标题、右侧操作按钮
+    - 适配不同机型的状态栏高度
+  - 创建`components/bottom-bar/` - 底部操作栏组件
+    - 支持多个操作按钮
+    - 支持主按钮高亮
+  - 更新已有的基础组件，增加更多配置选项
+- **Acceptance Criteria Addressed**: [AC-7]
+- **Test Requirements**:
+  - `programmatic` TR-15.1: 检查新增的3个业务组件是否存在
+  - `human-judgement` TR-15.2: 作品卡片样式符合手工主题（圆角卡片、温暖配色）
+  - `human-judgement` TR-15.3: 组件支持通过props配置不同样式
+- **Notes**: 组件命名使用kebab-case，如`product-card`
+
+## [ ] Task 16: 集成测试和开发工具适配
+- **Priority**: P0
+- **Depends On**: [Task 1, Task 2, Task 3, Task 4, Task 5, Task 6]
+- **Description**: 
+  - 在微信开发者工具中进行完整编译测试
+  - 验证所有页面能正常跳转
+  - 验证API请求能正常发出（使用开发者工具的Network面板）
+  - 验证本地存储功能正常
+  - 创建一个简单的开发说明文档（如如何切换API环境）
+  - 确保所有警告已消除（或仅保留合理警告）
+- **Acceptance Criteria Addressed**: [AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8]
+- **Test Requirements**:
+  - `programmatic` TR-16.1: 微信开发者工具编译无错误
+  - `programmatic` TR-16.2: Network面板显示API请求正常发出
+  - `human-judgement` TR-16.3: 开发者工具控制台无明显报错
+- **Notes**: 此任务为验证性任务，确保整体工程能正常工作
