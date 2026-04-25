@@ -21,6 +21,13 @@ htmlcov/
 *.log
 logs/
 
+# Python 缓存文件（关键！）
+__pycache__/
+*.py[cod]
+*.pyc
+*.pyo
+*.pyd
+
 # 微信小程序相关
 node_modules/
 .miniprogram/
