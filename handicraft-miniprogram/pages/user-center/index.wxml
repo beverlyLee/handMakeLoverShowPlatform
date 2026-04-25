@@ -1,112 +1,164 @@
 <view class="user-center-container">
-  <!-- 用户头像和基本信息 -->
+  <!-- 用户头像区域 -->
   <view class="user-header-section">
-    <view class="avatar-wrapper">
-      <image class="user-avatar" src="{{userInfo.avatar}}" mode="aspectFill" />
-      <view class="avatar-decorator">
-        <text class="decorator-icon">🎨</text>
+    <view class="avatar-wrapper" bindtap="chooseAvatar">
+      <image class="user-avatar" src="{{userInfo.avatar || defaultAvatar}}" mode="aspectFill" />
+      <view class="avatar-edit-overlay">
+        <text class="camera-icon">📷</text>
+        <text class="edit-text">更换头像</text>
       </view>
     </view>
     <view class="user-basic-info">
-      <text class="user-nickname">{{userInfo.nickname}}</text>
+      <text class="user-nickname">{{userInfo.nickname || '手作爱好者'}}</text>
       <view class="user-role-badge">
         <text class="role-text">{{userInfo.role === 'teacher' ? '手作老师' : '手作爱好者'}}</text>
       </view>
     </view>
   </view>
 
-  <!-- 用户详细信息卡片 -->
+  <!-- 个人信息卡片 -->
   <view class="info-card-section">
     <view class="card-header">
       <view class="header-left">
-        <text class="header-icon">📋</text>
-        <text class="header-title">个人信息</text>
+        <text class="header-icon">👤</text>
+        <text class="header-title">基本信息</text>
       </view>
-      <view class="header-decorator"></view>
     </view>
 
     <view class="info-list">
-      <view class="info-item">
+      <view class="info-item" bindtap="showEditDialog" data-field="nickname" data-title="昵称">
         <view class="info-label-wrapper">
-          <text class="info-icon">👤</text>
+          <text class="info-icon">✏️</text>
+          <text class="info-label">昵称</text>
+        </view>
+        <view class="info-value-wrapper">
+          <text class="info-value">{{userInfo.nickname || '未设置'}}</text>
+          <text class="arrow-icon">›</text>
+        </view>
+      </view>
+
+      <view class="info-item" bindtap="showEditDialog" data-field="username" data-title="用户名">
+        <view class="info-label-wrapper">
+          <text class="info-icon">🆔</text>
           <text class="info-label">用户名</text>
         </view>
-        <text class="info-value">{{userInfo.username}}</text>
+        <view class="info-value-wrapper">
+          <text class="info-value">{{userInfo.username || '未设置'}}</text>
+          <text class="arrow-icon">›</text>
+        </view>
       </view>
 
-      <view class="info-item">
+      <view class="info-item" bindtap="showEditDialog" data-field="phone" data-title="手机号">
         <view class="info-label-wrapper">
-          <text class="info-icon">📞</text>
+          <text class="info-icon">📱</text>
           <text class="info-label">手机号</text>
         </view>
-        <text class="info-value">{{userInfo.phone}}</text>
+        <view class="info-value-wrapper">
+          <text class="info-value">{{userInfo.phone || '未设置'}}</text>
+          <text class="arrow-icon">›</text>
+        </view>
       </view>
 
-      <view class="info-item">
+      <view class="info-item" bindtap="showEditDialog" data-field="email" data-title="邮箱">
         <view class="info-label-wrapper">
           <text class="info-icon">📧</text>
           <text class="info-label">邮箱</text>
         </view>
-        <text class="info-value">{{userInfo.email || '未设置'}}</text>
+        <view class="info-value-wrapper">
+          <text class="info-value">{{userInfo.email || '未设置'}}</text>
+          <text class="arrow-icon">›</text>
+        </view>
       </view>
 
-      <view class="info-item">
+      <view class="info-item" bindtap="showGenderPicker">
         <view class="info-label-wrapper">
           <text class="info-icon">⚥</text>
           <text class="info-label">性别</text>
         </view>
-        <text class="info-value">{{genderText}}</text>
+        <view class="info-value-wrapper">
+          <text class="info-value">{{genderText}}</text>
+          <text class="arrow-icon">›</text>
+        </view>
       </view>
 
-      <view class="info-item">
+      <view class="info-item info-item-disabled">
         <view class="info-label-wrapper">
           <text class="info-icon">📅</text>
           <text class="info-label">注册时间</text>
         </view>
-        <text class="info-value">{{userInfo.create_time}}</text>
+        <view class="info-value-wrapper">
+          <text class="info-value info-value-disabled">{{userInfo.create_time || '-'}}</text>
+        </view>
       </view>
     </view>
   </view>
 
-  <!-- 个人简介区域 -->
+  <!-- 个人简介卡片 -->
   <view class="bio-card-section">
     <view class="card-header">
       <view class="header-left">
-        <text class="header-icon">✍️</text>
+        <text class="header-icon">📝</text>
         <text class="header-title">个人简介</text>
       </view>
-      <view class="edit-btn {{isEditingBio ? 'save-btn' : ''}}" bindtap="toggleBioEdit">
-        <text class="edit-btn-text">{{isEditingBio ? '保存' : '编辑'}}</text>
+    </view>
+
+    <view class="bio-content" bindtap="showEditDialog" data-field="bio" data-title="个人简介">
+      <text class="bio-text {{!userInfo.bio ? 'bio-text-placeholder' : ''}}">
+        {{userInfo.bio || '点击添加个人简介，分享你的手作故事...'}}
+      </text>
+      <view class="bio-footer">
+        <text class="char-count">{{bioLength}}/200</text>
+        <text class="arrow-icon">›</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 快捷入口 -->
+  <view class="quick-actions-section">
+    <view class="card-header">
+      <view class="header-left">
+        <text class="header-icon">⚙️</text>
+        <text class="header-title">设置</text>
       </view>
     </view>
 
-    <view class="bio-content">
-      <view wx:if="{{!isEditingBio}}" class="bio-display">
-        <text class="bio-text">{{userInfo.bio || '暂无简介，点击编辑添加~'}}</text>
-        <view class="bio-decorator">
-          <text class="bio-decorator-text">✨ 用心创造，用爱分享 ✨</text>
+    <view class="quick-actions-list">
+      <view class="action-item">
+        <view class="action-left">
+          <text class="action-icon">🔔</text>
+          <text class="action-label">消息通知</text>
         </view>
+        <text class="arrow-icon">›</text>
       </view>
 
-      <view wx:else class="bio-edit-wrapper">
-        <textarea 
-          class="bio-textarea" 
-          value="{{editBioValue}}" 
-          placeholder="分享你的手作故事..."
-          maxlength="200"
-          bindinput="onBioInput"
-          auto-height
-        />
-        <view class="textarea-footer">
-          <text class="char-count">{{editBioValue.length}}/200</text>
+      <view class="action-item">
+        <view class="action-left">
+          <text class="action-icon">🔒</text>
+          <text class="action-label">隐私设置</text>
         </view>
+        <text class="arrow-icon">›</text>
+      </view>
+
+      <view class="action-item">
+        <view class="action-left">
+          <text class="action-icon">ℹ️</text>
+          <text class="action-label">关于我们</text>
+        </view>
+        <text class="arrow-icon">›</text>
       </view>
     </view>
+  </view>
+
+  <!-- 退出登录按钮 -->
+  <view class="logout-section">
+    <button class="logout-btn" bindtap="handleLogout">
+      <text class="logout-icon">🚪</text>
+      <text class="logout-text">退出登录</text>
+    </button>
   </view>
 
   <!-- 底部装饰 -->
   <view class="bottom-decorator">
-    <view class="decorator-line"></view>
     <view class="decorator-icons">
       <text class="decor-icon">🧶</text>
       <text class="decor-icon">🎨</text>
@@ -114,5 +166,58 @@
       <text class="decor-icon">✂️</text>
       <text class="decor-icon">🧵</text>
     </view>
+    <text class="decor-text">用心创造，用爱分享</text>
   </view>
 </view>
+
+<!-- 编辑弹窗 -->
+<view class="edit-dialog-mask" wx:if="{{showEditDialog}}" catchtouchmove="preventMove">
+  <view class="edit-dialog">
+    <view class="dialog-header">
+      <text class="dialog-title">{{editDialogTitle}}</text>
+      <view class="dialog-close" bindtap="closeEditDialog">
+        <text class="close-icon">×</text>
+      </view>
+    </view>
+
+    <view class="dialog-content">
+      <textarea 
+        wx:if="{{editField === 'bio'}}"
+        class="edit-textarea"
+        value="{{editValue}}"
+        placeholder="请输入{{editDialogTitle}}"
+        maxlength="200"
+        bindinput="onEditInput"
+        auto-height
+        focus="{{showEditDialog}}"
+      />
+      <input 
+        wx:else
+        class="edit-input"
+        value="{{editValue}}"
+        placeholder="请输入{{editDialogTitle}}"
+        maxlength="50"
+        bindinput="onEditInput"
+        focus="{{showEditDialog}}"
+      />
+      <text wx:if="{{editField === 'bio'}}" class="dialog-char-count">{{editValue.length}}/200</text>
+    </view>
+
+    <view class="dialog-footer">
+      <button class="dialog-btn dialog-btn-cancel" bindtap="closeEditDialog">取消</button>
+      <button class="dialog-btn dialog-btn-confirm" bindtap="saveEdit">确定</button>
+    </view>
+  </view>
+</view>
+
+<!-- 性别选择器 -->
+<picker 
+  wx:if="{{showGenderPicker}}"
+  mode="selector" 
+  range="{{genderOptions}}" 
+  range-key="label"
+  bindchange="onGenderChange"
+  bindcancel="closeGenderPicker"
+>
+  <view style="position: fixed; top: 0; left: 0; width: 100%; height: 100%;"></view>
+</picker>
