@@ -1,0 +1,118 @@
+{
+  "reviews": [
+    {
+      "id": 1,
+      "order_id": "ORD202401150001",
+      "user_id": 1,
+      "product_id": 1,
+      "teacher_id": 2,
+      "rating": 5,
+      "content": "围巾质量非常好，手感柔软，是纯羊毛的。包装也很精美，送人自用都很合适。老师的手艺很棒，下次还会回购！",
+      "images": [
+        "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=handmade%20knitted%20wool%20scarf%20review%20photo&image_size=square_hd"
+      ],
+      "is_anonymous": false,
+      "like_count": 28,
+      "reply_count": 2,
+      "reply_content": "感谢您的好评！这条围巾采用的是澳洲进口羊毛，手工编织需要3-5天时间。如果您有任何问题，随时联系我们哦~",
+      "reply_time": "2024-01-21 11:00:00",
+      "create_time": "2024-01-20 15:30:00",
+      "update_time": "2024-01-21 11:00:00"
+    },
+    {
+      "id": 2,
+      "order_id": "ORD202401150001",
+      "user_id": 1,
+      "product_id": 1,
+      "teacher_id": 2,
+      "rating": 4,
+      "content": "质量不错，就是快递有点慢，希望下次能快一点。围巾本身很暖和，样式也好看。",
+      "images": [],
+      "is_anonymous": true,
+      "like_count": 5,
+      "reply_count": 1,
+      "reply_content": "非常抱歉让您久等了！我们会尽量优化发货流程，让您能尽快收到心仪的商品。",
+      "reply_time": "2024-01-22 09:30:00",
+      "create_time": "2024-01-21 10:00:00",
+      "update_time": "2024-01-22 09:30:00"
+    },
+    {
+      "id": 3,
+      "order_id": "ORD202402200002",
+      "user_id": 1,
+      "product_id": 2,
+      "teacher_id": 2,
+      "rating": 5,
+      "content": "这套茶具简直太棒了！釉色温润如玉，手感细腻，一看就是手工制作的精品。茶壶出水流畅，茶杯大小适中，用来泡茶真的是一种享受。强烈推荐给喜欢品茶的朋友们！",
+      "images": [
+        "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=handmade%20ceramic%20tea%20set%20review%20photo&image_size=square_hd",
+        "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=tea%20ceramic%20set%20in%20use%20review&image_size=square_hd"
+      ],
+      "is_anonymous": false,
+      "like_count": 45,
+      "reply_count": 1,
+      "reply_content": "非常感谢您的认可！这套茶具是我们工作室的老师手工拉坯、上釉、烧制，每件都需要经过72小时以上的高温烧制。能得到您的喜欢真的很开心！",
+      "reply_time": "2024-02-25 14:00:00",
+      "create_time": "2024-02-24 16:30:00",
+      "update_time": "2024-02-25 14:00:00"
+    },
+    {
+      "id": 4,
+      "order_id": "ORD202403100003",
+      "user_id": 3,
+      "product_id": 3,
+      "teacher_id": 4,
+      "rating": 5,
+      "content": "材料包非常齐全，教程视频也很详细，我这个零基础的新手都能跟着一步步学会。织出来的毛衣效果还不错，很有成就感！老师讲解很耐心，有问题问了也很快回复。",
+      "images": [
+        "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=beginner%20knitting%20project%20finished%20review&image_size=square_hd"
+      ],
+      "is_anonymous": false,
+      "like_count": 67,
+      "reply_count": 0,
+      "reply_content": null,
+      "reply_time": null,
+      "create_time": "2024-03-20 11:00:00",
+      "update_time": "2024-03-20 11:00:00"
+    },
+    {
+      "id": 5,
+      "order_id": "ORD202403100003",
+      "user_id": 3,
+      "product_id": 4,
+      "teacher_id": 4,
+      "rating": 4,
+      "content": "玩偶材料包很可爱，教程也很详细。就是钩针对于新手来说有点难掌握，练了好久才学会基本针法。不过完成后真的很有成就感，孩子特别喜欢。",
+      "images": [
+        "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=crochet%20doll%20finished%20handmade%20review&image_size=square_hd"
+      ],
+      "is_anonymous": true,
+      "like_count": 23,
+      "reply_count": 1,
+      "reply_content": "感谢您的评价！钩针确实需要一些练习才能熟练，建议可以先从简单的针法练起。如果有任何问题，欢迎随时咨询我们的客服老师哦~",
+      "reply_time": "2024-03-22 15:30:00",
+      "create_time": "2024-03-21 09:45:00",
+      "update_time": "2024-03-22 15:30:00"
+    },
+    {
+      "id": 6,
+      "order_id": "ORD202403250004",
+      "user_id": 6,
+      "product_id": 6,
+      "teacher_id": 5,
+      "rating": 5,
+      "content": "这个花瓶真的是艺术品！造型独特，釉色漂亮，摆在客厅里特别有格调。老师的手艺真的很棒，每件作品都是独一无二的。包装也很用心，收到时完好无损。",
+      "images": [
+        "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=handmade%20ceramic%20vase%20home%20decor%20review&image_size=square_hd",
+        "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=ceramic%20vase%20with%20flowers%20display&image_size=square_hd"
+      ],
+      "is_anonymous": false,
+      "like_count": 56,
+      "reply_count": 1,
+      "reply_content": "非常感谢您的喜爱！这款花瓶采用的是传统的釉下彩工艺，每件作品都是老师亲手制作，所以每一件都是独一无二的。能为您的家增添一份美好，我们也很开心！",
+      "reply_time": "2024-04-02 10:30:00",
+      "create_time": "2024-04-01 14:20:00",
+      "update_time": "2024-04-02 10:30:00"
+    }
+  ]
+}

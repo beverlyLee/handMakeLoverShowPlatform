@@ -1,0 +1,64 @@
+{
+  "categories": [
+    {
+      "id": 1,
+      "name": "编织成品",
+      "name_en": "Knitted Products",
+      "icon": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=knitting%20yarn%20and%20needles%20icon&image_size=square",
+      "description": "手工编织的围巾、帽子、披肩等成品",
+      "sort": 1,
+      "status": "active",
+      "product_count": 12,
+      "create_time": "2023-05-10 10:00:00",
+      "update_time": "2024-03-15 11:30:00"
+    },
+    {
+      "id": 2,
+      "name": "陶艺作品",
+      "name_en": "Pottery Works",
+      "icon": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=ceramic%20pottery%20vase%20icon&image_size=square",
+      "description": "手工制作的陶瓷茶具、花瓶、摆件等",
+      "sort": 2,
+      "status": "active",
+      "product_count": 8,
+      "create_time": "2023-05-10 10:05:00",
+      "update_time": "2024-03-15 11:30:00"
+    },
+    {
+      "id": 3,
+      "name": "材料包",
+      "name_en": "Material Kits",
+      "icon": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=diy%20craft%20material%20kit%20icon&image_size=square",
+      "description": "包含详细教程的DIY材料包，适合新手入门",
+      "sort": 3,
+      "status": "active",
+      "product_count": 25,
+      "create_time": "2023-05-10 10:10:00",
+      "update_time": "2024-03-15 11:30:00"
+    },
+    {
+      "id": 4,
+      "name": "体验课程",
+      "name_en": "Workshop Classes",
+      "icon": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=craft%20workshop%20class%20icon&image_size=square",
+      "description": "线下手作体验课程，专业老师一对一指导",
+      "sort": 4,
+      "status": "active",
+      "product_count": 6,
+      "create_time": "2023-05-10 10:15:00",
+      "update_time": "2024-03-15 11:30:00"
+    },
+    {
+      "id": 5,
+      "name": "教程课程",
+      "name_en": "Tutorial Courses",
+      "icon": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=online%20tutorial%20video%20icon&image_size=square",
+      "description": "线上视频教程，随时随地学习手作技艺",
+      "sort": 5,
+      "status": "active",
+      "product_count": 15,
+      "create_time": "2023-05-10 10:20:00",
+      "update_time": "2024-03-15 11:30:00"
+    }
+  ]
+}

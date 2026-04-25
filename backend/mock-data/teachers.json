@@ -1,0 +1,76 @@
+{
+  "teachers": [
+    {
+      "id": 2,
+      "user_id": 2,
+      "real_name": "李大师",
+      "experience_years": 15,
+      "specialties": ["编织", "陶艺", "皮革工艺"],
+      "bio": "从事手作教学15年，擅长多种手作技艺，曾多次在国内外手作展览中获奖。教学风格严谨细致，注重基础训练。",
+      "certifications": ["国家高级手工艺师", "中国工艺美术协会会员"],
+      "studio_name": "匠心手作工作室",
+      "studio_address": "广东省深圳市南山区科技园路88号",
+      "studio_images": [
+        "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=handmade%20crafts%20studio%20workshop%20interior&image_size=square_hd",
+        "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=crafts%20teacher%20teaching%20students&image_size=square_hd"
+      ],
+      "rating": 4.9,
+      "student_count": 1256,
+      "product_count": 45,
+      "order_count": 856,
+      "follower_count": 3245,
+      "is_verified": true,
+      "verified_at": "2023-06-25 10:00:00",
+      "create_time": "2023-06-20 09:15:00",
+      "update_time": "2024-04-20 15:30:00"
+    },
+    {
+      "id": 4,
+      "user_id": 4,
+      "real_name": "张织女",
+      "experience_years": 10,
+      "specialties": ["棒针编织", "钩针编织", "棒针", "钩针"],
+      "bio": "专注编织教学10年，擅长各种棒针、钩针技法。曾出版多本编织教程书籍，在编织领域享有盛誉。",
+      "certifications": ["国家中级手工艺师", "编织协会认证讲师"],
+      "studio_name": "织梦工坊",
+      "studio_address": "上海市浦东新区张江高科技园区博云路100号",
+      "studio_images": [
+        "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=knitting%20studio%20colorful%20yarns%20display&image_size=square_hd",
+        "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=knitting%20teacher%20demonstrating%20techniques&image_size=square_hd"
+      ],
+      "rating": 4.8,
+      "student_count": 892,
+      "product_count": 32,
+      "order_count": 678,
+      "follower_count": 2567,
+      "is_verified": true,
+      "verified_at": "2023-03-15 14:00:00",
+      "create_time": "2023-03-05 16:20:00",
+      "update_time": "2024-04-15 10:00:00"
+    },
+    {
+      "id": 5,
+      "user_id": 5,
+      "real_name": "王陶艺",
+      "experience_years": 8,
+      "specialties": ["陶艺", "陶瓷", "拉坯", "釉上彩"],
+      "bio": "专业陶艺匠人，毕业于景德镇陶瓷大学。擅长传统陶艺与现代设计结合，作品曾被多家艺术馆收藏。",
+      "certifications": ["景德镇陶瓷协会会员", "工艺美术师"],
+      "studio_name": "土与火的艺术",
+      "studio_address": "江西省景德镇市珠山区新厂路50号",
+      "studio_images": [
+        "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=pottery%20studio%20with%20kiln%20and%20wheels&image_size=square_hd",
+        "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=ceramic%20artworks%20gallery%20display&image_size=square_hd"
+      ],
+      "rating": 4.9,
+      "student_count": 567,
+      "product_count": 28,
+      "order_count": 432,
+      "follower_count": 1890,
+      "is_verified": true,
+      "verified_at": "2023-08-20 11:00:00",
+      "create_time": "2023-08-12 11:00:00",
+      "update_time": "2024-04-10 16:00:00"
+    }
+  ]
+}

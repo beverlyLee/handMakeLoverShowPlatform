@@ -1,0 +1,272 @@
+{
+  "orders": [
+    {
+      "id": "ORD202401150001",
+      "user_id": 1,
+      "teacher_id": 2,
+      "status": "completed",
+      "total_amount": 299,
+      "discount_amount": 100,
+      "pay_amount": 199,
+      "shipping_fee": 0,
+      "pay_method": "wechat",
+      "pay_time": "2024-01-15 11:00:00",
+      "ship_time": "2024-01-16 09:30:00",
+      "deliver_time": "2024-01-18 14:20:00",
+      "complete_time": "2024-01-20 10:00:00",
+      "cancel_time": null,
+      "cancel_reason": null,
+      "remark": "请尽快发货",
+      "create_time": "2024-01-15 10:30:00",
+      "update_time": "2024-01-20 10:00:00",
+      "address": {
+        "name": "张三",
+        "phone": "138****8888",
+        "province": "广东省",
+        "city": "深圳市",
+        "district": "南山区",
+        "detail": "科技园南区A栋1001室"
+      },
+      "items": [
+        {
+          "id": 1,
+          "order_id": "ORD202401150001",
+          "product_id": 1,
+          "product_title": "手工编织羊毛围巾",
+          "product_image": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=handmade%20knitted%20wool%20scarf%20plaid%20pattern&image_size=square_hd",
+          "price": 299,
+          "original_price": 399,
+          "quantity": 1,
+          "total_price": 299
+        }
+      ]
+    },
+    {
+      "id": "ORD202402200002",
+      "user_id": 1,
+      "teacher_id": 2,
+      "status": "delivered",
+      "total_amount": 599,
+      "discount_amount": 200,
+      "pay_amount": 399,
+      "shipping_fee": 0,
+      "pay_method": "wechat",
+      "pay_time": "2024-02-20 15:30:00",
+      "ship_time": "2024-02-21 10:00:00",
+      "deliver_time": "2024-02-23 16:45:00",
+      "complete_time": null,
+      "cancel_time": null,
+      "cancel_reason": null,
+      "remark": "",
+      "create_time": "2024-02-20 14:45:00",
+      "update_time": "2024-02-23 16:45:00",
+      "address": {
+        "name": "李四",
+        "phone": "139****9999",
+        "province": "广东省",
+        "city": "广州市",
+        "district": "天河区",
+        "detail": "体育西路天河城B座2002室"
+      },
+      "items": [
+        {
+          "id": 2,
+          "order_id": "ORD202402200002",
+          "product_id": 2,
+          "product_title": "手工陶艺茶杯套装",
+          "product_image": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=handmade%20ceramic%20tea%20cup%20set%20traditional%20style&image_size=square_hd",
+          "price": 599,
+          "original_price": 799,
+          "quantity": 1,
+          "total_price": 599
+        }
+      ]
+    },
+    {
+      "id": "ORD202403100003",
+      "user_id": 3,
+      "teacher_id": 4,
+      "status": "paid",
+      "total_amount": 218,
+      "discount_amount": 30,
+      "pay_amount": 188,
+      "shipping_fee": 0,
+      "pay_method": "alipay",
+      "pay_time": "2024-03-10 15:30:00",
+      "ship_time": null,
+      "deliver_time": null,
+      "complete_time": null,
+      "cancel_time": null,
+      "cancel_reason": null,
+      "remark": "希望能送朋友的",
+      "create_time": "2024-03-10 14:45:00",
+      "update_time": "2024-03-10 15:30:00",
+      "address": {
+        "name": "王五",
+        "phone": "137****7777",
+        "province": "北京市",
+        "city": "北京市",
+        "district": "朝阳区",
+        "detail": "建国路88号SOHO现代城C座503室"
+      },
+      "items": [
+        {
+          "id": 3,
+          "order_id": "ORD202403100003",
+          "product_id": 3,
+          "product_title": "棒针编织毛衣教程材料包",
+          "product_image": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=knitting%20tutorial%20material%20kit%20with%20yarn%20and%20needles&image_size=square_hd",
+          "price": 129,
+          "original_price": 169,
+          "quantity": 1,
+          "total_price": 129
+        },
+        {
+          "id": 4,
+          "order_id": "ORD202403100003",
+          "product_id": 4,
+          "product_title": "钩针编织玩偶材料包",
+          "product_image": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=crochet%20doll%20material%20kit%20colorful&image_size=square_hd",
+          "price": 89,
+          "original_price": 119,
+          "quantity": 1,
+          "total_price": 89
+        }
+      ]
+    },
+    {
+      "id": "ORD202403250004",
+      "user_id": 6,
+      "teacher_id": 5,
+      "status": "pending",
+      "total_amount": 658,
+      "discount_amount": 140,
+      "pay_amount": 518,
+      "shipping_fee": 0,
+      "pay_method": null,
+      "pay_time": null,
+      "ship_time": null,
+      "deliver_time": null,
+      "complete_time": null,
+      "cancel_time": null,
+      "cancel_reason": null,
+      "remark": "",
+      "create_time": "2024-03-25 09:10:00",
+      "update_time": "2024-03-25 09:10:00",
+      "address": {
+        "name": "赵六",
+        "phone": "134****4444",
+        "province": "浙江省",
+        "city": "杭州市",
+        "district": "西湖区",
+        "detail": "文三路90号东部软件园12号楼"
+      },
+      "items": [
+        {
+          "id": 5,
+          "order_id": "ORD202403250004",
+          "product_id": 5,
+          "product_title": "陶艺入门体验课",
+          "product_image": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=pottery%20class%20experience%20workshop%20students&image_size=square_hd",
+          "price": 199,
+          "original_price": 299,
+          "quantity": 1,
+          "total_price": 199
+        },
+        {
+          "id": 6,
+          "order_id": "ORD202403250004",
+          "product_id": 6,
+          "product_title": "手工陶瓷花瓶",
+          "product_image": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=handmade%20ceramic%20vase%20elegant%20design&image_size=square_hd",
+          "price": 459,
+          "original_price": 599,
+          "quantity": 1,
+          "total_price": 459
+        }
+      ]
+    },
+    {
+      "id": "ORD202404010005",
+      "user_id": 3,
+      "teacher_id": 2,
+      "status": "cancelled",
+      "total_amount": 49,
+      "discount_amount": 0,
+      "pay_amount": 49,
+      "shipping_fee": 0,
+      "pay_method": "wechat",
+      "pay_time": "2024-04-01 12:00:00",
+      "ship_time": null,
+      "deliver_time": null,
+      "complete_time": null,
+      "cancel_time": "2024-04-01 14:30:00",
+      "cancel_reason": "不需要了",
+      "remark": "",
+      "create_time": "2024-04-01 11:30:00",
+      "update_time": "2024-04-01 14:30:00",
+      "address": {
+        "name": "王五",
+        "phone": "137****7777",
+        "province": "北京市",
+        "city": "北京市",
+        "district": "朝阳区",
+        "detail": "建国路88号SOHO现代城C座503室"
+      },
+      "items": [
+        {
+          "id": 7,
+          "order_id": "ORD202404010005",
+          "product_id": 7,
+          "product_title": "手工皮革钱包制作教程",
+          "product_image": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=leather%20wallet%20making%20tutorial&image_size=square_hd",
+          "price": 49,
+          "original_price": 79,
+          "quantity": 1,
+          "total_price": 49
+        }
+      ]
+    },
+    {
+      "id": "ORD202404150006",
+      "user_id": 1,
+      "teacher_id": 4,
+      "status": "shipped",
+      "total_amount": 199,
+      "discount_amount": 60,
+      "pay_amount": 139,
+      "shipping_fee": 0,
+      "pay_method": "wechat",
+      "pay_time": "2024-04-15 11:00:00",
+      "ship_time": "2024-04-16 09:00:00",
+      "deliver_time": null,
+      "complete_time": null,
+      "cancel_time": null,
+      "cancel_reason": null,
+      "remark": "请用顺丰快递",
+      "create_time": "2024-04-15 10:20:00",
+      "update_time": "2024-04-16 09:00:00",
+      "address": {
+        "name": "张三",
+        "phone": "138****8888",
+        "province": "广东省",
+        "city": "深圳市",
+        "district": "南山区",
+        "detail": "科技园南区A栋1001室"
+      },
+      "items": [
+        {
+          "id": 8,
+          "order_id": "ORD202404150006",
+          "product_id": 8,
+          "product_title": "毛线编织披肩材料包",
+          "product_image": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=knitted%20shawl%20material%20kit%20soft%20yarn&image_size=square_hd",
+          "price": 199,
+          "original_price": 259,
+          "quantity": 1,
+          "total_price": 199
+        }
+      ]
+    }
+  ]
+}

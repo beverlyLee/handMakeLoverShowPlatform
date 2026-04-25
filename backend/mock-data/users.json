@@ -1,0 +1,126 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "username": "handmade_lover",
+      "nickname": "手作爱好者",
+      "avatar": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=handmade%20crafts%20lover%20avatar&image_size=square",
+      "phone": "138****8888",
+      "email": "handmade@example.com",
+      "gender": 1,
+      "role": "customer",
+      "bio": "热爱手作，喜欢制作各种手工制品",
+      "create_time": "2024-01-15 10:30:00"
+    },
+    {
+      "id": 2,
+      "username": "craft_master",
+      "nickname": "手作大师",
+      "avatar": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=craft%20master%20avatar&image_size=square",
+      "phone": "139****9999",
+      "email": "craftmaster@example.com",
+      "gender": 2,
+      "role": "teacher",
+      "bio": "资深手作老师，擅长编织、陶艺等多种手作技艺",
+      "create_time": "2023-06-20 09:15:00"
+    },
+    {
+      "id": 3,
+      "username": "diy_enthusiast",
+      "nickname": "DIY达人",
+      "avatar": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=diy%20enthusiast%20avatar&image_size=square",
+      "phone": "137****7777",
+      "email": "diylover@example.com",
+      "gender": 0,
+      "role": "customer",
+      "bio": "喜欢尝试各种DIY项目，享受动手创造的乐趣",
+      "create_time": "2024-03-10 14:45:00"
+    },
+    {
+      "id": 4,
+      "username": "knitting_queen",
+      "nickname": "编织女王",
+      "avatar": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=knitting%20crafts%20teacher%20avatar&image_size=square",
+      "phone": "136****6666",
+      "email": "knitting@example.com",
+      "gender": 2,
+      "role": "teacher",
+      "bio": "专注编织教学10年，擅长各种棒针、钩针技法",
+      "create_time": "2023-03-05 16:20:00"
+    },
+    {
+      "id": 5,
+      "username": "clay_artist",
+      "nickname": "陶艺达人",
+      "avatar": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=clay%20pottery%20artist%20avatar&image_size=square",
+      "phone": "135****5555",
+      "email": "clayartist@example.com",
+      "gender": 1,
+      "role": "teacher",
+      "bio": "专业陶艺匠人，擅长传统陶艺与现代设计结合",
+      "create_time": "2023-08-12 11:00:00"
+    },
+    {
+      "id": 6,
+      "username": "paper_craft",
+      "nickname": "纸艺小匠",
+      "avatar": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=paper%20craft%20lover%20avatar&image_size=square",
+      "phone": "134****4444",
+      "email": "papercraft@example.com",
+      "gender": 2,
+      "role": "customer",
+      "bio": "热爱纸艺，喜欢折纸、剪纸、纸雕等各种纸艺创作",
+      "create_time": "2024-02-28 09:30:00"
+    }
+  ],
+  "addresses": [
+    {
+      "id": 1,
+      "user_id": 1,
+      "name": "张三",
+      "phone": "138****8888",
+      "province": "广东省",
+      "city": "深圳市",
+      "district": "南山区",
+      "detail": "科技园南区A栋1001室",
+      "is_default": true,
+      "create_time": "2024-01-15 10:30:00"
+    },
+    {
+      "id": 2,
+      "user_id": 1,
+      "name": "李四",
+      "phone": "139****9999",
+      "province": "广东省",
+      "city": "广州市",
+      "district": "天河区",
+      "detail": "体育西路天河城B座2002室",
+      "is_default": false,
+      "create_time": "2024-02-20 14:45:00"
+    },
+    {
+      "id": 3,
+      "user_id": 3,
+      "name": "王五",
+      "phone": "137****7777",
+      "province": "北京市",
+      "city": "北京市",
+      "district": "朝阳区",
+      "detail": "建国路88号SOHO现代城C座503室",
+      "is_default": true,
+      "create_time": "2024-03-10 14:45:00"
+    },
+    {
+      "id": 4,
+      "user_id": 6,
+      "name": "赵六",
+      "phone": "134****4444",
+      "province": "浙江省",
+      "city": "杭州市",
+      "district": "西湖区",
+      "detail": "文三路90号东部软件园12号楼",
+      "is_default": true,
+      "create_time": "2024-02-28 09:30:00"
+    }
+  ]
+}
