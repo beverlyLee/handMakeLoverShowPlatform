@@ -6,19 +6,93 @@
   <view class="description-section">
     <text class="description-text">在这里，您可以分享您的手工作品，与其他手工爱好者交流学习，发现更多创意灵感！</text>
   </view>
-  
-  <view class="features-section">
-    <view class="feature-item">
-      <text class="feature-icon">🎨</text>
-      <text class="feature-title">作品展示</text>
+
+  <view class="sort-section">
+    <view class="sort-header">
+      <text class="section-title">精选作品</text>
+      <view class="sort-selector" bindtap="toggleSortDropdown">
+        <text class="current-sort">{{currentSortLabel}}</text>
+        <text class="sort-arrow {{showSortDropdown ? 'up' : ''}}">▼</text>
+      </view>
     </view>
-    <view class="feature-item">
-      <text class="feature-icon">💬</text>
-      <text class="feature-title">交流互动</text>
+    
+    <view class="sort-dropdown" wx:if="{{showSortDropdown}}" catchtouchmove="preventBubble">
+      <view 
+        wx:for="{{sortOptions}}" 
+        wx:key="key" 
+        class="sort-option {{currentSort === item.key ? 'active' : ''}}"
+        bindtap="selectSort"
+        data-sort="{{item.key}}"
+        data-label="{{item.label}}"
+      >
+        <text class="sort-option-text">{{item.label}}</text>
+        <text class="sort-check" wx:if="{{currentSort === item.key}}">✓</text>
+      </view>
     </view>
-    <view class="feature-item">
-      <text class="feature-icon">🛒</text>
-      <text class="feature-title">手作市集</text>
+    
+    <view class="sort-mask" wx:if="{{showSortDropdown}}" bindtap="toggleSortDropdown"></view>
+  </view>
+
+  <view class="products-section">
+    <view class="products-grid" wx:if="{{products.length > 0}}">
+      <view 
+        wx:for="{{products}}" 
+        wx:key="id" 
+        class="product-card"
+        bindtap="goToProductDetail"
+        data-id="{{item.id}}"
+      >
+        <view class="product-image-wrapper">
+          <image class="product-image" src="{{item.cover_image}}" mode="aspectFill" />
+          <view class="product-tags-overlay">
+            <text wx:for="{{item.tags}}" wx:for-item="tag" wx:key="*this" class="product-tag">{{tag}}</text>
+          </view>
+          <view class="product-stats" wx:if="{{item.sales_count > 0 || item.favorite_count > 0}}">
+            <text class="stat-item" wx:if="{{item.sales_count > 0}}">已售{{item.sales_count}}</text>
+            <text class="stat-item" wx:if="{{item.favorite_count > 0}}">{{item.favorite_count}}人收藏</text>
+          </view>
+        </view>
+        
+        <view class="product-info">
+          <text class="product-title" lines="2">{{item.title}}</text>
+          
+          <view class="teacher-info" catchtap="goToTeacherProfile" data-teacher-id="{{item.teacher_id}}">
+            <image class="teacher-avatar" src="{{item.teacher ? item.teacher.avatar : '/images/default-avatar.png'}}" mode="aspectFill" />
+            <text class="teacher-name">{{item.teacher ? item.teacher.real_name : '手作老师'}}</text>
+            <text class="teacher-rating" wx:if="{{item.teacher && item.teacher.rating}}">★{{item.teacher.rating}}</text>
+          </view>
+          
+          <view class="product-price-row">
+            <view class="price-section">
+              <text class="price-symbol">¥</text>
+              <text class="product-price">{{item.price}}</text>
+              <text class="original-price" wx:if="{{item.original_price > item.price}}">¥{{item.original_price}}</text>
+            </view>
+            <view class="favorite-section" wx:if="{{item.favorite_count > 0}}">
+              <text class="favorite-icon">❤</text>
+              <text class="favorite-count">{{item.favorite_count}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="empty-state" wx:elif="{{!isLoading}}">
+      <text class="empty-icon">🎨</text>
+      <text class="empty-text">暂无作品</text>
+      <text class="empty-desc">快来发现更多精彩手作吧</text>
+    </view>
+
+    <view class="loading-state" wx:if="{{isLoading && products.length === 0}}">
+      <text class="loading-text">加载中...</text>
+    </view>
+
+    <view class="load-more" wx:if="{{isLoading && products.length > 0}}">
+      <text class="load-more-text">加载更多...</text>
+    </view>
+
+    <view class="no-more" wx:if="{{!hasMore && products.length > 0}}">
+      <text class="no-more-text">没有更多了</text>
     </view>
   </view>
 </view>

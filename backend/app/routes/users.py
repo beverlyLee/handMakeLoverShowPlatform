@@ -324,3 +324,24 @@ def update_user(user_id):
         return jsonify(error(code=ResponseCode.PERMISSION_DENIED, msg='无权修改其他用户信息')), 403
     
     return update_user_profile()
+
+
+@user_bp.route('/teacher/<int:teacher_id>', methods=['GET'])
+def get_teacher_public_info(teacher_id):
+    from app.models import TeacherProfile
+    
+    teacher = TeacherProfile.query.get(teacher_id)
+    if not teacher:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='老师不存在')), 404
+    
+    teacher_dict = teacher.to_dict()
+    
+    if teacher.user:
+        teacher_dict['user_info'] = {
+            'id': teacher.user.id,
+            'nickname': teacher.user.nickname,
+            'avatar': teacher.user.avatar,
+            'phone': teacher.user.phone
+        }
+    
+    return jsonify(success(data=teacher_dict))

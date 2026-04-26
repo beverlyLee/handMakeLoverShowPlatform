@@ -101,6 +101,14 @@ function setDefaultAddress(addressId) {
   return put(`/users/address/${addressId}/default`);
 }
 
+/**
+ * 获取老师公开信息
+ * @param {number} teacherId - 老师ID
+ */
+function getTeacherPublicInfo(teacherId) {
+  return get(`/users/teacher/${teacherId}`);
+}
+
 module.exports = {
   getUserInfo,
   updateUserInfo,
@@ -109,6 +117,7 @@ module.exports = {
   verifyTeacherIdentity,
   applyTeacher,
   getTeacherInfo,
+  getTeacherPublicInfo,
   getAddressList,
   getAddressDetail,
   createAddress,

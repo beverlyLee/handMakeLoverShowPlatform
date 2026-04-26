@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from app import create_app
 from app.database import db
-from app.models import User, Address, TeacherProfile, Order, OrderItem
+from app.models import User, Address, TeacherProfile, Order, OrderItem, Category, Product
 from app.config import Config
 
 MOCK_DATA_DIR = os.path.join(os.path.dirname(__file__), 'mock-data')
@@ -47,6 +47,8 @@ def init_database():
         users_data = load_json_file('users.json')
         teachers_data = load_json_file('teachers.json')
         orders_data = load_json_file('orders.json')
+        categories_data = load_json_file('categories.json')
+        products_data = load_json_file('products.json')
         
         if User.query.first():
             print("数据库已有数据，跳过迁移。")
@@ -205,12 +207,70 @@ def init_database():
         db.session.commit()
         print(f"已迁移 {order_count} 个订单，{order_item_count} 个订单项")
         
+        print("\n开始迁移分类数据...")
+        categories_list = categories_data.get('categories', [])
+        category_count = 0
+        category_id_map = {}
+        
+        for cat_data in categories_list:
+            category = Category(
+                id=cat_data.get('id'),
+                name=cat_data.get('name'),
+                name_en=cat_data.get('name_en'),
+                icon=cat_data.get('icon'),
+                description=cat_data.get('description'),
+                sort=cat_data.get('sort', 0),
+                status=cat_data.get('status', 'active'),
+                product_count=cat_data.get('product_count', 0),
+                created_at=parse_datetime(cat_data.get('create_time')),
+                updated_at=parse_datetime(cat_data.get('update_time'))
+            )
+            db.session.add(category)
+            category_id_map[category.id] = category
+            category_count += 1
+        
+        db.session.commit()
+        print(f"已迁移 {category_count} 个分类")
+        
+        print("\n开始迁移产品数据...")
+        products_list = products_data.get('products', [])
+        product_count = 0
+        
+        for prod_data in products_list:
+            product = Product(
+                id=prod_data.get('id'),
+                teacher_id=prod_data.get('teacher_id'),
+                title=prod_data.get('title'),
+                description=prod_data.get('description'),
+                category_id=prod_data.get('category_id'),
+                price=prod_data.get('price', 0.0),
+                original_price=prod_data.get('original_price', 0.0),
+                stock=prod_data.get('stock', 0),
+                cover_image=prod_data.get('cover_image'),
+                status=prod_data.get('status', 'active'),
+                sales_count=prod_data.get('sales_count', 0),
+                favorite_count=prod_data.get('favorite_count', 0),
+                view_count=0,
+                rating=prod_data.get('rating', 5.0),
+                created_at=parse_datetime(prod_data.get('create_time')),
+                updated_at=parse_datetime(prod_data.get('update_time'))
+            )
+            product.images = prod_data.get('images', [])
+            product.tags = prod_data.get('tags', [])
+            db.session.add(product)
+            product_count += 1
+        
+        db.session.commit()
+        print(f"已迁移 {product_count} 个产品")
+        
         print("\n" + "="*50)
         print("数据库初始化完成！")
         print("="*50)
         print(f"用户数: {User.query.count()}")
         print(f"地址数: {Address.query.count()}")
         print(f"老师入驻数: {TeacherProfile.query.count()}")
+        print(f"分类数: {Category.query.count()}")
+        print(f"产品数: {Product.query.count()}")
         print(f"订单数: {Order.query.count()}")
         print(f"订单项数: {OrderItem.query.count()}")
 

@@ -1,0 +1,165 @@
+<view class="teacher-profile-container">
+  <view class="loading-container" wx:if="{{isLoading}}">
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <view class="profile-content" wx:else>
+    <view class="header-section">
+      <view class="teacher-info">
+        <image class="teacher-avatar" src="{{teacher.user_info ? teacher.user_info.avatar : '/images/default-avatar.png'}}" mode="aspectFill" />
+        <view class="teacher-detail">
+          <view class="teacher-name-row">
+            <text class="teacher-name">{{teacher.real_name}}</text>
+            <text class="verify-badge" wx:if="{{teacher.is_verified}}">已认证</text>
+          </view>
+          <view class="teacher-tags" wx:if="{{teacher.specialties.length > 0}}">
+            <text wx:for="{{teacher.specialties}}" wx:for-item="tag" wx:key="*this" class="teacher-tag">{{tag}}</text>
+          </view>
+          <view class="teacher-stats-row" wx:if="{{teacher.rating || teacher.follower_count || teacher.product_count}}">
+            <view class="stat-item" wx:if="{{teacher.rating}}">
+              <text class="stat-value">★{{teacher.rating}}</text>
+              <text class="stat-label">评分</text>
+            </view>
+            <view class="stat-item" wx:if="{{teacher.follower_count}}">
+              <text class="stat-value">{{teacher.follower_count}}</text>
+              <text class="stat-label">粉丝</text>
+            </view>
+            <view class="stat-item" wx:if="{{teacher.product_count}}">
+              <text class="stat-value">{{teacher.product_count}}</text>
+              <text class="stat-label">作品</text>
+            </view>
+          </view>
+        </view>
+      </view>
+      <view class="header-actions">
+        <button class="action-btn action-btn-primary" bindtap="followTeacher">
+          <text class="btn-text">关注</text>
+        </button>
+        <button class="action-btn action-btn-secondary" bindtap="contactTeacher">
+          <text class="btn-text">咨询</text>
+        </button>
+      </view>
+    </view>
+
+    <view class="tab-section">
+      <view class="tab-bar">
+        <view 
+          class="tab-item {{currentTab === 'info' ? 'active' : ''}}" 
+          bindtap="switchTab" 
+          data-tab="info"
+        >
+          <text class="tab-text">简介</text>
+        </view>
+        <view 
+          class="tab-item {{currentTab === 'products' ? 'active' : ''}}" 
+          bindtap="switchTab" 
+          data-tab="products"
+        >
+          <text class="tab-text">作品 ({{teacher.product_count || 0}})</text>
+        </view>
+      </view>
+
+      <view class="tab-content">
+        <view class="info-tab" wx:if="{{currentTab === 'info'}}">
+          <view class="info-card" wx:if="{{teacher.intro || teacher.bio}}">
+            <view class="card-header">
+              <text class="card-title">个人简介</text>
+            </view>
+            <view class="card-content">
+              <text class="info-text">{{teacher.intro || teacher.bio || '暂无简介'}}</text>
+            </view>
+          </view>
+
+          <view class="info-card" wx:if="{{teacher.experience_years > 0}}">
+            <view class="card-header">
+              <text class="card-title">从业经验</text>
+            </view>
+            <view class="card-content">
+              <text class="info-text">{{teacher.experience_years}}年手作行业经验</text>
+            </view>
+          </view>
+
+          <view class="info-card" wx:if="{{teacher.studio_name}}">
+            <view class="card-header">
+              <text class="card-title">工作室</text>
+            </view>
+            <view class="card-content">
+              <text class="info-text">{{teacher.studio_name}}</text>
+              <text class="info-text" wx:if="{{teacher.studio_address}}">{{teacher.studio_address}}</text>
+            </view>
+          </view>
+
+          <view class="info-card" wx:if="{{teacher.certifications.length > 0}}">
+            <view class="card-header">
+              <text class="card-title">资质认证</text>
+            </view>
+            <view class="card-content">
+              <view class="cert-list">
+                <view wx:for="{{teacher.certifications}}" wx:for-item="cert" wx:key="*this" class="cert-item">
+                  <text class="cert-icon">🏆</text>
+                  <text class="cert-text">{{cert}}</text>
+                </view>
+              </view>
+            </view>
+          </view>
+
+          <view class="info-card" wx:if="{{teacher.studio_images.length > 0}}">
+            <view class="card-header">
+              <text class="card-title">工作室环境</text>
+            </view>
+            <view class="card-content">
+              <view class="studio-images">
+                <image 
+                  wx:for="{{teacher.studio_images}}" 
+                  wx:key="*this" 
+                  class="studio-image" 
+                  src="{{item}}" 
+                  mode="aspectFill"
+                />
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <view class="products-tab" wx:if="{{currentTab === 'products'}}">
+          <view class="products-grid" wx:if="{{products.length > 0}}">
+            <view 
+              wx:for="{{products}}" 
+              wx:key="id" 
+              class="product-card"
+              bindtap="goToProductDetail"
+              data-id="{{item.id}}"
+            >
+              <view class="product-image-wrapper">
+                <image class="product-image" src="{{item.cover_image}}" mode="aspectFill" />
+                <view class="product-stats" wx:if="{{item.sales_count > 0}}">
+                  <text class="stat-text">已售{{item.sales_count}}</text>
+                </view>
+              </view>
+              <view class="product-info">
+                <text class="product-title" lines="2">{{item.title}}</text>
+                <view class="product-price-row">
+                  <text class="price-symbol">¥</text>
+                  <text class="product-price">{{item.price}}</text>
+                </view>
+              </view>
+            </view>
+          </view>
+
+          <view class="empty-state" wx:elif="{{!productsLoading}}">
+            <text class="empty-icon">🎨</text>
+            <text class="empty-text">暂无作品</text>
+          </view>
+
+          <view class="load-more" wx:if="{{productsLoading}}">
+            <text class="load-more-text">加载中...</text>
+          </view>
+
+          <view class="no-more" wx:if="{{!productsHasMore && products.length > 0 && !productsLoading}}">
+            <text class="no-more-text">没有更多了</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

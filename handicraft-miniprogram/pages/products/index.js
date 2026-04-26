@@ -73,7 +73,7 @@ Page({
       }
 
       const result = await getProducts(params);
-      const newProducts = result?.list || result || [];
+      const newProducts = (result && result.list) || result || [];
 
       if (append) {
         this.setData({
