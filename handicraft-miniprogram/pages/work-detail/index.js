@@ -4,7 +4,7 @@ const { getProfile } = require('../../api/auth');
 const { showToast } = require('../../utils/util');
 const { getUserInfo } = require('../../utils/storage');
 
-const DEFAULT_IMAGE = 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=handmade%20craft%20product%20placeholder&image_size=square_hd';
+const DEFAULT_IMAGE = 'https://picsum.photos/seed/handmade-craft-default/400/400';
 
 Page({
   data: {
