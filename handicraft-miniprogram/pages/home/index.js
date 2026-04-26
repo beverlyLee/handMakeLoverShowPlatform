@@ -133,7 +133,7 @@ Page({
   goToProductDetail(e) {
     const productId = e.currentTarget.dataset.id;
     wx.navigateTo({
-      url: `/pages/product-detail/index?id=${productId}`
+      url: `/pages/work-detail/index?id=${productId}`
     });
   },
 

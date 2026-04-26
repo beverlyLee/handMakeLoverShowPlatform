@@ -175,6 +175,29 @@
       "tags": ["编织", "披肩", "材料包", "秋冬"],
       "create_time": "2024-03-10 15:45:00",
       "update_time": "2024-04-15 10:20:00"
+    },
+    {
+      "id": 9,
+      "teacher_id": 2,
+      "title": "手工刺绣花鸟团扇",
+      "description": "传统苏绣工艺手工刺绣团扇，精选真丝面料，绣工精细，花鸟图案栩栩如生。既是实用的夏日纳凉工具，也是精美的艺术品收藏。扇框采用优质红木，手感温润细腻。",
+      "category_id": 5,
+      "price": 368,
+      "original_price": 468,
+      "stock": 25,
+      "images": [
+        "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=traditional%20chinese%20hand%20embroidered%20silk%20fan%20flower%20bird%20design&image_size=square_hd",
+        "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=handmade%20chinese%20embroidered%20round%20fan%20detail%20stitching&image_size=square_hd",
+        "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=chinese%20traditional%20embroidery%20art%20fan%20display&image_size=square_hd"
+      ],
+      "cover_image": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=traditional%20chinese%20hand%20embroidered%20silk%20fan%20flower%20bird%20design&image_size=square_hd",
+      "status": "active",
+      "sales_count": 42,
+      "favorite_count": 136,
+      "rating": 4.9,
+      "tags": ["刺绣", "团扇", "苏绣", "传统工艺", "艺术品"],
+      "create_time": "2026-04-20 10:30:00",
+      "update_time": "2026-04-25 14:45:00"
     }
   ]
 }

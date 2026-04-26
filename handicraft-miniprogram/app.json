@@ -9,6 +9,7 @@
     "pages/address-list/index",
     "pages/address-edit/index",
     "pages/product-detail/index",
+    "pages/work-detail/index",
     "pages/teacher-profile/index"
   ],
   "window": {

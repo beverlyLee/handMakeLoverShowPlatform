@@ -1,0 +1,201 @@
+<view class="work-detail-container">
+  <view class="loading-container" wx:if="{{isLoading}}">
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <view class="work-content" wx:else>
+    <view class="image-section">
+      <swiper 
+        class="image-swiper" 
+        indicator-dots="{{product.images.length > 1}}" 
+        indicator-color="rgba(255,255,255,0.5)"
+        indicator-active-color="#fff"
+        autoplay="{{false}}" 
+        circular="{{product.images.length > 1}}"
+        bindchange="onImageChange"
+      >
+        <swiper-item wx:for="{{product.images}}" wx:key="*this">
+          <image 
+            class="work-image" 
+            src="{{item}}" 
+            mode="aspectFill" 
+            bindtap="previewImage" 
+            data-url="{{item}}"
+          />
+        </swiper-item>
+      </swiper>
+      <view class="image-counter" wx:if="{{product.images.length > 1}}">
+        <text>{{currentImageIndex + 1}}/{{product.images.length}}</text>
+      </view>
+    </view>
+
+    <view class="info-section">
+      <view class="price-row">
+        <view class="price-section">
+          <text class="price-symbol">¥</text>
+          <text class="work-price">{{product.price}}</text>
+          <text class="original-price" wx:if="{{product.original_price > product.price}}">¥{{product.original_price}}</text>
+        </view>
+        <view class="stats-section">
+          <view class="stat-item" wx:if="{{product.sales_count > 0}}">
+            <text class="stat-value">{{product.sales_count}}</text>
+            <text class="stat-label">已售</text>
+          </view>
+          <view class="stat-item" wx:if="{{product.favorite_count > 0}}">
+            <text class="stat-value">{{product.favorite_count}}</text>
+            <text class="stat-label">收藏</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="title-section">
+        <text class="work-title">{{product.title}}</text>
+        <view class="work-tags">
+          <text wx:for="{{product.tags}}" wx:for-item="tag" wx:key="*this" class="work-tag">{{tag}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="teacher-card">
+      <view class="teacher-header" bindtap="goToTeacherProfile" data-teacher-id="{{product.teacher_id}}">
+        <image class="teacher-avatar" src="{{product.teacher ? product.teacher.avatar : '/images/default-avatar.png'}}" mode="aspectFill" />
+        <view class="teacher-info">
+          <view class="teacher-name-row">
+            <text class="teacher-name">{{product.teacher ? product.teacher.real_name : '手作老师'}}</text>
+            <text class="teacher-badge" wx:if="{{product.teacher && product.teacher.rating}}">★{{product.teacher.rating}}</text>
+          </view>
+          <text class="teacher-stats" wx:if="{{product.teacher && (product.teacher.follower_count > 0 || product.teacher.product_count > 0)}}">
+            {{product.teacher.follower_count}}粉丝 · {{product.teacher.product_count}}作品
+          </text>
+          <text class="teacher-intro" wx:if="{{product.teacher && product.teacher.intro}}">
+            {{product.teacher.intro}}
+          </text>
+        </view>
+        <text class="arrow-icon">›</text>
+      </view>
+      <view class="teacher-actions">
+        <button class="action-btn action-btn-primary" bindtap="goToTeacherProducts" data-teacher-id="{{product.teacher_id}}">
+          查看Ta的作品
+        </button>
+        <button class="action-btn action-btn-secondary" bindtap="contactTeacher">
+          联系老师
+        </button>
+      </view>
+    </view>
+
+    <view class="description-section">
+      <view class="section-header">
+        <text class="section-title">作品详情</text>
+      </view>
+      <view class="description-content">
+        <text class="description-text">{{product.description}}</text>
+      </view>
+    </view>
+
+    <view class="specs-section" wx:if="{{product.category || product.stock > 0 || product.rating}}">
+      <view class="section-header">
+        <text class="section-title">作品信息</text>
+      </view>
+      <view class="specs-list">
+        <view class="spec-item" wx:if="{{product.category}}">
+          <text class="spec-label">分类</text>
+          <text class="spec-value">{{product.category.name}}</text>
+        </view>
+        <view class="spec-item" wx:if="{{product.stock > 0}}">
+          <text class="spec-label">库存</text>
+          <text class="spec-value">{{product.stock}}件</text>
+        </view>
+        <view class="spec-item" wx:if="{{product.rating}}">
+          <text class="spec-label">评分</text>
+          <text class="spec-value">★{{product.rating}}</text>
+        </view>
+        <view class="spec-item" wx:if="{{product.view_count > 0}}">
+          <text class="spec-label">浏览</text>
+          <text class="spec-value">{{product.view_count}}次</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="more-works-section" wx:if="{{product.teacher && product.teacher.product_count > 0}}">
+      <view class="section-header">
+        <text class="section-title">更多Ta的作品</text>
+        <text class="view-all" bindtap="goToTeacherProducts" data-teacher-id="{{product.teacher_id}}">查看全部 ›</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="bottom-bar {{isTeacher ? 'bottom-bar-teacher' : ''}}" wx:if="{{!isLoading}}">
+    <view class="bar-actions">
+      <view class="action-icon-wrapper" bindtap="toggleFavorite">
+        <text class="action-icon">❤</text>
+        <text class="action-text">收藏</text>
+      </view>
+      <view class="action-icon-wrapper" bindtap="contactTeacher">
+        <text class="action-icon">💬</text>
+        <text class="action-text">咨询</text>
+      </view>
+      <view class="action-icon-wrapper" bindtap="goBackHome">
+        <text class="action-icon">🏠</text>
+        <text class="action-text">首页</text>
+      </view>
+    </view>
+    <view class="bar-buttons" wx:if="{{!isTeacher}}">
+      <button class="btn-order" bindtap="showOrderConfirmDialog">
+        立即下单
+      </button>
+    </view>
+  </view>
+
+  <view class="order-confirm-mask" wx:if="{{showOrderConfirm}}" catchtouchmove="preventTouchMove">
+    <view class="order-confirm-dialog">
+      <view class="dialog-header">
+        <text class="dialog-title">确认下单</text>
+        <text class="dialog-close" bindtap="hideOrderConfirmDialog">✕</text>
+      </view>
+      
+      <view class="dialog-content">
+        <view class="order-product">
+          <image class="product-thumb" src="{{product.cover_image || product.images[0]}}" mode="aspectFill" />
+          <view class="product-info">
+            <text class="product-name">{{product.title}}</text>
+            <view class="product-price-row">
+              <text class="product-price">¥{{product.price}}</text>
+              <text class="product-original-price" wx:if="{{product.original_price > product.price}}">¥{{product.original_price}}</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="quantity-section">
+          <text class="quantity-label">购买数量</text>
+          <view class="quantity-controls">
+            <view class="quantity-btn {{orderQuantity <= 1 ? 'disabled' : ''}}" bindtap="decreaseQuantity">
+              <text>−</text>
+            </view>
+            <view class="quantity-value">
+              <text>{{orderQuantity}}</text>
+            </view>
+            <view class="quantity-btn" bindtap="increaseQuantity">
+              <text>+</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="order-summary">
+          <view class="summary-row">
+            <text class="summary-label">商品小计</text>
+            <text class="summary-value">¥{{product.price * orderQuantity}}</text>
+          </view>
+          <view class="summary-row total">
+            <text class="summary-label">合计</text>
+            <text class="summary-value total-price">¥{{product.price * orderQuantity}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="dialog-footer">
+        <button class="footer-btn btn-cancel" bindtap="hideOrderConfirmDialog">取消</button>
+        <button class="footer-btn btn-confirm" bindtap="confirmOrder">确认下单</button>
+      </view>
+    </view>
+  </view>
+</view>
