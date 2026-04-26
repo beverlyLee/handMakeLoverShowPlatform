@@ -466,6 +466,12 @@ Page({
     return;
   },
 
+  goToAddressManage() {
+    wx.navigateTo({
+      url: '/pages/address-list/index'
+    });
+  },
+
   onShareAppMessage() {
     return {
       title: '手工爱好者平台 - 个人中心',

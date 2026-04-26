@@ -61,6 +61,14 @@ function getAddressList() {
 }
 
 /**
+ * 获取地址详情
+ * @param {number} addressId
+ */
+function getAddressDetail(addressId) {
+  return get(`/users/address/${addressId}`);
+}
+
+/**
  * 新增地址
  * @param {Object} data
  */
@@ -102,6 +110,7 @@ module.exports = {
   applyTeacher,
   getTeacherInfo,
   getAddressList,
+  getAddressDetail,
   createAddress,
   updateAddress,
   deleteAddress,

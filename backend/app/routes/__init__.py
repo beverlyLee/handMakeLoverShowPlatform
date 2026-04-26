@@ -8,10 +8,8 @@ from app.routes.reviews import review_bp
 from app.routes.cart import cart_bp
 from app.routes.favorites import favorite_bp
 from app.routes.search import search_bp
-from app.routes.role_switch import role_switch_bp
 
 __all__ = [
     'main_bp', 'auth_bp', 'product_bp', 'order_bp', 'user_bp',
-    'message_bp', 'review_bp', 'cart_bp', 'favorite_bp', 'search_bp',
-    'role_switch_bp'
+    'message_bp', 'review_bp', 'cart_bp', 'favorite_bp', 'search_bp'
 ]

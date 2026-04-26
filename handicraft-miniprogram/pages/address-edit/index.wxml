@@ -1,0 +1,94 @@
+<view class="edit-container">
+  <view class="form-section">
+    <view class="form-item">
+      <view class="form-label">收货人</view>
+      <input 
+        class="form-input" 
+        value="{{name}}" 
+        placeholder="请输入收货人姓名" 
+        maxlength="20"
+        bindinput="onInputName"
+      />
+    </view>
+
+    <view class="form-item">
+      <view class="form-label">手机号码</view>
+      <input 
+        class="form-input" 
+        value="{{phone}}" 
+        placeholder="请输入手机号码" 
+        type="number"
+        maxlength="11"
+        bindinput="onInputPhone"
+      />
+    </view>
+
+    <view class="form-item form-item-picker" bindtap="chooseWxAddress">
+      <view class="form-label">所在地区</view>
+      <view class="picker-value {{regionText ? '' : 'picker-placeholder'}}">
+        <text wx:if="{{regionText}}">{{regionText}}</text>
+        <text wx:else>点击选择微信地址</text>
+      </view>
+      <view class="picker-icon">📍</view>
+    </view>
+
+    <picker 
+      mode="region" 
+      value="{{region}}" 
+      bindchange="onRegionChange"
+    >
+      <view class="form-item form-item-picker">
+        <view class="form-label">手动选择地区</view>
+        <view class="picker-value {{regionText ? '' : 'picker-placeholder'}}">
+          <text wx:if="{{regionText}}">{{regionText}}</text>
+          <text wx:else>点击选择省市区</text>
+        </view>
+        <view class="picker-arrow">›</view>
+      </view>
+    </picker>
+
+    <view class="form-item form-item-textarea">
+      <view class="form-label">详细地址</view>
+      <textarea 
+        class="form-textarea" 
+        value="{{detail}}" 
+        placeholder="请输入详细地址，如街道、楼牌号等" 
+        maxlength="100"
+        bindinput="onInputDetail"
+        auto-height
+      />
+      <view class="char-count">{{detail.length}}/100</view>
+    </view>
+  </view>
+
+  <view class="settings-section">
+    <view class="setting-item">
+      <view class="setting-left">
+        <text class="setting-icon">⭐</text>
+        <text class="setting-label">设为默认地址</text>
+      </view>
+      <switch 
+        checked="{{is_default}}" 
+        color="#795548"
+        bindchange="onDefaultChange"
+      />
+    </view>
+  </view>
+
+  <view class="tips-section">
+    <text class="tips-title">💡 温馨提示</text>
+    <text class="tips-item">• 点击"选择微信地址"可快速导入微信收货地址</text>
+    <text class="tips-item">• 详细地址请填写街道、门牌号等具体信息</text>
+    <text class="tips-item">• 设为默认地址后，下单时会自动选择该地址</text>
+  </view>
+</view>
+
+<view class="submit-section safe-area-bottom">
+  <button 
+    class="submit-btn" 
+    bindtap="submitAddress"
+    disabled="{{isSubmitting}}"
+  >
+    <text class="submit-text">{{isSubmitting ? '保存中...' : (isEdit ? '保存修改' : '保存地址')}}</text>
+  </button>
+</view>

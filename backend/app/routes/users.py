@@ -223,7 +223,24 @@ def get_address_list():
         return jsonify(error(code=ResponseCode.USER_NOT_FOUND, msg='用户不存在')), 404
     
     addresses = UserService.get_addresses_by_user(user_id)
-    return jsonify(success(data=addresses))
+    return jsonify(success(data={
+        'list': addresses,
+        'addresses': addresses,
+        'total': len(addresses)
+    }))
+
+@user_bp.route('/address/<int:address_id>', methods=['GET'])
+@login_required
+def get_address_detail(address_id):
+    user_dict, user_id = get_current_user()
+    if not user_dict:
+        return jsonify(error(code=ResponseCode.USER_NOT_FOUND, msg='用户不存在')), 404
+    
+    address = UserService.get_address_by_id(address_id, user_id)
+    if not address:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='地址不存在')), 404
+    
+    return jsonify(success(data=address))
 
 @user_bp.route('/address', methods=['POST'])
 @login_required
@@ -267,8 +284,8 @@ def delete_address(address_id):
     if not user_dict:
         return jsonify(error(code=ResponseCode.USER_NOT_FOUND, msg='用户不存在')), 404
     
-    success = UserService.delete_address(address_id, user_id)
-    if not success:
+    is_success = UserService.delete_address(address_id, user_id)
+    if not is_success:
         return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='地址不存在')), 404
     
     return jsonify(success(msg='地址删除成功'))
@@ -280,8 +297,8 @@ def set_default_address(address_id):
     if not user_dict:
         return jsonify(error(code=ResponseCode.USER_NOT_FOUND, msg='用户不存在')), 404
     
-    success = UserService.set_default_address(address_id, user_id)
-    if not success:
+    is_success = UserService.set_default_address(address_id, user_id)
+    if not is_success:
         return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='地址不存在')), 404
     
     return jsonify(success(msg='默认地址设置成功'))

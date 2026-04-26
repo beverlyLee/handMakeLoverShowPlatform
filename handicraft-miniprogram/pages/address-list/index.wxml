@@ -1,0 +1,55 @@
+<view class="address-container">
+  <view class="address-list" wx:if="{{addressList.length > 0}}">
+    <view 
+      class="address-item {{isSelectMode ? 'address-item-select' : ''}} {{item.is_default ? 'address-item-default' : ''}}" 
+      wx:for="{{addressList}}" 
+      wx:key="id"
+      bindtap="selectAddress"
+      data-id="{{item.id}}"
+    >
+      <view class="address-header" catchtap="selectAddress" data-id="{{item.id}}">
+        <view class="address-contact">
+          <text class="contact-name">{{item.name || '未设置'}}</text>
+          <text class="contact-phone">{{item.phone || '未设置'}}</text>
+        </view>
+        <view class="address-badge" wx:if="{{item.is_default}}">
+          <text class="badge-text">默认</text>
+        </view>
+      </view>
+      
+      <view class="address-detail" catchtap="selectAddress" data-id="{{item.id}}">
+        <text class="detail-text">{{item.fullAddress || '未设置详细地址'}}</text>
+      </view>
+
+      <view class="address-actions">
+        <view class="action-item {{item.is_default ? 'action-item-active' : ''}}" bindtap="setAsDefault" data-id="{{item.id}}">
+          <text class="action-icon">✓</text>
+          <text class="action-text">设为默认</text>
+        </view>
+        <view class="action-item" bindtap="goToEditAddress" data-id="{{item.id}}">
+          <text class="action-icon">✎</text>
+          <text class="action-text">编辑</text>
+        </view>
+        <view class="action-item action-item-delete" bindtap="confirmDelete" data-id="{{item.id}}">
+          <text class="action-icon">✕</text>
+          <text class="action-text">删除</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="empty-state" wx:if="{{addressList.length === 0 && !isLoading}}">
+    <view class="empty-icon">📍</view>
+    <text class="empty-text">暂无收货地址</text>
+    <text class="empty-desc">点击下方按钮添加收货地址</text>
+  </view>
+
+  <view class="loading-state" wx:if="{{isLoading && addressList.length === 0}}">
+    <text class="loading-text">加载中...</text>
+  </view>
+</view>
+
+<view class="add-address-btn safe-area-bottom" bindtap="goToAddAddress">
+  <text class="add-icon">+</text>
+  <text class="add-text">新增收货地址</text>
+</view>
