@@ -24,25 +24,30 @@
   </view>
 
   <view class="products-section">
-    <view class="section-header">
-      <text class="section-title">推荐作品</text>
-      <view class="sort-options">
-        <text 
-          class="sort-item {{currentSort === 'default' ? 'active' : ''}}"
-          bindtap="changeSort"
-          data-sort="default"
-        >默认</text>
-        <text 
-          class="sort-item {{currentSort === 'sales' ? 'active' : ''}}"
-          bindtap="changeSort"
-          data-sort="sales"
-        >销量</text>
-        <text 
-          class="sort-item {{currentSort === 'price' ? 'active' : ''}}"
-          bindtap="changeSort"
-          data-sort="price"
-        >价格</text>
+    <view class="sort-section">
+      <view class="section-header">
+        <text class="section-title">推荐作品</text>
+        <view class="sort-selector" bindtap="toggleSortDropdown">
+          <text class="current-sort">{{currentSortLabel}}</text>
+          <text class="sort-arrow {{showSortDropdown ? 'up' : ''}}">▼</text>
+        </view>
       </view>
+      
+      <view class="sort-dropdown" wx:if="{{showSortDropdown}}" catchtouchmove="preventBubble">
+        <view 
+          wx:for="{{sortOptions}}" 
+          wx:key="key" 
+          class="sort-option {{currentSort === item.key ? 'active' : ''}}"
+          bindtap="selectSort"
+          data-sort="{{item.key}}"
+          data-label="{{item.label}}"
+        >
+          <text class="sort-option-text">{{item.label}}</text>
+          <text class="sort-check" wx:if="{{currentSort === item.key}}">✓</text>
+        </view>
+      </view>
+      
+      <view class="sort-mask" wx:if="{{showSortDropdown}}" bindtap="toggleSortDropdown"></view>
     </view>
 
     <view class="products-grid" wx:if="{{products.length > 0}}">

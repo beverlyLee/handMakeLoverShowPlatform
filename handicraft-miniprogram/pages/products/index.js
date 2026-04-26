@@ -7,6 +7,15 @@ Page({
     products: [],
     currentCategoryId: null,
     currentSort: 'default',
+    sortOptions: [
+      { key: 'default', label: '默认排序', value: 'default' },
+      { key: 'price_asc', label: '价格从低到高', value: 'price_asc' },
+      { key: 'price_desc', label: '价格从高到低', value: 'price_desc' },
+      { key: 'popular', label: '人气最高', value: 'popular' },
+      { key: 'sales', label: '销量最高', value: 'sales' }
+    ],
+    currentSortLabel: '默认排序',
+    showSortDropdown: false,
     page: 1,
     pageSize: 10,
     hasMore: true,
@@ -106,15 +115,35 @@ Page({
     this.loadProducts();
   },
 
-  changeSort(e) {
-    const sort = e.currentTarget.dataset.sort;
+  toggleSortDropdown() {
     this.setData({
-      currentSort: sort,
+      showSortDropdown: !this.data.showSortDropdown
+    });
+  },
+
+  selectSort(e) {
+    const sortKey = e.currentTarget.dataset.sort;
+    const sortLabel = e.currentTarget.dataset.label;
+
+    if (this.data.currentSort === sortKey) {
+      this.setData({ showSortDropdown: false });
+      return;
+    }
+
+    this.setData({
+      currentSort: sortKey,
+      currentSortLabel: sortLabel,
+      showSortDropdown: false,
       page: 1,
       products: [],
       hasMore: true
     });
+
     this.loadProducts();
+  },
+
+  preventBubble() {
+    return;
   },
 
   goToSearch() {
