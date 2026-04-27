@@ -243,3 +243,33 @@ class UserService:
     @staticmethod
     def verify_teacher_identity(user_id, data):
         return UserService.create_teacher_profile(user_id, data)
+    
+    @staticmethod
+    def update_teacher_profile(user_id, data):
+        profile = TeacherProfile.query.filter_by(user_id=user_id).first()
+        if not profile:
+            return None
+        
+        allowed_fields = [
+            'real_name', 'id_card', 'phone', 'intro', 'bio',
+            'experience_years', 'student_count',
+            'studio_name', 'studio_address'
+        ]
+        
+        for field in data:
+            if field in allowed_fields:
+                setattr(profile, field, data[field])
+        
+        if data.get('specialties'):
+            profile.specialties = data['specialties']
+        if data.get('studio_images'):
+            profile.studio_images = data['studio_images']
+        if data.get('work_photos'):
+            profile.work_photos = data['work_photos']
+        if data.get('certifications'):
+            profile.certifications = data['certifications']
+        
+        profile.updated_at = datetime.utcnow()
+        db.session.commit()
+        
+        return profile.to_dict()

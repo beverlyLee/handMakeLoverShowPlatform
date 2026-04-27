@@ -201,6 +201,25 @@ def get_teacher_info():
     
     return jsonify(success(data=teacher_info))
 
+@user_bp.route('/teacher/info', methods=['PUT'])
+@login_required
+def update_teacher_info():
+    user_dict, user_id = get_current_user()
+    if not user_dict:
+        return jsonify(error(code=ResponseCode.USER_NOT_FOUND, msg='用户不存在')), 404
+    
+    teacher_info = UserService.get_teacher_profile(user_id)
+    if not teacher_info:
+        return jsonify(error(code=ResponseCode.PERMISSION_DENIED, msg='您不是手作老师身份')), 403
+    
+    data = request.get_json()
+    if not data:
+        return jsonify(error(code=ResponseCode.PARAM_MISSING, msg='请求数据不能为空')), 400
+    
+    updated_teacher = UserService.update_teacher_profile(user_id, data)
+    
+    return jsonify(success(data=updated_teacher, msg='老师资料更新成功'))
+
 @user_bp.route('/teacher/stats', methods=['GET'])
 @login_required
 def get_teacher_order_stats():
@@ -345,3 +364,58 @@ def get_teacher_public_info(teacher_id):
         }
     
     return jsonify(success(data=teacher_dict))
+
+
+@user_bp.route('/teacher/<int:teacher_id>/order-stats', methods=['GET'])
+def get_teacher_public_order_stats(teacher_id):
+    from app.models import TeacherProfile, Order
+    
+    teacher = TeacherProfile.query.get(teacher_id)
+    if not teacher:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='老师不存在')), 404
+    
+    orders_query = Order.query.filter_by(teacher_id=teacher_id)
+    all_orders = orders_query.all()
+    
+    stats = {
+        'total': len(all_orders),
+        'pending': 0,
+        'paid': 0,
+        'shipped': 0,
+        'delivered': 0,
+        'completed': 0,
+        'cancelled': 0,
+        'total_amount': 0
+    }
+    
+    for order in all_orders:
+        stats[order.status] = stats.get(order.status, 0) + 1
+        if order.status in ['paid', 'shipped', 'delivered', 'completed']:
+            stats['total_amount'] += order.pay_amount
+    
+    recent_query = orders_query.order_by(Order.created_at.desc()).limit(10)
+    recent_orders = []
+    for order in recent_query.all():
+        order_dict = {
+            'id': order.id,
+            'status': order.status,
+            'status_name': order.status_name,
+            'total_amount': order.total_amount,
+            'pay_amount': order.pay_amount,
+            'create_time': order.created_at.strftime('%Y-%m-%d %H:%M:%S') if order.created_at else None,
+            'items': []
+        }
+        for item in order.items:
+            order_dict['items'].append({
+                'product_title': item.product_title,
+                'product_image': item.product_image,
+                'price': item.price,
+                'quantity': item.quantity
+            })
+        recent_orders.append(order_dict)
+    
+    return jsonify(success(data={
+        'stats': stats,
+        'recent_orders': recent_orders,
+        'status_names': STATUS_NAMES
+    }))

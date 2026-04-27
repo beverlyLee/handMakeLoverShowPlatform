@@ -54,6 +54,14 @@ function getTeacherInfo() {
 }
 
 /**
+ * 更新手作老师信息
+ * @param {Object} data - 老师资料数据
+ */
+function updateTeacherInfo(data) {
+  return put('/users/teacher/info', data);
+}
+
+/**
  * 获取地址列表
  */
 function getAddressList() {
@@ -109,6 +117,14 @@ function getTeacherPublicInfo(teacherId) {
   return get(`/users/teacher/${teacherId}`);
 }
 
+/**
+ * 获取老师公开订单统计
+ * @param {number} teacherId - 老师ID
+ */
+function getTeacherPublicOrderStats(teacherId) {
+  return get(`/users/teacher/${teacherId}/order-stats`);
+}
+
 module.exports = {
   getUserInfo,
   updateUserInfo,
@@ -117,7 +133,9 @@ module.exports = {
   verifyTeacherIdentity,
   applyTeacher,
   getTeacherInfo,
+  updateTeacherInfo,
   getTeacherPublicInfo,
+  getTeacherPublicOrderStats,
   getAddressList,
   getAddressDetail,
   createAddress,

@@ -236,6 +236,17 @@ Page({
     });
   },
 
+  goToMyHome() {
+    const userInfo = this.data.userInfo;
+    if (userInfo && userInfo.teacher_info && userInfo.teacher_info.id) {
+      wx.navigateTo({
+        url: `/pages/teacher-home/index?id=${userInfo.teacher_info.id}`
+      });
+    } else {
+      showToast('获取老师信息失败');
+    }
+  },
+
   chooseAvatar() {
     wx.showActionSheet({
       itemList: ['从相册选择', '拍照'],

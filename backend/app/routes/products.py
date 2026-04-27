@@ -1,5 +1,6 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, g
 from app.utils.response import success, error
+from app.common.auth import login_required
 from app.common.response_code import ResponseCode
 from app.database import db
 from app.models import Product, Category, TeacherProfile
@@ -14,6 +15,13 @@ SORT_OPTIONS = {
     'popular': Product.favorite_count.desc(),
     'newest': Product.created_at.desc()
 }
+
+def get_current_teacher_profile():
+    user_id = g.get('user_id')
+    if not user_id:
+        return None
+    profile = TeacherProfile.query.filter_by(user_id=user_id).first()
+    return profile
 
 @product_bp.route('', methods=['GET'])
 def get_products():
@@ -177,3 +185,129 @@ def get_recommend_products():
         result.append(product_dict)
     
     return jsonify(success(data=result))
+
+@product_bp.route('/my', methods=['GET'])
+@login_required
+def get_my_products():
+    teacher_profile = get_current_teacher_profile()
+    if not teacher_profile:
+        return jsonify(error(code=ResponseCode.PERMISSION_DENIED, msg='您不是手作老师身份')), 403
+    
+    page = request.args.get('page', 1, type=int)
+    size = request.args.get('size', 20, type=int)
+    
+    pagination = Product.query.filter_by(
+        teacher_id=teacher_profile.id
+    ).order_by(Product.created_at.desc()).paginate(
+        page=page, per_page=size, error_out=False
+    )
+    
+    products = [p.to_dict() for p in pagination.items]
+    
+    return jsonify(success(data={
+        'list': products,
+        'total': pagination.total,
+        'page': page,
+        'size': size,
+        'total_pages': pagination.pages,
+        'has_next': pagination.has_next
+    }))
+
+@product_bp.route('', methods=['POST'])
+@login_required
+def create_product():
+    teacher_profile = get_current_teacher_profile()
+    if not teacher_profile:
+        return jsonify(error(code=ResponseCode.PERMISSION_DENIED, msg='您不是手作老师身份')), 403
+    
+    data = request.get_json()
+    if not data:
+        return jsonify(error(code=ResponseCode.PARAM_MISSING, msg='请求数据不能为空')), 400
+    
+    if 'title' not in data or not data.get('title'):
+        return jsonify(error(code=ResponseCode.PARAM_MISSING, msg='作品标题不能为空')), 400
+    
+    product = Product(
+        teacher_id=teacher_profile.id,
+        title=data.get('title'),
+        description=data.get('description', ''),
+        category_id=data.get('category_id'),
+        price=float(data.get('price', 0)),
+        original_price=float(data.get('original_price', 0)) if data.get('original_price') else float(data.get('price', 0)),
+        stock=int(data.get('stock', 999)),
+        status=data.get('status', 'active'),
+        rating=5.0
+    )
+    
+    if data.get('images'):
+        product.images = data.get('images')
+        if len(data.get('images')) > 0:
+            product.cover_image = data.get('images')[0]
+    
+    if data.get('cover_image'):
+        product.cover_image = data.get('cover_image')
+    
+    if data.get('tags'):
+        product.tags = data.get('tags')
+    
+    db.session.add(product)
+    db.session.commit()
+    
+    return jsonify(success(data=product.to_dict(), msg='作品创建成功'))
+
+@product_bp.route('/<int:product_id>', methods=['PUT'])
+@login_required
+def update_product(product_id):
+    teacher_profile = get_current_teacher_profile()
+    if not teacher_profile:
+        return jsonify(error(code=ResponseCode.PERMISSION_DENIED, msg='您不是手作老师身份')), 403
+    
+    product = Product.query.filter_by(id=product_id, teacher_id=teacher_profile.id).first()
+    if not product:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='作品不存在或无权编辑')), 404
+    
+    data = request.get_json()
+    if not data:
+        return jsonify(error(code=ResponseCode.PARAM_MISSING, msg='请求数据不能为空')), 400
+    
+    allowed_fields = [
+        'title', 'description', 'category_id', 'price', 
+        'original_price', 'stock', 'status', 'cover_image', 'rating'
+    ]
+    
+    for field in data:
+        if field in allowed_fields:
+            if field in ['price', 'original_price']:
+                setattr(product, field, float(data[field]))
+            elif field in ['stock']:
+                setattr(product, field, int(data[field]))
+            else:
+                setattr(product, field, data[field])
+    
+    if data.get('images'):
+        product.images = data.get('images')
+        if len(data.get('images')) > 0 and not data.get('cover_image'):
+            product.cover_image = data.get('images')[0]
+    
+    if data.get('tags'):
+        product.tags = data.get('tags')
+    
+    db.session.commit()
+    
+    return jsonify(success(data=product.to_dict(), msg='作品更新成功'))
+
+@product_bp.route('/<int:product_id>', methods=['DELETE'])
+@login_required
+def delete_product(product_id):
+    teacher_profile = get_current_teacher_profile()
+    if not teacher_profile:
+        return jsonify(error(code=ResponseCode.PERMISSION_DENIED, msg='您不是手作老师身份')), 403
+    
+    product = Product.query.filter_by(id=product_id, teacher_id=teacher_profile.id).first()
+    if not product:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='作品不存在或无权删除')), 404
+    
+    product.status = 'inactive'
+    db.session.commit()
+    
+    return jsonify(success(msg='作品已删除'))

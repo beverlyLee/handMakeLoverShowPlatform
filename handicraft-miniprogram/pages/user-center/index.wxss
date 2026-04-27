@@ -215,6 +215,52 @@
   color: #A1887F;
 }
 
+.teacher-actions-row {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 24rpx;
+}
+
+.teacher-actions-row .action-btn-secondary {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20rpx 0;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 16rpx;
+  border: 2rpx solid rgba(121, 85, 72, 0.2);
+}
+
+.teacher-actions-row .action-btn-primary {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20rpx 0;
+  background: linear-gradient(135deg, #795548 0%, #8D6E63 100%);
+  border-radius: 16rpx;
+}
+
+.teacher-actions-row .btn-icon {
+  font-size: 28rpx;
+  margin-right: 8rpx;
+}
+
+.teacher-actions-row .btn-text {
+  font-size: 26rpx;
+  color: #5D4037;
+  font-weight: 500;
+}
+
+.teacher-actions-row .action-btn-primary .view-orders-text {
+  color: #FFF8E7;
+}
+
+.teacher-actions-row .action-btn-primary .view-orders-arrow {
+  color: rgba(255, 248, 231, 0.7);
+}
+
 /* 最近订单区域 */
 .recent-orders-section {
   margin: 40rpx 30rpx 0;
