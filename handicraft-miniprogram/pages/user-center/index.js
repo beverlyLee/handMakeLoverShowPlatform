@@ -2,7 +2,7 @@ const { getUserInfo, updateUserInfo, switchRole, getUserRoles } = require('../..
 const { getTeacherOrderStats } = require('../../api/orders');
 const { logout } = require('../../api/auth');
 const { uploadImage } = require('../../api/upload');
-const { showToast } = require('../../utils/util');
+const { showToast, processUserInfo, DEFAULT_IMAGE } = require('../../utils/util');
 const storage = require('../../utils/storage');
 
 Page({
@@ -10,7 +10,7 @@ Page({
     userInfo: {},
     genderText: '未知',
     isLoading: true,
-    defaultAvatar: 'https://picsum.photos/seed/default-avatar/200/200',
+    defaultAvatar: DEFAULT_IMAGE,
 
     showEditDialog: false,
     editDialogTitle: '',
@@ -75,11 +75,13 @@ Page({
       const userInfo = await getUserInfo();
       console.log('获取用户信息成功:', userInfo);
 
-      const genderText = this.getGenderText(userInfo.gender);
-      const bioLength = (userInfo.bio || '').length;
+      const processedUserInfo = processUserInfo(userInfo);
 
-      const roles = userInfo.roles || ['customer'];
-      const currentRole = userInfo.current_role || userInfo.role || 'customer';
+      const genderText = this.getGenderText(processedUserInfo.gender);
+      const bioLength = (processedUserInfo.bio || '').length;
+
+      const roles = processedUserInfo.roles || ['customer'];
+      const currentRole = processedUserInfo.current_role || processedUserInfo.role || 'customer';
       const hasMultipleRoles = roles.length > 1;
       const isTeacher = roles.includes('teacher');
       const isCustomer = roles.includes('customer');
@@ -87,7 +89,7 @@ Page({
       storage.setUserInfo(userInfo);
 
       this.setData({
-        userInfo: userInfo,
+        userInfo: processedUserInfo,
         genderText: genderText,
         bioLength: bioLength,
         isLoading: false,

@@ -1,3 +1,95 @@
+const config = require('./config');
+
+const DEFAULT_IMAGE = 'https://picsum.photos/seed/handmade-craft-default/400/400';
+
+function getFullImageUrl(url) {
+  if (!url) {
+    return DEFAULT_IMAGE;
+  }
+  
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  
+  if (url.startsWith('/api/images/')) {
+    const baseUrl = config.baseUrl.replace('/api', '');
+    return baseUrl + url;
+  }
+  
+  if (url.startsWith('/uploads/')) {
+    const baseUrl = config.baseUrl.replace('/api', '');
+    return baseUrl + '/api/upload' + url;
+  }
+  
+  if (url.startsWith('/')) {
+    const baseUrl = config.baseUrl.replace('/api', '');
+    return baseUrl + url;
+  }
+  
+  return url;
+}
+
+function processProductImages(product) {
+  if (!product) return product;
+  
+  const processed = { ...product };
+  
+  if (processed.cover_image) {
+    processed.cover_image = getFullImageUrl(processed.cover_image);
+  }
+  
+  if (processed.images && Array.isArray(processed.images)) {
+    processed.images = processed.images.map(img => getFullImageUrl(img));
+  }
+  
+  if (!processed.cover_image && processed.images && processed.images.length > 0) {
+    processed.cover_image = processed.images[0];
+  }
+  
+  if (!processed.images || processed.images.length === 0) {
+    if (processed.cover_image) {
+      processed.images = [processed.cover_image];
+    } else {
+      processed.images = [DEFAULT_IMAGE];
+      processed.cover_image = DEFAULT_IMAGE;
+    }
+  }
+  
+  return processed;
+}
+
+function processTeacherInfo(teacher) {
+  if (!teacher) return teacher;
+  
+  const processed = { ...teacher };
+  
+  if (processed.user_info && processed.user_info.avatar) {
+    processed.user_info.avatar = getFullImageUrl(processed.user_info.avatar);
+  }
+  
+  if (processed.studio_images && Array.isArray(processed.studio_images)) {
+    processed.studio_images = processed.studio_images.map(img => getFullImageUrl(img));
+  }
+  
+  if (processed.work_photos && Array.isArray(processed.work_photos)) {
+    processed.work_photos = processed.work_photos.map(img => getFullImageUrl(img));
+  }
+  
+  return processed;
+}
+
+function processUserInfo(user) {
+  if (!user) return user;
+  
+  const processed = { ...user };
+  
+  if (processed.avatar) {
+    processed.avatar = getFullImageUrl(processed.avatar);
+  }
+  
+  return processed;
+}
+
 /**
  * 防抖函数
  * @param {Function} fn - 目标函数
@@ -129,6 +221,11 @@ function showToast(title, icon = 'none') {
 }
 
 module.exports = {
+  getFullImageUrl,
+  processProductImages,
+  processTeacherInfo,
+  processUserInfo,
+  DEFAULT_IMAGE,
   debounce,
   throttle,
   deepClone,

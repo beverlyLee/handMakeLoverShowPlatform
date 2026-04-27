@@ -1,26 +1,62 @@
 import os
 import uuid
 from datetime import datetime
-from flask import Blueprint, request, jsonify, send_from_directory, current_app
+from flask import Blueprint, request, jsonify, send_file, send_from_directory, current_app
 from werkzeug.utils import secure_filename
+from io import BytesIO
 from app.utils.response import success, error
 from app.common.auth import login_required
+from app.models import Image
+from app.database import db
+from flask import g
 
 upload_bp = Blueprint('upload', __name__)
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 MAX_CONTENT_LENGTH = 10 * 1024 * 1024
 
+CONTENT_TYPES = {
+    'png': 'image/png',
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'gif': 'image/gif',
+    'webp': 'image/webp'
+}
+
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-def get_upload_folder():
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
-    upload_folder = os.path.join(project_root, 'uploads')
-    if not os.path.exists(upload_folder):
-        os.makedirs(upload_folder)
-    return upload_folder
+def get_content_type(filename):
+    ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else 'jpeg'
+    return CONTENT_TYPES.get(ext, 'image/jpeg')
+
+def save_image_to_db(file, original_filename, user_id=None):
+    file_data = file.read()
+    file_size = len(file_data)
+    
+    file_ext = original_filename.rsplit('.', 1)[1].lower() if '.' in original_filename else 'jpg'
+    timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+    random_str = uuid.uuid4().hex[:8]
+    new_filename = f'{timestamp}_{random_str}.{file_ext}'
+    
+    image_uuid = str(uuid.uuid4())
+    
+    image = Image(
+        uuid=image_uuid,
+        filename=new_filename,
+        original_filename=original_filename,
+        content_type=get_content_type(original_filename),
+        data=file_data,
+        size=file_size,
+        user_id=user_id,
+        is_public=True
+    )
+    
+    db.session.add(image)
+    db.session.commit()
+    
+    return image
 
 @upload_bp.route('/image', methods=['POST'])
 @login_required
@@ -37,31 +73,20 @@ def upload_image():
         return jsonify(error(msg=f'不支持的文件类型，支持的类型: {", ".join(ALLOWED_EXTENSIONS)}')), 400
     
     try:
-        upload_folder = get_upload_folder()
+        user_id = g.get('user_id')
         
-        timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
-        random_str = uuid.uuid4().hex[:8]
-        file_ext = file.filename.rsplit('.', 1)[1].lower()
-        new_filename = f'{timestamp}_{random_str}.{file_ext}'
-        
-        date_folder = datetime.now().strftime('%Y-%m')
-        date_folder_path = os.path.join(upload_folder, date_folder)
-        if not os.path.exists(date_folder_path):
-            os.makedirs(date_folder_path)
-        
-        file_path = os.path.join(date_folder_path, new_filename)
-        file.save(file_path)
-        
-        file_url = f'/uploads/{date_folder}/{new_filename}'
+        image = save_image_to_db(file, file.filename, user_id)
         
         return jsonify(success(data={
-            'url': file_url,
-            'filename': new_filename,
-            'original_filename': file.filename
+            'url': f'/api/images/{image.uuid}',
+            'filename': image.filename,
+            'original_filename': image.original_filename,
+            'uuid': image.uuid
         }, msg='上传成功'))
         
     except Exception as e:
         current_app.logger.error(f'文件上传失败: {str(e)}')
+        db.session.rollback()
         return jsonify(error(msg=f'上传失败: {str(e)}')), 500
 
 @upload_bp.route('/images', methods=['POST'])
@@ -76,11 +101,7 @@ def upload_images():
         return jsonify(error(msg='没有选择文件')), 400
     
     upload_results = []
-    upload_folder = get_upload_folder()
-    date_folder = datetime.now().strftime('%Y-%m')
-    date_folder_path = os.path.join(upload_folder, date_folder)
-    if not os.path.exists(date_folder_path):
-        os.makedirs(date_folder_path)
+    user_id = g.get('user_id')
     
     for file in files:
         if file.filename == '':
@@ -95,24 +116,18 @@ def upload_images():
             continue
         
         try:
-            timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
-            random_str = uuid.uuid4().hex[:8]
-            file_ext = file.filename.rsplit('.', 1)[1].lower()
-            new_filename = f'{timestamp}_{random_str}.{file_ext}'
-            
-            file_path = os.path.join(date_folder_path, new_filename)
-            file.save(file_path)
-            
-            file_url = f'/uploads/{date_folder}/{new_filename}'
+            image = save_image_to_db(file, file.filename, user_id)
             
             upload_results.append({
                 'filename': file.filename,
                 'success': True,
-                'url': file_url,
-                'new_filename': new_filename
+                'url': f'/api/images/{image.uuid}',
+                'new_filename': image.filename,
+                'uuid': image.uuid
             })
         except Exception as e:
             current_app.logger.error(f'文件上传失败: {str(e)}')
+            db.session.rollback()
             upload_results.append({
                 'filename': file.filename,
                 'success': False,
@@ -129,11 +144,49 @@ def upload_images():
         'results': upload_results
     }, msg=f'上传完成，成功 {success_count} 个，失败 {error_count} 个'))
 
+@upload_bp.route('/<image_uuid>', methods=['GET'])
+def get_image_by_uuid_route(image_uuid):
+    return get_image(image_uuid)
+
+def get_upload_folder():
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+    upload_folder = os.path.join(project_root, 'uploads')
+    if not os.path.exists(upload_folder):
+        os.makedirs(upload_folder)
+    return upload_folder
+
 @upload_bp.route('/<path:filename>')
 def serve_image(filename):
+    if '-' in filename and len(filename) >= 36:
+        import re
+        uuid_pattern = r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+        if re.match(uuid_pattern, filename):
+            return get_image(filename)
+    
     upload_folder = get_upload_folder()
     try:
         return send_from_directory(upload_folder, filename)
     except Exception as e:
         current_app.logger.error(f'文件读取失败: {str(e)}')
         return jsonify(error(msg='文件不存在')), 404
+
+image_bp = Blueprint('images', __name__)
+
+@image_bp.route('/<image_uuid>', methods=['GET'])
+def get_image(image_uuid):
+    try:
+        image = Image.query.filter_by(uuid=image_uuid).first()
+        
+        if not image:
+            return jsonify(error(msg='图片不存在')), 404
+        
+        return send_file(
+            BytesIO(image.data),
+            mimetype=image.content_type,
+            as_attachment=False,
+            download_name=image.filename
+        )
+        
+    except Exception as e:
+        current_app.logger.error(f'图片读取失败: {str(e)}')
+        return jsonify(error(msg='图片读取失败')), 500

@@ -1,7 +1,8 @@
 const { getTeacherPublicInfo, getTeacherPublicOrderStats, getUserInfo, updateTeacherInfo, updateUserInfo } = require('../../api/users');
-const { getProducts, createProduct, getCategories, updateProduct, deleteProduct } = require('../../api/products');
+const { getProducts, createProduct: createProductApi, getCategories, updateProduct, deleteProduct } = require('../../api/products');
 const { getSpecialties } = require('../../api/specialties');
-const { showToast } = require('../../utils/util');
+const { uploadImages } = require('../../api/upload');
+const { showToast, processTeacherInfo, processProductImages } = require('../../utils/util');
 const storage = require('../../utils/storage');
 
 const DEFAULT_SPECIALTIES = [
@@ -208,10 +209,11 @@ Page({
   async loadTeacherInfo() {
     try {
       const teacher = await getTeacherPublicInfo(this.data.teacherId);
-      const specialties = (teacher && teacher.specialties) || [];
+      const processedTeacher = processTeacherInfo(teacher);
+      const specialties = (processedTeacher && processedTeacher.specialties) || [];
       
       this.setData({ 
-        teacher: teacher,
+        teacher: processedTeacher,
         specialtyOptions: createSpecialtyOptions(specialties)
       });
       
@@ -262,21 +264,22 @@ Page({
 
       const result = await getProducts(params);
       const newProducts = (result && result.list) || result || [];
+      const processedProducts = newProducts.map(p => processProductImages(p));
       const total = (result && result.total) || newProducts.length;
 
       if (append) {
         this.setData({
-          products: [...this.data.products, ...newProducts],
+          products: [...this.data.products, ...processedProducts],
           productsTotal: total,
-          productsHasMore: newProducts.length >= this.data.productsPageSize,
+          productsHasMore: processedProducts.length >= this.data.productsPageSize,
           productsLoading: false
         });
       } else {
         this.setData({
-          products: newProducts,
+          products: processedProducts,
           productsTotal: total,
           productsPage: 1,
-          productsHasMore: newProducts.length >= this.data.productsPageSize,
+          productsHasMore: processedProducts.length >= this.data.productsPageSize,
           productsLoading: false
         });
       }
@@ -705,6 +708,54 @@ Page({
     this.setData({ creatingProduct: true });
     
     try {
+      let processedImages = [...productForm.images];
+      
+      const tempImagePaths = [];
+      const serverUrls = [];
+      
+      for (const img of processedImages) {
+        if (!img) continue;
+        
+        if (img.startsWith('/api/images/')) {
+          serverUrls.push(img);
+        } else if (img.startsWith('/uploads/')) {
+          serverUrls.push(img);
+        } else if (img.startsWith('http://') || img.startsWith('https://')) {
+          if (img.includes('__tmp__') || img.includes('wxfile://')) {
+            tempImagePaths.push(img);
+          } else {
+            serverUrls.push(img);
+          }
+        } else if (img.startsWith('wxfile://')) {
+          tempImagePaths.push(img);
+        } else if (img.startsWith('/') && !img.startsWith('//')) {
+          serverUrls.push(img);
+        } else {
+          tempImagePaths.push(img);
+        }
+      }
+      
+      console.log('图片分类 - 临时路径:', tempImagePaths, '服务器URL:', serverUrls);
+      
+      if (tempImagePaths.length > 0) {
+        wx.showLoading({ title: '上传图片中...', mask: true });
+        
+        const uploadResult = await uploadImages(tempImagePaths, false);
+        wx.hideLoading();
+        
+        console.log('上传结果:', uploadResult);
+        
+        if (uploadResult.failed > 0) {
+          showToast(`有 ${uploadResult.failed} 张图片上传失败`);
+          this.setData({ creatingProduct: false });
+          return;
+        }
+        
+        processedImages = [...serverUrls, ...uploadResult.urls];
+      } else {
+        processedImages = [...serverUrls];
+      }
+      
       const productData = {
         title: productForm.title,
         description: productForm.description,
@@ -714,8 +765,8 @@ Page({
         stock: parseInt(productForm.stock) || 999,
         status: 'active',
         tags: productForm.tags,
-        images: productForm.images,
-        cover_image: productForm.cover_image
+        images: processedImages,
+        cover_image: processedImages[0] || ''
       };
       
       if (productData.images.length === 0) {
@@ -729,7 +780,7 @@ Page({
         await updateProduct(editingProductId, productData);
         showToast('作品更新成功');
       } else {
-        await createProduct(productData);
+        await createProductApi(productData);
         const newProductCount = ((teacher && teacher.product_count) || 0) + 1;
         this.setData({
           'teacher.product_count': newProductCount
@@ -748,6 +799,7 @@ Page({
       
       this.loadTeacherProducts();
     } catch (error) {
+      wx.hideLoading();
       console.error(isEditingProduct ? '更新作品失败:' : '创建作品失败:', error);
       this.setData({ creatingProduct: false });
       showToast(isEditingProduct ? '更新失败，请重试' : '创建失败，请重试');

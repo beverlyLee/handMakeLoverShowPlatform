@@ -8,7 +8,7 @@ from sqlalchemy import text
 from app.models import (
     User, Address, TeacherProfile, Order, OrderItem, 
     Category, Product, Specialty, Coupon, UserCoupon,
-    Logistics, LogisticsItem
+    Logistics, LogisticsItem, Image
 )
 
 app = create_app()
@@ -126,7 +126,7 @@ def migrate():
         print("\n【1/4】创建新表...")
         print("-"*40)
         
-        new_tables = ['coupons', 'user_coupons', 'logistics', 'logistics_items']
+        new_tables = ['coupons', 'user_coupons', 'logistics', 'logistics_items', 'images']
         for table in new_tables:
             if not check_table_exists(table):
                 print(f"  创建表: {table}")
@@ -136,6 +136,9 @@ def migrate():
         db.create_all()
         db.session.commit()
         print("  ✓ 新表创建完成")
+        
+        if not Image.query.first():
+            print("\n图片表为空，已准备好接收上传的图片")
         
         print("\n【2/4】为已有表添加新字段...")
         print("-"*40)

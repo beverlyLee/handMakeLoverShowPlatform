@@ -13,7 +13,17 @@ function getFullImageUrl(url) {
     return url;
   }
   
+  if (url.startsWith('/api/images/')) {
+    const baseUrl = config.baseUrl.replace('/api', '');
+    return baseUrl + url;
+  }
+  
   if (url.startsWith('/uploads/')) {
+    const baseUrl = config.baseUrl.replace('/api', '');
+    return baseUrl + '/api/upload' + url;
+  }
+  
+  if (url.startsWith('/')) {
     const baseUrl = config.baseUrl.replace('/api', '');
     return baseUrl + url;
   }
