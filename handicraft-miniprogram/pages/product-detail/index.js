@@ -59,14 +59,14 @@ Page({
   goToTeacherProfile(e) {
     const teacherId = e.currentTarget.dataset.teacherId;
     wx.navigateTo({
-      url: `/pages/teacher-profile/index?id=${teacherId}`
+      url: `/pages/teacher-home/index?id=${teacherId}`
     });
   },
 
   goToTeacherProducts(e) {
     const teacherId = e.currentTarget.dataset.teacherId;
     wx.navigateTo({
-      url: `/pages/teacher-profile/index?id=${teacherId}&tab=products`
+      url: `/pages/teacher-home/index?id=${teacherId}&tab=products`
     });
   },
 

@@ -42,7 +42,7 @@ class UserService:
         if not user:
             return None
         
-        allowed_fields = ['nickname', 'avatar', 'phone', 'email', 'gender', 'bio', 'session_key', 'current_role']
+        allowed_fields = ['username', 'nickname', 'avatar', 'phone', 'email', 'gender', 'bio', 'session_key', 'current_role']
         for field in kwargs:
             if field in allowed_fields:
                 setattr(user, field, kwargs[field])
@@ -260,13 +260,13 @@ class UserService:
             if field in allowed_fields:
                 setattr(profile, field, data[field])
         
-        if data.get('specialties'):
+        if 'specialties' in data:
             profile.specialties = data['specialties']
-        if data.get('studio_images'):
+        if 'studio_images' in data:
             profile.studio_images = data['studio_images']
-        if data.get('work_photos'):
+        if 'work_photos' in data:
             profile.work_photos = data['work_photos']
-        if data.get('certifications'):
+        if 'certifications' in data:
             profile.certifications = data['certifications']
         
         profile.updated_at = datetime.utcnow()

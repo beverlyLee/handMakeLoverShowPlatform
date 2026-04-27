@@ -64,7 +64,7 @@ class User(db.Model):
         return {
             'id': self.id,
             'username': self.username,
-            'nickname': self.nickname or self.username,
+            'nickname': self.nickname,
             'avatar': self.avatar,
             'phone': self.phone,
             'email': self.email,

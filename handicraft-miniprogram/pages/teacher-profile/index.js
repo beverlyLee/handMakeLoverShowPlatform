@@ -4,13 +4,32 @@ const { showToast } = require('../../utils/util');
 const storage = require('../../utils/storage');
 
 const SPECIALTY_OPTIONS = [
-  '棒针编织', '钩针编织', '编织',
-  '陶艺', '拉坯', '釉上彩',
-  '皮革工艺', '刺绣', '纸艺',
-  '珠串', '木艺', '布艺',
-  '手工皂', '蜡烛', '押花',
-  '热缩片', '滴胶', '黏土'
+  { label: '棒针编织', value: '棒针编织', checked: false },
+  { label: '钩针编织', value: '钩针编织', checked: false },
+  { label: '编织', value: '编织', checked: false },
+  { label: '陶艺', value: '陶艺', checked: false },
+  { label: '拉坯', value: '拉坯', checked: false },
+  { label: '釉上彩', value: '釉上彩', checked: false },
+  { label: '皮革工艺', value: '皮革工艺', checked: false },
+  { label: '刺绣', value: '刺绣', checked: false },
+  { label: '纸艺', value: '纸艺', checked: false },
+  { label: '珠串', value: '珠串', checked: false },
+  { label: '木艺', value: '木艺', checked: false },
+  { label: '布艺', value: '布艺', checked: false },
+  { label: '手工皂', value: '手工皂', checked: false },
+  { label: '蜡烛', value: '蜡烛', checked: false },
+  { label: '押花', value: '押花', checked: false },
+  { label: '热缩片', value: '热缩片', checked: false },
+  { label: '滴胶', value: '滴胶', checked: false },
+  { label: '黏土', value: '黏土', checked: false }
 ];
+
+function createSpecialtyOptions(selectedSpecialties = []) {
+  return SPECIALTY_OPTIONS.map(option => ({
+    ...option,
+    checked: selectedSpecialties.indexOf(option.value) > -1
+  }));
+}
 
 Page({
   data: {
@@ -26,20 +45,24 @@ Page({
     
     isOwner: false,
     currentUser: null,
-    isEditMode: false,
-    
-    editForm: {
-      real_name: '',
-      intro: '',
-      bio: '',
-      studio_name: '',
-      studio_address: '',
-      experience_years: 0,
-      specialties: [],
-      certifications: []
-    },
     
     specialtyOptions: SPECIALTY_OPTIONS,
+    
+    showEditDialog: false,
+    editDialogField: '',
+    editDialogTitle: '',
+    editDialogValue: '',
+    editDialogType: 'input',
+    savingEdit: false,
+    
+    showSpecialtiesDialog: false,
+    tempSpecialties: [],
+    
+    showStudioDialog: false,
+    studioEditForm: {
+      name: '',
+      address: ''
+    },
     
     showProductCreate: false,
     categories: [],
@@ -78,7 +101,7 @@ Page({
     const teacher = this.data.teacher;
     return {
       title: (teacher && teacher.real_name) || '手作老师',
-      path: `/pages/teacher-profile/index?id=${this.data.teacherId}`
+      path: `/pages/teacher-home/index?id=${this.data.teacherId}`
     };
   },
 
@@ -129,19 +152,11 @@ Page({
   async loadTeacherInfo() {
     try {
       const teacher = await getTeacherPublicInfo(this.data.teacherId);
+      const specialties = teacher.specialties || [];
       
       this.setData({
         teacher: teacher,
-        editForm: {
-          real_name: teacher.real_name || '',
-          intro: teacher.intro || '',
-          bio: teacher.bio || '',
-          studio_name: teacher.studio_name || '',
-          studio_address: teacher.studio_address || '',
-          experience_years: teacher.experience_years || 0,
-          specialties: teacher.specialties || [],
-          certifications: teacher.certifications || []
-        }
+        specialtyOptions: createSpecialtyOptions(specialties)
       });
       
       this.checkIsOwner();
@@ -244,84 +259,203 @@ Page({
     showToast('联系老师功能开发中');
   },
 
-  enterEditMode() {
-    this.setData({ isEditMode: true });
+  openEditDialog(e) {
+    const { field, title, value, type } = e.currentTarget.dataset;
+    
+    this.setData({
+      showEditDialog: true,
+      editDialogField: field,
+      editDialogTitle: title,
+      editDialogValue: value || '',
+      editDialogType: type || 'input'
+    });
   },
 
-  cancelEditMode() {
+  closeEditDialog() {
     this.setData({
-      isEditMode: false,
-      editForm: {
-        real_name: this.data.teacher.real_name || '',
-        intro: this.data.teacher.intro || '',
-        bio: this.data.teacher.bio || '',
-        studio_name: this.data.teacher.studio_name || '',
-        studio_address: this.data.teacher.studio_address || '',
-        experience_years: this.data.teacher.experience_years || 0,
-        specialties: this.data.teacher.specialties || [],
-        certifications: this.data.teacher.certifications || []
+      showEditDialog: false,
+      editDialogField: '',
+      editDialogTitle: '',
+      editDialogValue: '',
+      editDialogType: 'input'
+    });
+  },
+
+  onEditInput(e) {
+    const value = e.detail.value;
+    this.setData({
+      editDialogValue: value
+    });
+  },
+
+  async saveEditDialog() {
+    const { editDialogField, editDialogValue, teacher } = this.data;
+    
+    if (!editDialogField) return;
+    
+    this.setData({ savingEdit: true });
+    wx.showLoading({ title: '保存中...', mask: true });
+    
+    try {
+      const updateData = {};
+      
+      if (editDialogField === 'experience_years') {
+        updateData[editDialogField] = parseInt(editDialogValue) || 0;
+      } else {
+        updateData[editDialogField] = editDialogValue;
+      }
+      
+      await updateTeacherInfo(updateData);
+      
+      const updatedTeacher = {
+        ...teacher,
+        ...updateData
+      };
+      
+      this.setData({
+        teacher: updatedTeacher,
+        savingEdit: false
+      });
+      
+      wx.hideLoading();
+      this.closeEditDialog();
+      showToast('保存成功', 'success');
+    } catch (error) {
+      console.error('保存失败:', error);
+      wx.hideLoading();
+      this.setData({ savingEdit: false });
+      showToast('保存失败，请重试');
+    }
+  },
+
+  openSpecialtiesEdit() {
+    const teacher = this.data.teacher;
+    const specialties = teacher.specialties || [];
+    
+    this.setData({
+      showSpecialtiesDialog: true,
+      specialtyOptions: createSpecialtyOptions(specialties),
+      tempSpecialties: [...specialties]
+    });
+  },
+
+  closeSpecialtiesDialog() {
+    this.setData({
+      showSpecialtiesDialog: false
+    });
+  },
+
+  toggleSpecialtyItem(e) {
+    const index = e.currentTarget.dataset.index;
+    const specialtyOptions = [...this.data.specialtyOptions];
+    const option = specialtyOptions[index];
+    
+    option.checked = !option.checked;
+    
+    const selectedSpecialties = specialtyOptions
+      .filter(item => item.checked)
+      .map(item => item.value);
+    
+    this.setData({
+      specialtyOptions: specialtyOptions,
+      tempSpecialties: selectedSpecialties
+    });
+  },
+
+  async saveSpecialtiesDialog() {
+    const { tempSpecialties, teacher } = this.data;
+    
+    this.setData({ savingEdit: true });
+    wx.showLoading({ title: '保存中...', mask: true });
+    
+    try {
+      await updateTeacherInfo({
+        specialties: tempSpecialties
+      });
+      
+      const updatedTeacher = {
+        ...teacher,
+        specialties: tempSpecialties
+      };
+      
+      this.setData({
+        teacher: updatedTeacher,
+        savingEdit: false
+      });
+      
+      wx.hideLoading();
+      this.closeSpecialtiesDialog();
+      showToast('保存成功', 'success');
+    } catch (error) {
+      console.error('保存失败:', error);
+      wx.hideLoading();
+      this.setData({ savingEdit: false });
+      showToast('保存失败，请重试');
+    }
+  },
+
+  openStudioEdit() {
+    const teacher = this.data.teacher;
+    
+    this.setData({
+      showStudioDialog: true,
+      studioEditForm: {
+        name: teacher.studio_name || '',
+        address: teacher.studio_address || ''
       }
     });
   },
 
-  onInputChange(e) {
-    const field = e.currentTarget.dataset.field;
+  closeStudioDialog() {
+    this.setData({
+      showStudioDialog: false
+    });
+  },
+
+  onStudioNameInput(e) {
     const value = e.detail.value;
-    
     this.setData({
-      [`editForm.${field}`]: value
+      'studioEditForm.name': value
     });
   },
 
-  toggleSpecialty(e) {
-    const specialty = e.currentTarget.dataset.specialty;
-    const specialties = [...this.data.editForm.specialties];
-    const index = specialties.indexOf(specialty);
-    
-    if (index > -1) {
-      specialties.splice(index, 1);
-    } else {
-      specialties.push(specialty);
-    }
-    
+  onStudioAddressInput(e) {
+    const value = e.detail.value;
     this.setData({
-      'editForm.specialties': specialties
+      'studioEditForm.address': value
     });
   },
 
-  async saveTeacherInfo() {
-    const { editForm } = this.data;
+  async saveStudioDialog() {
+    const { studioEditForm, teacher } = this.data;
     
-    if (!editForm.real_name) {
-      showToast('请填写真实姓名');
-      return;
-    }
+    this.setData({ savingEdit: true });
+    wx.showLoading({ title: '保存中...', mask: true });
     
     try {
-      const updateData = {
-        real_name: editForm.real_name,
-        intro: editForm.intro,
-        bio: editForm.bio,
-        studio_name: editForm.studio_name,
-        studio_address: editForm.studio_address,
-        experience_years: parseInt(editForm.experience_years) || 0,
-        specialties: editForm.specialties,
-        certifications: editForm.certifications
-      };
-      
-      await updateTeacherInfo(updateData);
-      
-      this.setData({
-        teacher: {
-          ...this.data.teacher,
-          ...updateData
-        },
-        isEditMode: false
+      await updateTeacherInfo({
+        studio_name: studioEditForm.name,
+        studio_address: studioEditForm.address
       });
       
-      showToast('保存成功');
+      const updatedTeacher = {
+        ...teacher,
+        studio_name: studioEditForm.name,
+        studio_address: studioEditForm.address
+      };
+      
+      this.setData({
+        teacher: updatedTeacher,
+        savingEdit: false
+      });
+      
+      wx.hideLoading();
+      this.closeStudioDialog();
+      showToast('保存成功', 'success');
     } catch (error) {
-      console.error('保存老师信息失败:', error);
+      console.error('保存失败:', error);
+      wx.hideLoading();
+      this.setData({ savingEdit: false });
       showToast('保存失败，请重试');
     }
   },
@@ -450,5 +584,9 @@ Page({
       this.setData({ creatingProduct: false });
       showToast('创建失败，请重试');
     }
+  },
+
+  preventMove() {
+    return;
   }
 });

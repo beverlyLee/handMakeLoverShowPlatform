@@ -9,23 +9,18 @@
         <image class="teacher-avatar" src="{{teacher.user_info ? teacher.user_info.avatar : '/images/default-avatar.png'}}" mode="aspectFill" />
         <view class="teacher-detail">
           <view class="teacher-name-row">
-            <text wx:if="{{!isEditMode}}" class="teacher-name">{{teacher.real_name}}</text>
-            <input 
-              wx:if="{{isEditMode}}" 
-              class="teacher-name-input" 
-              value="{{editForm.real_name}}" 
-              placeholder="请输入真实姓名"
-              data-field="real_name"
-              bindinput="onInputChange"
-            />
+            <text class="teacher-name">{{teacher.real_name || '手作老师'}}</text>
             <text class="verify-badge" wx:if="{{teacher.is_verified}}">已认证</text>
+            <view class="edit-btn-small" wx:if="{{isOwner}}" bindtap="openEditDialog" data-field="real_name" data-title="真实姓名" data-value="{{teacher.real_name}}">
+              <text class="edit-icon">✏️</text>
+            </view>
           </view>
           
-          <view class="teacher-tags" wx:if="{{!isEditMode && teacher.specialties.length > 0}}">
+          <view class="teacher-tags" wx:if="{{teacher.specialties && teacher.specialties.length > 0}}">
             <text wx:for="{{teacher.specialties}}" wx:for-item="tag" wx:key="*this" class="teacher-tag">{{tag}}</text>
           </view>
           
-          <view class="teacher-stats-row" wx:if="{{!isEditMode && (teacher.rating || teacher.follower_count || teacher.product_count)}}">
+          <view class="teacher-stats-row" wx:if="{{teacher.rating || teacher.follower_count || teacher.product_count}}">
             <view class="stat-item" wx:if="{{teacher.rating}}">
               <text class="stat-value">★{{teacher.rating}}</text>
               <text class="stat-label">评分</text>
@@ -42,108 +37,17 @@
         </view>
       </view>
       
-      <view class="header-actions" wx:if="{{!isEditMode}}">
+      <view class="header-actions">
         <button wx:if="{{!isOwner}}" class="action-btn action-btn-primary" bindtap="followTeacher">
           <text class="btn-text">关注</text>
         </button>
         <button wx:if="{{!isOwner}}" class="action-btn action-btn-secondary" bindtap="contactTeacher">
           <text class="btn-text">咨询</text>
         </button>
-        <button wx:if="{{isOwner}}" class="action-btn action-btn-edit" bindtap="enterEditMode">
-          <text class="btn-text">编辑资料</text>
-        </button>
-      </view>
-      
-      <view class="header-actions" wx:if="{{isEditMode}}">
-        <button class="action-btn action-btn-cancel" bindtap="cancelEditMode">
-          <text class="btn-text">取消</text>
-        </button>
-        <button class="action-btn action-btn-save" bindtap="saveTeacherInfo">
-          <text class="btn-text">保存</text>
-        </button>
       </view>
     </view>
 
-    <view class="edit-section" wx:if="{{isEditMode}}">
-      <view class="edit-card">
-        <view class="card-header">
-          <text class="card-title">擅长领域</text>
-          <text class="card-hint">点击选择您擅长的手工类型</text>
-        </view>
-        <view class="card-content">
-          <view class="specialty-grid">
-            <view 
-              wx:for="{{specialtyOptions}}" 
-              wx:for-item="specialty" 
-              wx:key="*this"
-              class="specialty-item {{editForm.specialties.indexOf(specialty) > -1 ? 'active' : ''}}"
-              bindtap="toggleSpecialty"
-              data-specialty="{{specialty}}"
-            >
-              <text class="specialty-text">{{specialty}}</text>
-            </view>
-          </view>
-        </view>
-      </view>
-
-      <view class="edit-card">
-        <view class="card-header">
-          <text class="card-title">个人简介</text>
-        </view>
-        <view class="card-content">
-          <textarea 
-            class="intro-textarea" 
-            value="{{editForm.bio || editForm.intro}}" 
-            placeholder="介绍一下您自己和您的手作风格..."
-            data-field="bio"
-            bindinput="onInputChange"
-            maxlength="500"
-            auto-height
-          />
-        </view>
-      </view>
-
-      <view class="edit-card">
-        <view class="card-header">
-          <text class="card-title">工作室信息</text>
-        </view>
-        <view class="card-content">
-          <view class="edit-item">
-            <text class="edit-label">工作室名称</text>
-            <input 
-              class="edit-input" 
-              value="{{editForm.studio_name}}" 
-              placeholder="请输入工作室名称"
-              data-field="studio_name"
-              bindinput="onInputChange"
-            />
-          </view>
-          <view class="edit-item">
-            <text class="edit-label">工作室地址</text>
-            <input 
-              class="edit-input" 
-              value="{{editForm.studio_address}}" 
-              placeholder="请输入工作室地址"
-              data-field="studio_address"
-              bindinput="onInputChange"
-            />
-          </view>
-          <view class="edit-item">
-            <text class="edit-label">从业年限</text>
-            <input 
-              class="edit-input" 
-              type="number"
-              value="{{editForm.experience_years}}" 
-              placeholder="请输入从业年限"
-              data-field="experience_years"
-              bindinput="onInputChange"
-            />
-          </view>
-        </view>
-      </view>
-    </view>
-
-    <view class="tab-section" wx:if="{{!isEditMode}}">
+    <view class="tab-section">
       <view class="tab-bar">
         <view 
           class="tab-item {{currentTab === 'info' ? 'active' : ''}}" 
@@ -163,46 +67,61 @@
 
       <view class="tab-content">
         <view class="info-tab" wx:if="{{currentTab === 'info'}}">
-          <view class="info-card" wx:if="{{teacher.bio || teacher.intro}}">
+          <view class="info-card">
             <view class="card-header">
               <text class="card-title">个人简介</text>
+              <view class="edit-btn-row" wx:if="{{isOwner}}" bindtap="openEditDialog" data-field="bio" data-title="个人简介" data-value="{{teacher.bio || teacher.intro}}" data-type="textarea">
+                <text class="edit-text">编辑</text>
+              </view>
             </view>
             <view class="card-content">
               <text class="info-text">{{teacher.bio || teacher.intro || '暂无简介'}}</text>
             </view>
           </view>
 
-          <view class="info-card" wx:if="{{teacher.experience_years > 0}}">
+          <view class="info-card">
             <view class="card-header">
               <text class="card-title">从业经验</text>
+              <view class="edit-btn-row" wx:if="{{isOwner}}" bindtap="openEditDialog" data-field="experience_years" data-title="从业年限" data-value="{{teacher.experience_years}}" data-type="number">
+                <text class="edit-text">编辑</text>
+              </view>
             </view>
             <view class="card-content">
-              <text class="info-text">{{teacher.experience_years}}年手作行业经验</text>
+              <text class="info-text" wx:if="{{teacher.experience_years > 0}}">{{teacher.experience_years}}年手作行业经验</text>
+              <text class="info-text info-text-placeholder" wx:else>未设置</text>
             </view>
           </view>
 
-          <view class="info-card" wx:if="{{teacher.studio_name}}">
+          <view class="info-card">
             <view class="card-header">
               <text class="card-title">工作室</text>
+              <view class="edit-btn-row" wx:if="{{isOwner}}" bindtap="openStudioEdit">
+                <text class="edit-text">编辑</text>
+              </view>
             </view>
             <view class="card-content">
-              <text class="info-text">{{teacher.studio_name}}</text>
+              <text class="info-text" wx:if="{{teacher.studio_name}}">{{teacher.studio_name}}</text>
+              <text class="info-text info-text-placeholder" wx:else>未设置工作室名称</text>
               <text class="info-text" wx:if="{{teacher.studio_address}}">{{teacher.studio_address}}</text>
             </view>
           </view>
 
-          <view class="info-card" wx:if="{{teacher.specialties.length > 0}}">
+          <view class="info-card">
             <view class="card-header">
               <text class="card-title">擅长领域</text>
+              <view class="edit-btn-row" wx:if="{{isOwner}}" bindtap="openSpecialtiesEdit">
+                <text class="edit-text">编辑</text>
+              </view>
             </view>
             <view class="card-content">
-              <view class="teacher-tags">
+              <view class="teacher-tags" wx:if="{{teacher.specialties && teacher.specialties.length > 0}}">
                 <text wx:for="{{teacher.specialties}}" wx:for-item="tag" wx:key="*this" class="teacher-tag">{{tag}}</text>
               </view>
+              <text class="info-text info-text-placeholder" wx:else>未设置擅长领域</text>
             </view>
           </view>
 
-          <view class="info-card" wx:if="{{teacher.certifications.length > 0}}">
+          <view class="info-card" wx:if="{{teacher.certifications && teacher.certifications.length > 0}}">
             <view class="card-header">
               <text class="card-title">资质认证</text>
             </view>
@@ -216,7 +135,7 @@
             </view>
           </view>
 
-          <view class="info-card" wx:if="{{teacher.studio_images.length > 0}}">
+          <view class="info-card" wx:if="{{teacher.studio_images && teacher.studio_images.length > 0}}">
             <view class="card-header">
               <text class="card-title">工作室环境</text>
             </view>
@@ -277,6 +196,120 @@
           <view class="no-more" wx:if="{{!productsHasMore && products.length > 0 && !productsLoading}}">
             <text class="no-more-text">没有更多了</text>
           </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="edit-dialog-mask" wx:if="{{showEditDialog}}" catchtouchmove="preventMove">
+      <view class="edit-dialog">
+        <view class="dialog-header">
+          <text class="dialog-title">{{editDialogTitle}}</text>
+          <view class="dialog-close" bindtap="closeEditDialog">
+            <text class="close-icon">×</text>
+          </view>
+        </view>
+
+        <view class="dialog-content">
+          <textarea 
+            wx:if="{{editDialogType === 'textarea'}}"
+            class="edit-textarea"
+            value="{{editDialogValue}}"
+            placeholder="请输入{{editDialogTitle}}"
+            maxlength="500"
+            bindinput="onEditInput"
+            auto-height
+            focus="{{showEditDialog}}"
+          />
+          <input 
+            wx:elif="{{editDialogType === 'number'}}"
+            class="edit-input"
+            type="number"
+            value="{{editDialogValue}}"
+            placeholder="请输入{{editDialogTitle}}"
+            bindinput="onEditInput"
+            focus="{{showEditDialog}}"
+          />
+          <input 
+            wx:else
+            class="edit-input"
+            value="{{editDialogValue}}"
+            placeholder="请输入{{editDialogTitle}}"
+            maxlength="50"
+            bindinput="onEditInput"
+            focus="{{showEditDialog}}"
+          />
+        </view>
+
+        <view class="dialog-footer">
+          <button class="dialog-btn dialog-btn-cancel" bindtap="closeEditDialog">取消</button>
+          <button class="dialog-btn dialog-btn-confirm" bindtap="saveEditDialog" loading="{{savingEdit}}">保存</button>
+        </view>
+      </view>
+    </view>
+
+    <view class="edit-dialog-mask" wx:if="{{showSpecialtiesDialog}}" catchtouchmove="preventMove">
+      <view class="edit-dialog edit-dialog-large">
+        <view class="dialog-header">
+          <text class="dialog-title">擅长领域</text>
+          <view class="dialog-close" bindtap="closeSpecialtiesDialog">
+            <text class="close-icon">×</text>
+          </view>
+        </view>
+
+        <view class="dialog-content dialog-content-scroll">
+          <view class="specialty-grid">
+            <view 
+              wx:for="{{specialtyOptions}}" 
+              wx:key="value"
+              class="specialty-item {{item.checked ? 'active' : ''}}"
+              bindtap="toggleSpecialtyItem"
+              data-index="{{index}}"
+            >
+              <text class="specialty-text">{{item.label}}</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="dialog-footer">
+          <button class="dialog-btn dialog-btn-cancel" bindtap="closeSpecialtiesDialog">取消</button>
+          <button class="dialog-btn dialog-btn-confirm" bindtap="saveSpecialtiesDialog" loading="{{savingEdit}}">保存</button>
+        </view>
+      </view>
+    </view>
+
+    <view class="edit-dialog-mask" wx:if="{{showStudioDialog}}" catchtouchmove="preventMove">
+      <view class="edit-dialog">
+        <view class="dialog-header">
+          <text class="dialog-title">工作室信息</text>
+          <view class="dialog-close" bindtap="closeStudioDialog">
+            <text class="close-icon">×</text>
+          </view>
+        </view>
+
+        <view class="dialog-content">
+          <view class="studio-edit-item">
+            <text class="studio-edit-label">工作室名称</text>
+            <input 
+              class="studio-edit-input"
+              value="{{studioEditForm.name}}"
+              placeholder="请输入工作室名称"
+              bindinput="onStudioNameInput"
+            />
+          </view>
+          <view class="studio-edit-item">
+            <text class="studio-edit-label">工作室地址</text>
+            <input 
+              class="studio-edit-input"
+              value="{{studioEditForm.address}}"
+              placeholder="请输入工作室地址"
+              bindinput="onStudioAddressInput"
+            />
+          </view>
+        </view>
+
+        <view class="dialog-footer">
+          <button class="dialog-btn dialog-btn-cancel" bindtap="closeStudioDialog">取消</button>
+          <button class="dialog-btn dialog-btn-confirm" bindtap="saveStudioDialog" loading="{{savingEdit}}">保存</button>
         </view>
       </view>
     </view>

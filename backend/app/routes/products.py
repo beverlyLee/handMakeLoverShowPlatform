@@ -253,6 +253,9 @@ def create_product():
     db.session.add(product)
     db.session.commit()
     
+    teacher_profile.product_count = (teacher_profile.product_count or 0) + 1
+    db.session.commit()
+    
     return jsonify(success(data=product.to_dict(), msg='作品创建成功'))
 
 @product_bp.route('/<int:product_id>', methods=['PUT'])
