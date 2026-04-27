@@ -1,0 +1,251 @@
+<view class="order-confirm-container" catchtap="hideAllPickers">
+  <view class="loading-container" wx:if="{{isLoading}}">
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <view class="order-content" wx:else>
+    <view class="section address-section">
+      <view class="section-header">
+        <text class="section-title">收货地址</text>
+      </view>
+      <view class="address-card" bindtap="goToAddressList">
+        <view class="address-info" wx:if="{{selectedAddress}}">
+          <view class="address-contact">
+            <text class="contact-name">{{selectedAddress.name}}</text>
+            <text class="contact-phone">{{selectedAddress.phone}}</text>
+          </view>
+          <view class="address-detail">
+            <text class="detail-text">{{selectedAddress.province}}{{selectedAddress.city}}{{selectedAddress.district}}{{selectedAddress.detail}}</text>
+          </view>
+        </view>
+        <view class="address-placeholder" wx:else>
+          <text class="placeholder-text">请选择收货地址</text>
+        </view>
+        <text class="arrow-icon">›</text>
+      </view>
+    </view>
+
+    <view class="section product-section">
+      <view class="section-header">
+        <text class="section-title">商品信息</text>
+      </view>
+      <view class="product-card" wx:if="{{product}}">
+        <image class="product-image" src="{{product.cover_image || product.images[0]}}" mode="aspectFill" />
+        <view class="product-info">
+          <text class="product-title" lines="2">{{product.title}}</text>
+          <view class="price-row">
+            <view class="price-section">
+              <text class="price-symbol">¥</text>
+              <text class="product-price">{{formattedProductPrice}}</text>
+            </view>
+          </view>
+          <view class="quantity-section">
+            <view class="quantity-control">
+              <text class="quantity-btn" catchtap="decreaseQuantity">-</text>
+              <text class="quantity-value">{{quantity}}</text>
+              <text class="quantity-btn" catchtap="increaseQuantity">+</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="section coupon-section">
+      <view class="section-header">
+        <text class="section-title">优惠券</text>
+      </view>
+      <view class="coupon-select-card" catchtap="toggleCouponPicker">
+        <view class="coupon-left">
+          <text class="coupon-label">可用优惠券</text>
+          <view class="coupon-badge" wx:if="{{availableCoupons.length > 0}}">
+            <text class="badge-text">{{availableCoupons.length}}张可用</text>
+          </view>
+        </view>
+        <view class="coupon-right">
+          <text class="selected-coupon-text" wx:if="{{selectedCoupon}}">
+            -¥{{selectedCoupon.calculated_discount || selectedCoupon.value || 0}}
+          </text>
+          <text class="coupon-placeholder" wx:elif="{{availableCoupons.length > 0}}">
+            选择优惠券
+          </text>
+          <text class="coupon-placeholder" wx:else>
+            无可用优惠券
+          </text>
+          <text class="arrow-icon">›</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="section shipping-section">
+      <view class="section-header">
+        <text class="section-title">配送方式</text>
+      </view>
+      <view class="shipping-select-card" catchtap="toggleShippingPicker">
+        <view class="shipping-left">
+          <text class="shipping-label">快递方式</text>
+        </view>
+        <view class="shipping-right">
+          <text class="selected-shipping-text">
+            {{selectedShipping.name}}
+            <text class="shipping-fee" wx:if="{{selectedShipping.fee > 0}}">+¥{{selectedShipping.fee}}</text>
+            <text class="shipping-fee free" wx:else>包邮</text>
+          </text>
+          <text class="arrow-icon">›</text>
+        </view>
+      </view>
+      <view class="estimated-arrival">
+        <text class="arrival-label">预计送达</text>
+        <text class="arrival-date">{{estimatedArrivalDate}}</text>
+        <text class="arrival-days">({{selectedShipping.estimatedDays}}天)</text>
+      </view>
+    </view>
+
+    <view class="section paymethod-section">
+      <view class="section-header">
+        <text class="section-title">支付方式</text>
+      </view>
+      <view class="paymethod-select-card" catchtap="togglePayMethodPicker">
+        <view class="paymethod-left">
+          <text class="paymethod-label">支付方式</text>
+        </view>
+        <view class="paymethod-right">
+          <text class="selected-paymethod-text">{{selectedPayMethod.name}}</text>
+          <text class="arrow-icon">›</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="section remark-section">
+      <view class="section-header" catchtap="toggleMoreOptions">
+        <text class="section-title">订单备注</text>
+        <text class="toggle-text">{{showMoreOptions ? '收起' : '展开'}}</text>
+      </view>
+      <view class="remark-content" wx:if="{{showMoreOptions}}">
+        <textarea 
+          class="remark-input" 
+          placeholder="选填，请输入备注信息（最多500字）"
+          value="{{remark}}"
+          bindinput="onRemarkInput"
+          maxlength="500"
+        ></textarea>
+      </view>
+    </view>
+
+    <view class="section summary-section">
+      <view class="section-header">
+        <text class="section-title">价格明细</text>
+      </view>
+      <view class="summary-content">
+        <view class="summary-row">
+          <text class="summary-label">商品金额</text>
+          <text class="summary-value">¥{{formattedProductAmount}}</text>
+        </view>
+        <view class="summary-row" wx:if="{{discountAmount > 0}}">
+          <text class="summary-label discount-label">优惠券</text>
+          <text class="summary-value discount-value">-¥{{formattedDiscountAmount}}</text>
+        </view>
+        <view class="summary-row">
+          <text class="summary-label">运费</text>
+          <text class="summary-value" wx:if="{{shippingFee > 0}}">¥{{formattedShippingFee}}</text>
+          <text class="summary-value free" wx:else>免运费</text>
+        </view>
+        <view class="summary-row total-row">
+          <text class="summary-label total-label">实付金额</text>
+          <text class="summary-value total-value">¥{{formattedPayAmount}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="picker-mask" wx:if="{{showCouponPicker || showShippingPicker || showPayMethodPicker}}" catchtap="hideAllPickers">
+  </view>
+
+  <view class="picker-panel coupon-picker" wx:if="{{showCouponPicker}}">
+    <view class="picker-header">
+      <text class="picker-title">选择优惠券</text>
+      <text class="picker-close" catchtap="toggleCouponPicker">×</text>
+    </view>
+    <view class="picker-content">
+      <view class="coupon-item {{selectedCoupon && selectedCoupon.id == item.id ? 'selected' : ''}}" 
+            wx:for="{{availableCoupons}}" wx:key="id" catchtap="selectCoupon" data-index="{{index}}">
+        <view class="coupon-card">
+          <view class="coupon-left-part">
+            <text class="coupon-type">{{item.type_name}}</text>
+            <view class="coupon-amount">
+              <text class="coupon-symbol">¥</text>
+              <text class="coupon-value">{{item.calculated_discount || item.value || 0}}</text>
+            </view>
+            <text class="coupon-condition" wx:if="{{item.min_amount > 0}}">满{{item.min_amount}}可用</text>
+          </view>
+          <view class="coupon-right-part">
+            <text class="coupon-name">{{item.name}}</text>
+            <text class="coupon-desc">{{item.description || '限时优惠'}}</text>
+            <text class="coupon-valid">有效期至 {{item.end_time}}</text>
+          </view>
+          <view class="coupon-check" wx:if="{{selectedCoupon && selectedCoupon.id == item.id}}">✓</view>
+        </view>
+      </view>
+      <view class="no-coupon" wx:if="{{availableCoupons.length === 0}}">
+        <text class="no-coupon-text">暂无可用优惠券</text>
+      </view>
+      <view class="no-coupon-item" catchtap="selectCoupon" data-index="-1" wx:if="{{availableCoupons.length > 0}}">
+        <text class="no-coupon-label">不使用优惠券</text>
+        <view class="coupon-check" wx:if="{{!selectedCoupon}}">✓</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="picker-panel shipping-picker" wx:if="{{showShippingPicker}}">
+    <view class="picker-header">
+      <text class="picker-title">选择配送方式</text>
+      <text class="picker-close" catchtap="toggleShippingPicker">×</text>
+    </view>
+    <view class="picker-content">
+      <view class="shipping-item {{selectedShipping.key == item.key ? 'selected' : ''}}" 
+            wx:for="{{shippingMethods}}" wx:key="key" catchtap="selectShipping" data-index="{{index}}">
+        <view class="shipping-info">
+          <text class="shipping-name">{{item.name}}</text>
+          <view class="shipping-desc">
+            <text class="shipping-estimate">预计{{item.estimatedDays}}天送达</text>
+            <text class="shipping-fee-info" wx:if="{{item.fee > 0}}">+¥{{item.fee}}</text>
+            <text class="shipping-fee-info free" wx:else>免费</text>
+          </view>
+        </view>
+        <view class="shipping-check" wx:if="{{selectedShipping.key == item.key}}">✓</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="picker-panel paymethod-picker" wx:if="{{showPayMethodPicker}}">
+    <view class="picker-header">
+      <text class="picker-title">选择支付方式</text>
+      <text class="picker-close" catchtap="togglePayMethodPicker">×</text>
+    </view>
+    <view class="picker-content">
+      <view class="paymethod-item {{selectedPayMethod.key == item.key ? 'selected' : ''}}" 
+            wx:for="{{payMethods}}" wx:key="key" catchtap="selectPayMethod" data-index="{{index}}">
+        <view class="paymethod-info">
+          <text class="paymethod-icon {{item.icon}}"></text>
+          <text class="paymethod-name">{{item.name}}</text>
+        </view>
+        <view class="paymethod-check" wx:if="{{selectedPayMethod.key == item.key}}">✓</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="bottom-bar">
+    <view class="bar-left">
+      <text class="total-label">实付：</text>
+      <text class="total-amount">¥{{formattedPayAmount}}</text>
+    </view>
+    <view class="bar-right">
+      <button 
+        class="submit-btn {{isSubmitting ? 'disabled' : ''}}" 
+        catchtap="submitOrder"
+        disabled="{{isSubmitting}}"
+      >
+        {{isSubmitting ? '提交中...' : '提交订单'}}
+      </button>
+    </view>
+  </view>
+</view>

@@ -36,7 +36,7 @@ def create_app(config_class=Config):
             }
         })
 
-    from app.routes import main_bp, auth_bp, product_bp, order_bp, user_bp, message_bp, review_bp, cart_bp, favorite_bp, search_bp, specialty_bp
+    from app.routes import main_bp, auth_bp, product_bp, order_bp, user_bp, message_bp, review_bp, cart_bp, favorite_bp, search_bp, specialty_bp, promotion_bp
 
     app.register_blueprint(main_bp, url_prefix='/api')
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
@@ -49,5 +49,6 @@ def create_app(config_class=Config):
     app.register_blueprint(favorite_bp, url_prefix='/api/favorites')
     app.register_blueprint(search_bp, url_prefix='/api/search')
     app.register_blueprint(specialty_bp)
+    app.register_blueprint(promotion_bp, url_prefix='/api/promotions')
 
     return app

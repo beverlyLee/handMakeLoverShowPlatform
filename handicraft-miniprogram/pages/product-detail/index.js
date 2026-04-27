@@ -75,7 +75,14 @@ Page({
   },
 
   buyNow() {
-    showToast('立即购买功能开发中');
+    if (!this.data.product) {
+      showToast('商品信息加载中，请稍后');
+      return;
+    }
+    
+    wx.navigateTo({
+      url: `/pages/order-confirm/index?id=${this.data.productId}`
+    });
   },
 
   toggleFavorite() {

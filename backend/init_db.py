@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from app import create_app
 from app.database import db
-from app.models import User, Address, TeacherProfile, Order, OrderItem, Category, Product
+from app.models import User, Address, TeacherProfile, Order, OrderItem, Category, Product, Coupon, UserCoupon
 from app.config import Config
 
 MOCK_DATA_DIR = os.path.join(os.path.dirname(__file__), 'mock-data')
@@ -49,6 +49,8 @@ def init_database():
         orders_data = load_json_file('orders.json')
         categories_data = load_json_file('categories.json')
         products_data = load_json_file('products.json')
+        coupons_data = load_json_file('coupons.json')
+        user_coupons_data = load_json_file('user_coupons.json')
         
         if User.query.first():
             print("数据库已有数据，跳过迁移。")
@@ -263,6 +265,51 @@ def init_database():
         db.session.commit()
         print(f"已迁移 {product_count} 个产品")
         
+        print("\n开始迁移优惠券数据...")
+        coupon_count = 0
+        for coupon_data in coupons_data:
+            coupon = Coupon(
+                id=coupon_data.get('id'),
+                name=coupon_data.get('name'),
+                description=coupon_data.get('description'),
+                type=coupon_data.get('type', 'fixed'),
+                value=coupon_data.get('value', 0),
+                discount=coupon_data.get('discount', 0),
+                min_amount=coupon_data.get('min_amount', 0),
+                max_discount=coupon_data.get('max_discount'),
+                total_quantity=coupon_data.get('total_quantity', 1000),
+                used_quantity=coupon_data.get('used_quantity', 0),
+                limit_per_user=coupon_data.get('limit_per_user', 1),
+                start_time=parse_datetime(coupon_data.get('start_time')),
+                end_time=parse_datetime(coupon_data.get('end_time')),
+                status=coupon_data.get('status', 'active')
+            )
+            coupon.applicable_categories = coupon_data.get('applicable_categories', [])
+            coupon.applicable_products = coupon_data.get('applicable_products', [])
+            db.session.add(coupon)
+            coupon_count += 1
+        
+        db.session.commit()
+        print(f"已迁移 {coupon_count} 个优惠券")
+        
+        print("\n开始迁移用户优惠券数据...")
+        user_coupon_count = 0
+        for uc_data in user_coupons_data:
+            user_coupon = UserCoupon(
+                id=uc_data.get('id'),
+                user_id=uc_data.get('user_id'),
+                coupon_id=uc_data.get('coupon_id'),
+                status=uc_data.get('status', 'unused'),
+                used_at=parse_datetime(uc_data.get('used_at')),
+                order_id=uc_data.get('order_id'),
+                received_at=parse_datetime(uc_data.get('received_at'))
+            )
+            db.session.add(user_coupon)
+            user_coupon_count += 1
+        
+        db.session.commit()
+        print(f"已迁移 {user_coupon_count} 个用户优惠券")
+        
         print("\n" + "="*50)
         print("数据库初始化完成！")
         print("="*50)
@@ -273,6 +320,8 @@ def init_database():
         print(f"产品数: {Product.query.count()}")
         print(f"订单数: {Order.query.count()}")
         print(f"订单项数: {OrderItem.query.count()}")
+        print(f"优惠券数: {Coupon.query.count()}")
+        print(f"用户优惠券数: {UserCoupon.query.count()}")
 
 if __name__ == '__main__':
     init_database()

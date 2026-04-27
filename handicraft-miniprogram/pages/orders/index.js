@@ -34,7 +34,10 @@ Page({
     teacherInfo: null,
 
     showShipDialog: false,
-    selectedOrder: null
+    selectedOrder: null,
+
+    expandedOrders: {},
+    formattedOrders: []
   },
 
   onLoad(options) {
@@ -165,16 +168,20 @@ Page({
       console.log('订单数据结果:', result);
 
       const newOrders = result?.list || result?.orders || [];
+      const formattedOrders = this.formatOrders(newOrders);
 
       if (append) {
         this.setData({
           orders: [...this.data.orders, ...newOrders],
+          formattedOrders: [...this.data.formattedOrders, ...formattedOrders],
           hasMore: newOrders.length >= this.data.pageSize,
           isLoading: false
         });
       } else {
         this.setData({
           orders: newOrders,
+          formattedOrders: formattedOrders,
+          expandedOrders: {},
           hasMore: newOrders.length >= this.data.pageSize,
           isLoading: false
         });
@@ -363,5 +370,42 @@ Page({
     wx.switchTab({
       url: '/pages/products/index'
     });
+  },
+
+  formatOrders(orders) {
+    return orders.map(order => {
+      const formatted = {
+        ...order,
+        formattedTotalAmount: order.total_amount ? order.total_amount.toFixed(2) : '0.00',
+        formattedDiscountAmount: order.discount_amount ? order.discount_amount.toFixed(2) : '0.00',
+        formattedPayAmount: order.pay_amount ? order.pay_amount.toFixed(2) : '0.00',
+        formattedShippingFee: order.shipping_fee ? order.shipping_fee.toFixed(2) : '0.00',
+        hasLogistics: order.logistics && order.logistics.items && order.logistics.items.length > 0,
+        hasPriceDetail: order.total_amount > 0 || order.discount_amount > 0 || order.shipping_fee > 0
+      };
+      
+      if (order.price_detail) {
+        formatted.formattedProductAmount = order.price_detail.product_amount ? order.price_detail.product_amount.toFixed(2) : '0.00';
+        formatted.formattedPriceDiscount = order.price_detail.discount_amount ? order.price_detail.discount_amount.toFixed(2) : '0.00';
+        formatted.formattedPriceShipping = order.price_detail.shipping_fee ? order.price_detail.shipping_fee.toFixed(2) : '0.00';
+        formatted.formattedPricePay = order.price_detail.pay_amount ? order.price_detail.pay_amount.toFixed(2) : '0.00';
+      }
+      
+      return formatted;
+    });
+  },
+
+  toggleOrderDetail(e) {
+    const orderId = e.currentTarget.dataset.id;
+    const expandedOrders = { ...this.data.expandedOrders };
+    expandedOrders[orderId] = !expandedOrders[orderId];
+    
+    this.setData({
+      expandedOrders: expandedOrders
+    });
+  },
+
+  stopPropagation() {
+    return;
   }
 });

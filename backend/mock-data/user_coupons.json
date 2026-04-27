@@ -1,0 +1,65 @@
+[
+  {
+    "id": 1,
+    "user_id": 1,
+    "coupon_id": 1,
+    "status": "unused",
+    "used_at": null,
+    "order_id": null,
+    "received_at": "2026-04-01T10:00:00Z"
+  },
+  {
+    "id": 2,
+    "user_id": 1,
+    "coupon_id": 2,
+    "status": "unused",
+    "used_at": null,
+    "order_id": null,
+    "received_at": "2026-04-10T14:30:00Z"
+  },
+  {
+    "id": 3,
+    "user_id": 1,
+    "coupon_id": 3,
+    "status": "unused",
+    "used_at": null,
+    "order_id": null,
+    "received_at": "2026-04-20T09:15:00Z"
+  },
+  {
+    "id": 4,
+    "user_id": 1,
+    "coupon_id": 4,
+    "status": "unused",
+    "used_at": null,
+    "order_id": null,
+    "received_at": "2026-04-15T16:45:00Z"
+  },
+  {
+    "id": 5,
+    "user_id": 1,
+    "coupon_id": 2,
+    "status": "used",
+    "used_at": "2026-04-22T10:30:00Z",
+    "order_id": "ORD20260422103000",
+    "received_at": "2026-04-10T14:30:00Z"
+  },
+  {
+    "id": 6,
+    "user_id": 2,
+    "coupon_id": 1,
+    "status": "unused",
+    "used_at": null,
+    "order_id": null,
+    "received_at": "2026-04-05T11:20:00Z"
+  },
+  {
+    "id": 7,
+    "user_id": 2,
+    "coupon_id": 3,
+    "status": "used",
+    "used_at": "2026-04-21T15:00:00Z",
+    "order_id": "ORD20260421150000",
+    "received_at": "2026-04-18T09:00:00Z"
+  }
+]

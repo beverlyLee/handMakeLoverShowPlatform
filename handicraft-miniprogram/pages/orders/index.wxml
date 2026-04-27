@@ -32,17 +32,14 @@
 
   <view class="orders-list" wx:if="{{orders.length > 0}}">
     <view 
-      wx:for="{{orders}}" 
+      wx:for="{{formattedOrders}}" 
       wx:key="id" 
-      class="order-card {{currentRole === 'teacher' ? 'teacher-order-card' : ''}}"
-      bindtap="goToOrderDetail"
-      data-id="{{item.id}}"
+      class="order-card {{currentRole === 'teacher' ? 'teacher-order-card' : ''}} {{expandedOrders[item.id] ? 'expanded' : ''}}"
     >
-      <view class="order-header">
+      <view class="order-header" catchtap="toggleOrderDetail" data-id="{{item.id}}">
         <view class="shop-info" wx:if="{{currentRole !== 'teacher'}}">
           <text class="shop-icon">🏠</text>
           <text class="shop-name">手作工作室</text>
-          <text class="arrow-icon">›</text>
         </view>
         <view class="shop-info teacher-shop-info" wx:else>
           <text class="shop-icon">👤</text>
@@ -51,9 +48,10 @@
         <view class="order-status {{item.status}}">
           <text class="status-text">{{currentRole === 'teacher' ? getTeacherStatusText(item.status) : getStatusText(item.status)}}</text>
         </view>
+        <text class="expand-icon">{{expandedOrders[item.id] ? '▼' : '▶'}}</text>
       </view>
 
-      <view class="order-items">
+      <view class="order-items" catchtap="toggleOrderDetail" data-id="{{item.id}}">
         <view class="order-item" wx:for="{{item.items}}" wx:for-item="orderItem" wx:key="id">
           <image class="item-image" src="{{orderItem.product_image}}" mode="aspectFill" />
           <view class="item-info">
@@ -75,7 +73,7 @@
           <text class="summary-text">共{{item.items.length}}件商品</text>
           <view class="total-price">
             <text class="total-label">{{currentRole === 'teacher' ? '销售额：' : '实付：'}}</text>
-            <text class="total-amount">¥{{item.pay_amount}}</text>
+            <text class="total-amount">¥{{item.formattedPayAmount}}</text>
           </view>
         </view>
         <view class="order-actions" catchtap="stopPropagation">
@@ -125,14 +123,126 @@
         </view>
       </view>
 
-      <view class="order-meta" wx:if="{{currentRole === 'teacher' && item.address}}">
-        <view class="meta-item">
-          <text class="meta-label">📦 收货地址：</text>
-          <text class="meta-value">{{item.address.province}}{{item.address.city}}{{item.address.district}}{{item.address.detail}}</text>
+      <view class="order-detail-expand" wx:if="{{expandedOrders[item.id]}}">
+        <view class="expand-section" wx:if="{{item.address}}">
+          <view class="expand-title">
+            <text class="title-text">📦 收货地址</text>
+          </view>
+          <view class="expand-content">
+            <text class="content-text">{{item.address.name}} {{item.address.phone}}</text>
+            <text class="content-text address-detail">{{item.address.province}}{{item.address.city}}{{item.address.district}}{{item.address.detail}}</text>
+          </view>
         </view>
-        <view class="meta-item">
-          <text class="meta-label">📞 联系电话：</text>
-          <text class="meta-value">{{item.address.phone}}</text>
+
+        <view class="expand-section" wx:if="{{item.pay_method || item.pay_time}}">
+          <view class="expand-title">
+            <text class="title-text">💰 支付信息</text>
+          </view>
+          <view class="expand-content">
+            <view class="info-row" wx:if="{{item.pay_method}}">
+              <text class="info-label">支付方式：</text>
+              <text class="info-value">{{item.pay_method_name || item.pay_method}}</text>
+            </view>
+            <view class="info-row" wx:if="{{item.pay_time}}">
+              <text class="info-label">支付时间：</text>
+              <text class="info-value">{{item.pay_time}}</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="expand-section" wx:if="{{item.shipping_method || item.tracking_number}}">
+          <view class="expand-title">
+            <text class="title-text">🚚 物流信息</text>
+          </view>
+          <view class="expand-content">
+            <view class="info-row" wx:if="{{item.shipping_method}}">
+              <text class="info-label">配送方式：</text>
+              <text class="info-value">{{item.shipping_method_name || item.shipping_method}}</text>
+            </view>
+            <view class="info-row" wx:if="{{item.tracking_number}}">
+              <text class="info-label">运单编号：</text>
+              <text class="info-value">{{item.tracking_number}}</text>
+            </view>
+            <view class="info-row" wx:if="{{item.estimated_arrival_time}}">
+              <text class="info-label">预计送达：</text>
+              <text class="info-value">{{item.estimated_arrival_time}}</text>
+            </view>
+            <view class="info-row" wx:if="{{item.ship_time}}">
+              <text class="info-label">发货时间：</text>
+              <text class="info-value">{{item.ship_time}}</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="expand-section" wx:if="{{item.logistics && item.logistics.items && item.logistics.items.length > 0}}">
+          <view class="expand-title">
+            <text class="title-text">📊 物流详情</text>
+          </view>
+          <view class="expand-content logistics-timeline">
+            <view class="timeline-item {{index === item.logistics.items.length - 1 ? 'latest' : ''}}" 
+                  wx:for="{{item.logistics.items}}" wx:for-item="logItem" wx:key="id" wx:reverse>
+              <view class="timeline-dot"></view>
+              <view class="timeline-content">
+                <text class="timeline-desc">{{logItem.description}}</text>
+                <text class="timeline-location" wx:if="{{logItem.location}}">{{logItem.location}}</text>
+                <text class="timeline-time">{{logItem.timestamp}}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <view class="expand-section">
+          <view class="expand-title">
+            <text class="title-text">📋 价格明细</text>
+          </view>
+          <view class="expand-content price-detail">
+            <view class="price-row">
+              <text class="price-label">商品金额：</text>
+              <text class="price-value">¥{{item.formattedTotalAmount}}</text>
+            </view>
+            <view class="price-row" wx:if="{{item.discount_amount > 0}}">
+              <text class="price-label discount">优惠券：</text>
+              <text class="price-value discount">-¥{{item.formattedDiscountAmount}}</text>
+            </view>
+            <view class="price-row">
+              <text class="price-label">运费：</text>
+              <text class="price-value" wx:if="{{item.shipping_fee > 0}}">¥{{item.formattedShippingFee}}</text>
+              <text class="price-value free" wx:else>免运费</text>
+            </view>
+            <view class="price-row total">
+              <text class="price-label">实付金额：</text>
+              <text class="price-value total">¥{{item.formattedPayAmount}}</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="expand-section" wx:if="{{item.remark}}">
+          <view class="expand-title">
+            <text class="title-text">📝 订单备注</text>
+          </view>
+          <view class="expand-content">
+            <text class="content-text">{{item.remark}}</text>
+          </view>
+        </view>
+
+        <view class="expand-section">
+          <view class="expand-title">
+            <text class="title-text">ℹ️ 订单信息</text>
+          </view>
+          <view class="expand-content">
+            <view class="info-row">
+              <text class="info-label">订单编号：</text>
+              <text class="info-value">{{item.id}}</text>
+            </view>
+            <view class="info-row">
+              <text class="info-label">创建时间：</text>
+              <text class="info-value">{{item.create_time}}</text>
+            </view>
+            <view class="info-row" wx:if="{{item.complete_time}}">
+              <text class="info-label">完成时间：</text>
+              <text class="info-value">{{item.complete_time}}</text>
+            </view>
+          </view>
         </view>
       </view>
     </view>

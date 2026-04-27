@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request, g
 from app.utils.response import success, error
 from app.common.response_code import ResponseCode
 from app.common.auth import login_required
-from app.models import Order, OrderItem, User
+from app.models import Order, OrderItem, User, TeacherProfile, UserCoupon, Coupon
 from app.database import db
 from app.services.user_service import UserService
 from datetime import datetime
@@ -186,10 +186,23 @@ def create_order():
     if not data:
         return jsonify(error(code=ResponseCode.PARAM_MISSING, msg='请求数据不能为空')), 400
     
-    required_fields = ['teacher_id', 'items']
+    required_fields = ['items']
     for field in required_fields:
         if field not in data:
             return jsonify(error(code=ResponseCode.PARAM_MISSING, msg=f'{field} 不能为空')), 400
+    
+    teacher_user_id = data.get('teacher_user_id')
+    teacher_profile_id = data.get('teacher_id')
+    
+    if not teacher_user_id and not teacher_profile_id:
+        return jsonify(error(code=ResponseCode.PARAM_MISSING, msg='teacher_id 或 teacher_user_id 不能为空')), 400
+    
+    if teacher_profile_id and not teacher_user_id:
+        teacher_profile = TeacherProfile.query.get(teacher_profile_id)
+        if teacher_profile:
+            teacher_user_id = teacher_profile.user_id
+        else:
+            return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='老师信息不存在')), 404
     
     order_id = f'ORD{datetime.now().strftime("%Y%m%d%H%M%S")}'
     
@@ -198,15 +211,58 @@ def create_order():
     for item in items:
         total_amount += item.get('price', 0) * item.get('quantity', 1)
     
+    discount_amount = 0
+    shipping_fee = data.get('shipping_fee', 0)
+    pay_method = data.get('pay_method')
+    shipping_method = data.get('shipping_method', 'standard')
+    
+    user_coupon = None
+    user_coupon_id = data.get('user_coupon_id')
+    coupon_id = data.get('coupon_id')
+    
+    if user_coupon_id:
+        user_coupon = UserCoupon.query.filter_by(
+            id=user_coupon_id,
+            user_id=user_id,
+            status='unused'
+        ).first()
+    elif coupon_id:
+        user_coupon = UserCoupon.query.filter_by(
+            user_id=user_id,
+            coupon_id=coupon_id,
+            status='unused'
+        ).first()
+    
+    if user_coupon and user_coupon.coupon:
+        coupon = user_coupon.coupon
+        can_apply, reason = coupon.can_apply(total_amount)
+        if can_apply:
+            discount_amount = coupon.calculate_discount(total_amount)
+    
+    pay_amount = max(total_amount - discount_amount + shipping_fee, 0)
+    
     order = Order(
         id=order_id,
         user_id=user_id,
-        teacher_id=data.get('teacher_id'),
+        teacher_id=teacher_user_id,
         status='pending',
         total_amount=total_amount,
-        pay_amount=total_amount,
+        discount_amount=discount_amount,
+        pay_amount=pay_amount,
+        shipping_fee=shipping_fee,
+        pay_method=pay_method,
+        shipping_method=shipping_method,
+        coupon_id=user_coupon.coupon_id if user_coupon else None,
+        user_coupon_id=user_coupon.id if user_coupon else None,
         remark=data.get('remark', '')
     )
+    
+    if shipping_method in ['express', 'sf']:
+        order.estimated_arrival_days = 2
+    elif shipping_method == 'jd':
+        order.estimated_arrival_days = 1
+    else:
+        order.estimated_arrival_days = 3
     
     address = data.get('address', {})
     if address:
@@ -231,6 +287,12 @@ def create_order():
             total_price=item_data.get('price', 0) * item_data.get('quantity', 1)
         )
         db.session.add(order_item)
+    
+    if user_coupon:
+        user_coupon.status = 'used'
+        user_coupon.used_at = datetime.utcnow()
+        user_coupon.order_id = order_id
+        db.session.add(user_coupon)
     
     db.session.commit()
     

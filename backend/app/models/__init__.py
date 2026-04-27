@@ -1,6 +1,7 @@
 from app.models.user import User, Address, TeacherProfile
-from app.models.order import Order, OrderItem
+from app.models.order import Order, OrderItem, Logistics, LogisticsItem
 from app.models.product import Category, Product
 from app.models.specialty import Specialty
+from app.models.promotion import Coupon, UserCoupon
 
-__all__ = ['User', 'Address', 'TeacherProfile', 'Order', 'OrderItem', 'Category', 'Product', 'Specialty']
+__all__ = ['User', 'Address', 'TeacherProfile', 'Order', 'OrderItem', 'Logistics', 'LogisticsItem', 'Category', 'Product', 'Specialty', 'Coupon', 'UserCoupon']

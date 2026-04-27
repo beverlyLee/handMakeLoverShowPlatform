@@ -103,6 +103,7 @@ class Product(db.Model):
         result = {
             'id': self.id,
             'teacher_id': self.teacher_id,
+            'teacher_user_id': self.teacher_profile.user_id if self.teacher_profile else None,
             'title': self.title,
             'description': self.description,
             'category_id': self.category_id,
@@ -126,6 +127,7 @@ class Product(db.Model):
             result['teacher'] = {
                 'id': self.teacher_profile.id,
                 'teacher_id': self.teacher_profile.teacher_id,
+                'user_id': self.teacher_profile.user_id,
                 'real_name': self.teacher_profile.real_name,
                 'avatar': self.teacher_profile.user.avatar if self.teacher_profile.user else None,
                 'rating': self.teacher_profile.rating,
