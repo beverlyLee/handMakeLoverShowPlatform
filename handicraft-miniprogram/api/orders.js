@@ -1,4 +1,4 @@
-const { get, post, put } = require('../utils/request');
+const { get, post, put, del } = require('../utils/request');
 
 /**
  * 获取订单列表
@@ -83,6 +83,14 @@ function getTeacherOrderStats(params = {}) {
   return get('/orders/teacher/stats', params);
 }
 
+/**
+ * 删除订单
+ * @param {string} orderId - 订单ID
+ */
+function deleteOrder(orderId) {
+  return del(`/orders/${orderId}`);
+}
+
 module.exports = {
   getOrders,
   getOrderDetail,
@@ -93,5 +101,6 @@ module.exports = {
   reviewOrder,
   updateOrderStatus,
   getTeacherOrders,
-  getTeacherOrderStats
+  getTeacherOrderStats,
+  deleteOrder
 };

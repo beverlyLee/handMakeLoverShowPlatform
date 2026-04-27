@@ -79,7 +79,8 @@ class Order(db.Model):
         'shipped': '待收货',
         'delivered': '已送达',
         'completed': '已完成',
-        'cancelled': '已取消'
+        'cancelled': '已取消',
+        'deleted': '已删除'
     }
 
     @property

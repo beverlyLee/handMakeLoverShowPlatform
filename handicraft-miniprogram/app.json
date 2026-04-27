@@ -8,9 +8,8 @@
     "pages/teacher-apply/index",
     "pages/address-list/index",
     "pages/address-edit/index",
-    "pages/product-detail/index",
-    "pages/order-confirm/index",
     "pages/work-detail/index",
+    "pages/order-confirm/index",
     "pages/teacher-profile/index",
     "pages/teacher-home/index",
     "pages/teacher-info-edit/index"

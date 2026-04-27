@@ -66,13 +66,64 @@ def check_table_exists(table_name):
     )
     return result.fetchone() is not None
 
+def migrate_order_addresses():
+    print("\n【4/4】迁移订单地址数据...")
+    print("-"*40)
+    
+    orders_data = load_json_file('orders.json')
+    orders_list = orders_data.get('orders', []) if isinstance(orders_data, dict) else []
+    
+    address_map = {}
+    for order_data in orders_list:
+        order_id = order_data.get('id')
+        if order_id:
+            address_map[order_id] = order_data.get('address', {})
+    
+    all_orders = Order.query.all()
+    orders_to_update = []
+    
+    for order in all_orders:
+        if order.address_name and order.address_phone:
+            continue
+        
+        address = address_map.get(order.id, {})
+        
+        if not address:
+            user_addresses = Address.query.filter_by(user_id=order.user_id).all()
+            if user_addresses:
+                default_address = next((a for a in user_addresses if a.is_default), user_addresses[0])
+                address = {
+                    'name': default_address.name,
+                    'phone': default_address.phone,
+                    'province': default_address.province,
+                    'city': default_address.city,
+                    'district': default_address.district,
+                    'detail': default_address.detail
+                }
+        
+        if address and address.get('name') and address.get('phone'):
+            order.address_name = address.get('name')
+            order.address_phone = address.get('phone')
+            order.address_province = address.get('province')
+            order.address_city = address.get('city')
+            order.address_district = address.get('district')
+            order.address_detail = address.get('detail')
+            orders_to_update.append(order)
+            print(f"  ✓ 更新订单地址: {order.id} - {address.get('name')}")
+    
+    if orders_to_update:
+        db.session.commit()
+        print(f"  ✓ 已更新 {len(orders_to_update)} 个订单的地址数据")
+    else:
+        print("  - 所有订单已有地址数据，无需更新")
+
 def migrate():
     with app.app_context():
         print("="*60)
         print("数据库迁移脚本")
         print("="*60)
         
-        print("\n【1/3】创建新表...")
+        print("\n【1/4】创建新表...")
         print("-"*40)
         
         new_tables = ['coupons', 'user_coupons', 'logistics', 'logistics_items']
@@ -86,7 +137,7 @@ def migrate():
         db.session.commit()
         print("  ✓ 新表创建完成")
         
-        print("\n【2/3】为已有表添加新字段...")
+        print("\n【2/4】为已有表添加新字段...")
         print("-"*40)
         
         print("\n正在检查 orders 表:")
@@ -114,7 +165,7 @@ def migrate():
             print(f"  - 更新默认值时跳过: {e}")
             db.session.rollback()
         
-        print("\n【3/3】导入新表的 Mock 数据...")
+        print("\n【3/4】导入新表的 Mock 数据...")
         print("-"*40)
         
         if not Coupon.query.first():
@@ -171,6 +222,8 @@ def migrate():
             print(f"  ✓ 已导入 {user_coupon_count} 个用户优惠券")
         else:
             print(f"\n用户优惠券表已有数据 ({UserCoupon.query.count()} 条)，跳过导入")
+        
+        migrate_order_addresses()
         
         print("\n" + "="*60)
         print("数据库迁移完成！")

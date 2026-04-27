@@ -61,7 +61,7 @@
         <image class="teacher-avatar" src="{{product.teacher ? product.teacher.avatar : '/images/default-avatar.png'}}" mode="aspectFill" />
         <view class="teacher-info">
           <view class="teacher-name-row">
-            <text class="teacher-name">{{product.teacher ? product.teacher.real_name : '手作老师'}}</text>
+            <text class="teacher-name">{{product.teacher ? (product.teacher.nickname || product.teacher.real_name || '手作老师') : '手作老师'}}</text>
             <text class="teacher-badge" wx:if="{{product.teacher && product.teacher.rating}}">★{{product.teacher.rating}}</text>
           </view>
           <text class="teacher-stats" wx:if="{{product.teacher && (product.teacher.follower_count > 0 || product.teacher.product_count > 0)}}">
@@ -134,68 +134,13 @@
         <text class="action-icon">💬</text>
         <text class="action-text">咨询</text>
       </view>
-      <view class="action-icon-wrapper" bindtap="goBackHome">
-        <text class="action-icon">🏠</text>
-        <text class="action-text">首页</text>
+      <view class="action-icon-wrapper">
+        <text class="action-icon">🛒</text>
+        <text class="action-text">购物车</text>
       </view>
     </view>
-    <view class="bar-buttons" wx:if="{{!isTeacher}}">
-      <button class="btn-order" bindtap="showOrderConfirmDialog">
-        立即下单
-      </button>
-    </view>
-  </view>
-
-  <view class="order-confirm-mask" wx:if="{{showOrderConfirm}}" catchtouchmove="preventTouchMove">
-    <view class="order-confirm-dialog">
-      <view class="dialog-header">
-        <text class="dialog-title">确认下单</text>
-        <text class="dialog-close" bindtap="hideOrderConfirmDialog">✕</text>
-      </view>
-      
-      <view class="dialog-content">
-        <view class="order-product">
-          <image class="product-thumb" src="{{product.cover_image || product.images[0]}}" mode="aspectFill" />
-          <view class="product-info">
-            <text class="product-name">{{product.title}}</text>
-            <view class="product-price-row">
-              <text class="product-price">¥{{product.price}}</text>
-              <text class="product-original-price" wx:if="{{product.original_price > product.price}}">¥{{product.original_price}}</text>
-            </view>
-          </view>
-        </view>
-
-        <view class="quantity-section">
-          <text class="quantity-label">购买数量</text>
-          <view class="quantity-controls">
-            <view class="quantity-btn {{orderQuantity <= 1 ? 'disabled' : ''}}" bindtap="decreaseQuantity">
-              <text>−</text>
-            </view>
-            <view class="quantity-value">
-              <text>{{orderQuantity}}</text>
-            </view>
-            <view class="quantity-btn" bindtap="increaseQuantity">
-              <text>+</text>
-            </view>
-          </view>
-        </view>
-
-        <view class="order-summary">
-          <view class="summary-row">
-            <text class="summary-label">商品小计</text>
-            <text class="summary-value">¥{{product.price * orderQuantity}}</text>
-          </view>
-          <view class="summary-row total">
-            <text class="summary-label">合计</text>
-            <text class="summary-value total-price">¥{{product.price * orderQuantity}}</text>
-          </view>
-        </view>
-      </view>
-
-      <view class="dialog-footer">
-        <button class="footer-btn btn-cancel" bindtap="hideOrderConfirmDialog">取消</button>
-        <button class="footer-btn btn-confirm" bindtap="confirmOrder">确认下单</button>
-      </view>
+    <view class="bar-buttons">
+      <button class="btn-buy" bindtap="buyNow">立即购买</button>
     </view>
   </view>
 </view>

@@ -56,7 +56,26 @@ function request(options) {
           wx.hideLoading();
         }
 
-        // 检查HTTP状态码
+        const response = res.data;
+        
+        if (response && response.code !== undefined) {
+          if (response.code === 0) {
+            resolve(response.data);
+          } else {
+            if (showError) {
+              showToast(response.msg || '请求失败');
+            }
+            
+            if (response.code === 2002 || response.code === 2003) {
+              storage.removeToken();
+              storage.removeUserInfo();
+            }
+            
+            reject(response);
+          }
+          return;
+        }
+
         if (res.statusCode !== 200) {
           const errorMsg = `HTTP错误: ${res.statusCode}`;
           if (showError) {
@@ -66,34 +85,7 @@ function request(options) {
           return;
         }
 
-        // 解析后端响应
-        const response = res.data;
-        
-        // 后端统一响应格式: { code, msg, data }
-        if (response && response.code !== undefined) {
-          if (response.code === 0) {
-            // 成功
-            resolve(response.data);
-          } else {
-            // 业务错误
-            if (showError) {
-              showToast(response.msg || '请求失败');
-            }
-            
-            // Token失效，跳转登录
-            if (response.code === 2002 || response.code === 2003) {
-              storage.removeToken();
-              storage.removeUserInfo();
-              // 可以在这里跳转登录页
-              // wx.redirectTo({ url: '/pages/login/index' });
-            }
-            
-            reject(response);
-          }
-        } else {
-          // 不遵循统一格式的响应，直接返回
-          resolve(response);
-        }
+        resolve(response);
       },
       
       fail: (err) => {

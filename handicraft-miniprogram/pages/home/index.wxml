@@ -56,12 +56,6 @@
         <view class="product-info">
           <text class="product-title" lines="2">{{item.title}}</text>
           
-          <view class="teacher-info" catchtap="goToTeacherProfile" data-teacher-id="{{item.teacher_id}}">
-            <image class="teacher-avatar" src="{{item.teacher ? item.teacher.avatar : '/images/default-avatar.png'}}" mode="aspectFill" />
-            <text class="teacher-name">{{item.teacher ? item.teacher.real_name : '手作老师'}}</text>
-            <text class="teacher-rating" wx:if="{{item.teacher && item.teacher.rating}}">★{{item.teacher.rating}}</text>
-          </view>
-          
           <view class="product-price-row">
             <view class="price-section">
               <text class="price-symbol">¥</text>

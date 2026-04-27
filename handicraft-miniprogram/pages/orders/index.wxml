@@ -115,7 +115,7 @@
           >已取消</button>
 
           <button 
-            wx:if="{{(currentRole !== 'teacher' && (item.status === 'cancelled' || item.status === 'completed')) || (currentRole === 'teacher' && (item.status === 'completed' || item.status === 'delivered' || item.status === 'shipped'))}}" 
+            wx:if="{{item.status === 'cancelled' || item.status === 'completed'}}" 
             class="action-btn secondary"
             bindtap="deleteOrder"
             data-id="{{item.id}}"
@@ -124,7 +124,7 @@
       </view>
 
       <view class="order-detail-expand" wx:if="{{expandedOrders[item.id]}}">
-        <view class="expand-section" wx:if="{{item.address}}">
+        <view class="expand-section" wx:if="{{item.hasAddress}}">
           <view class="expand-title">
             <text class="title-text">📦 收货地址</text>
           </view>

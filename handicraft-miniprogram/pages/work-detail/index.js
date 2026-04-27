@@ -1,5 +1,4 @@
 const { getProductDetail } = require('../../api/products');
-const { createOrder } = require('../../api/orders');
 const { getProfile } = require('../../api/auth');
 const { showToast } = require('../../utils/util');
 const { getUserInfo } = require('../../utils/storage');
@@ -14,9 +13,7 @@ Page({
     currentImageIndex: 0,
     userInfo: null,
     isCustomer: true,
-    isTeacher: false,
-    showOrderConfirm: false,
-    orderQuantity: 1
+    isTeacher: false
   },
 
   onLoad(options) {
@@ -156,89 +153,47 @@ Page({
     });
   },
 
-  showOrderConfirmDialog() {
-    if (this.data.isTeacher) {
-      showToast('老师身份无法下单，请切换到客户身份');
+  addToCart() {
+    if (!this.data.userInfo) {
+      showToast('请先登录');
       return;
     }
+    showToast('加入购物车功能开发中');
+  },
 
+  buyNow() {
     if (!this.data.userInfo) {
       showToast('请先登录后再下单');
       return;
     }
 
-    this.setData({
-      showOrderConfirm: true,
-      orderQuantity: 1
-    });
-  },
-
-  hideOrderConfirmDialog() {
-    this.setData({
-      showOrderConfirm: false
-    });
-  },
-
-  decreaseQuantity() {
-    if (this.data.orderQuantity > 1) {
-      this.setData({
-        orderQuantity: this.data.orderQuantity - 1
-      });
+    if (this.data.isTeacher) {
+      showToast('老师身份无法下单，请切换到客户身份');
+      return;
     }
-  },
 
-  increaseQuantity() {
-    const product = this.data.product;
-    const stock = product ? (product.stock || 999) : 999;
-    
-    if (this.data.orderQuantity < stock) {
-      this.setData({
-        orderQuantity: this.data.orderQuantity + 1
-      });
-    } else {
-      showToast('已达库存上限');
-    }
-  },
-
-  async confirmOrder() {
     const product = this.data.product;
     if (!product) return;
 
-    wx.showLoading({
-      title: '创建订单中...',
-      mask: true
+    wx.navigateTo({
+      url: `/pages/order-confirm/index?id=${product.id}`
     });
+  },
 
-    try {
-      const orderData = {
-        teacher_id: product.teacher_id,
-        items: [{
-          product_id: product.id,
-          product_title: product.title,
-          product_image: product.cover_image || (product.images && product.images[0]),
-          price: product.price,
-          original_price: product.original_price || product.price,
-          quantity: this.data.orderQuantity
-        }]
-      };
-
-      const result = await createOrder(orderData);
-      
-      wx.hideLoading();
-      this.hideOrderConfirmDialog();
-      
-      showToast('下单成功');
-      
-      setTimeout(() => {
-        wx.navigateTo({
-          url: `/pages/orders/index`
-        });
-      }, 1500);
-    } catch (error) {
-      wx.hideLoading();
-      console.error('创建订单失败:', error);
-      showToast(error.msg || '下单失败，请重试');
+  showOrderConfirmDialog() {
+    if (!this.data.userInfo) {
+      showToast('请先登录后再下单');
+      return;
     }
+
+    if (this.data.isTeacher) {
+      showToast('老师身份无法下单，请切换到客户身份');
+      return;
+    }
+
+    wx.navigateTo({
+      url: `/pages/order-confirm/index?id=${this.data.productId}`
+    });
   },
 
   contactTeacher() {

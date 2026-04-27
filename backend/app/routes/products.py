@@ -64,7 +64,9 @@ def get_products():
             product_dict['teacher'] = {
                 'id': product.teacher_profile.id,
                 'teacher_id': product.teacher_profile.teacher_id,
+                'user_id': product.teacher_profile.user_id,
                 'real_name': product.teacher_profile.real_name,
+                'nickname': product.teacher_profile.user.nickname if product.teacher_profile.user else None,
                 'avatar': product.teacher_profile.user.avatar if product.teacher_profile.user else None,
                 'rating': product.teacher_profile.rating
             }
@@ -96,7 +98,9 @@ def get_product_detail(product_id):
         product_dict['teacher'] = {
             'id': product.teacher_profile.id,
             'teacher_id': product.teacher_profile.teacher_id,
+            'user_id': product.teacher_profile.user_id,
             'real_name': product.teacher_profile.real_name,
+            'nickname': product.teacher_profile.user.nickname if product.teacher_profile.user else None,
             'avatar': product.teacher_profile.user.avatar if product.teacher_profile.user else None,
             'rating': product.teacher_profile.rating,
             'follower_count': product.teacher_profile.follower_count,
@@ -134,7 +138,9 @@ def get_hot_products():
             product_dict['teacher'] = {
                 'id': product.teacher_profile.id,
                 'teacher_id': product.teacher_profile.teacher_id,
+                'user_id': product.teacher_profile.user_id,
                 'real_name': product.teacher_profile.real_name,
+                'nickname': product.teacher_profile.user.nickname if product.teacher_profile.user else None,
                 'avatar': product.teacher_profile.user.avatar if product.teacher_profile.user else None
             }
         result.append(product_dict)
@@ -156,7 +162,9 @@ def get_new_products():
             product_dict['teacher'] = {
                 'id': product.teacher_profile.id,
                 'teacher_id': product.teacher_profile.teacher_id,
+                'user_id': product.teacher_profile.user_id,
                 'real_name': product.teacher_profile.real_name,
+                'nickname': product.teacher_profile.user.nickname if product.teacher_profile.user else None,
                 'avatar': product.teacher_profile.user.avatar if product.teacher_profile.user else None
             }
         result.append(product_dict)
@@ -179,7 +187,9 @@ def get_recommend_products():
             product_dict['teacher'] = {
                 'id': product.teacher_profile.id,
                 'teacher_id': product.teacher_profile.teacher_id,
+                'user_id': product.teacher_profile.user_id,
                 'real_name': product.teacher_profile.real_name,
+                'nickname': product.teacher_profile.user.nickname if product.teacher_profile.user else None,
                 'avatar': product.teacher_profile.user.avatar if product.teacher_profile.user else None
             }
         result.append(product_dict)

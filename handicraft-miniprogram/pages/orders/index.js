@@ -1,4 +1,4 @@
-const { getOrders, payOrder, cancelOrder, confirmOrder, getTeacherOrders, updateOrderStatus } = require('../../api/orders');
+const { getOrders, payOrder, cancelOrder, confirmOrder, getTeacherOrders, updateOrderStatus, deleteOrder } = require('../../api/orders');
 const { showToast } = require('../../utils/util');
 const storage = require('../../utils/storage');
 
@@ -350,16 +350,21 @@ Page({
     const orderId = e.currentTarget.dataset.id;
     wx.showModal({
       title: '提示',
-      content: '确定要删除该订单吗？',
+      content: '确定要删除该订单吗？删除后无法恢复。',
       success: async (res) => {
         if (res.confirm) {
+          wx.showLoading({ title: '删除中...', mask: true });
           try {
+            await deleteOrder(orderId);
+            wx.hideLoading();
+            
             const newOrders = this.data.orders.filter(order => order.id !== orderId);
             this.setData({ orders: newOrders });
             showToast('删除成功', 'success');
           } catch (error) {
             console.error('删除订单失败:', error);
-            showToast('删除失败，请重试');
+            wx.hideLoading();
+            showToast(error.msg || '删除失败，请重试');
           }
         }
       }
@@ -381,7 +386,8 @@ Page({
         formattedPayAmount: order.pay_amount ? order.pay_amount.toFixed(2) : '0.00',
         formattedShippingFee: order.shipping_fee ? order.shipping_fee.toFixed(2) : '0.00',
         hasLogistics: order.logistics && order.logistics.items && order.logistics.items.length > 0,
-        hasPriceDetail: order.total_amount > 0 || order.discount_amount > 0 || order.shipping_fee > 0
+        hasPriceDetail: order.total_amount > 0 || order.discount_amount > 0 || order.shipping_fee > 0,
+        hasAddress: order.address && order.address.name && order.address.phone
       };
       
       if (order.price_detail) {

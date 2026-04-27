@@ -338,6 +338,34 @@
 .bar-buttons {
   flex: 1;
   display: flex;
+  gap: 20rpx;
+}
+
+.btn-cart,
+.btn-buy {
+  flex: 1;
+  height: 72rpx;
+  line-height: 72rpx;
+  border-radius: 36rpx;
+  font-size: 28rpx;
+  border: none;
+  margin: 0;
+  padding: 0;
+}
+
+.btn-cart::after,
+.btn-buy::after {
+  border: none;
+}
+
+.btn-cart {
+  background-color: rgba(121, 85, 72, 0.15);
+  color: #795548;
+}
+
+.btn-buy {
+  background-color: #795548;
+  color: #fff;
 }
 
 .btn-order {

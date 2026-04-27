@@ -15,7 +15,8 @@ STATUS_NAMES = {
     'shipped': '待收货',
     'delivered': '已送达',
     'completed': '已完成',
-    'cancelled': '已取消'
+    'cancelled': '已取消',
+    'deleted': '已删除'
 }
 
 def get_current_user():
@@ -24,7 +25,7 @@ def get_current_user():
     return user_dict, user_id
 
 def build_query(user_id=None, teacher_id=None, status=None, role='customer'):
-    query = Order.query
+    query = Order.query.filter(Order.status != 'deleted')
     
     if role == 'customer' and user_id:
         query = query.filter_by(user_id=user_id)
@@ -123,7 +124,7 @@ def get_teacher_orders():
     status = request.args.get('status', None)
     teacher_id = request.args.get('teacher_id', user_id, type=int)
     
-    query = Order.query.filter_by(teacher_id=teacher_id)
+    query = Order.query.filter_by(teacher_id=teacher_id).filter(Order.status != 'deleted')
     
     if status:
         query = query.filter_by(status=status)
@@ -155,7 +156,7 @@ def get_teacher_order_stats():
     user_dict, user_id = get_current_user()
     teacher_id = request.args.get('teacher_id', user_id, type=int)
     
-    query = Order.query.filter_by(teacher_id=teacher_id)
+    query = Order.query.filter_by(teacher_id=teacher_id).filter(Order.status != 'deleted')
     stats = get_order_stats_from_query(query)
     
     recent_query = query.order_by(Order.created_at.desc()).limit(5)
@@ -428,3 +429,25 @@ def confirm_order(order_id):
     db.session.commit()
     
     return jsonify(success(data=order.to_dict(), msg='确认收货成功'))
+
+
+@order_bp.route('/<order_id>', methods=['DELETE'])
+@login_required
+def delete_order(order_id):
+    user_dict, user_id = get_current_user()
+    order = Order.query.get(order_id)
+    
+    if not order:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='订单不存在')), 404
+    
+    if order.status not in ['completed', 'cancelled']:
+        return jsonify(error(code=ResponseCode.OPERATION_FAILED, msg=f'只有已完成或已取消的订单可以删除，当前状态: {STATUS_NAMES.get(order.status)}')), 400
+    
+    if order.user_id != user_id and order.teacher_id != user_id:
+        return jsonify(error(code=ResponseCode.PERMISSION_DENIED, msg='无权删除此订单')), 403
+    
+    order.status = 'deleted'
+    order.updated_at = datetime.utcnow()
+    db.session.commit()
+    
+    return jsonify(success(data=None, msg='订单已删除'))
