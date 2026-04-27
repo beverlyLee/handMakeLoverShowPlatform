@@ -56,6 +56,14 @@ function getMyProducts(params = {}) {
   return get('/products/my', params);
 }
 
+/**
+ * 获取分类及其热门作品
+ * @param {Object} params - { limit }
+ */
+function getCategoriesWithHotProducts(params = {}) {
+  return get('/products/categories-with-hot', params);
+}
+
 module.exports = {
   getProducts,
   getProductDetail,
@@ -63,5 +71,6 @@ module.exports = {
   updateProduct,
   deleteProduct,
   getCategories,
-  getMyProducts
+  getMyProducts,
+  getCategoriesWithHotProducts
 };

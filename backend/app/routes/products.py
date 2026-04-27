@@ -122,6 +122,34 @@ def get_categories():
     
     return jsonify(success(data=category_list))
 
+@product_bp.route('/categories-with-hot', methods=['GET'])
+def get_categories_with_hot_products():
+    limit = request.args.get('limit', 3, type=int)
+    
+    categories = Category.query.filter_by(status='active').order_by(Category.sort.asc()).all()
+    
+    result = []
+    for category in categories:
+        category_dict = category.to_dict()
+        
+        products = Product.query.filter_by(
+            status='active', 
+            category_id=category.id
+        ).order_by(
+            Product.sales_count.desc(),
+            Product.favorite_count.desc()
+        ).limit(limit).all()
+        
+        product_list = []
+        for product in products:
+            product_dict = product.to_dict()
+            product_list.append(product_dict)
+        
+        category_dict['hot_products'] = product_list
+        result.append(category_dict)
+    
+    return jsonify(success(data=result))
+
 @product_bp.route('/hot', methods=['GET'])
 def get_hot_products():
     limit = request.args.get('limit', 10, type=int)

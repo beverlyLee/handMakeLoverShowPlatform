@@ -1,6 +1,7 @@
 const { getUserInfo, updateUserInfo, switchRole, getUserRoles } = require('../../api/users');
 const { getTeacherOrderStats } = require('../../api/orders');
 const { logout } = require('../../api/auth');
+const { uploadImage } = require('../../api/upload');
 const { showToast } = require('../../utils/util');
 const storage = require('../../utils/storage');
 
@@ -9,7 +10,7 @@ Page({
     userInfo: {},
     genderText: '未知',
     isLoading: true,
-    defaultAvatar: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=default%20user%20avatar&image_size=square',
+    defaultAvatar: 'https://picsum.photos/seed/default-avatar/200/200',
 
     showEditDialog: false,
     editDialogTitle: '',
@@ -270,11 +271,21 @@ Page({
           'userInfo.avatar': tempFilePath
         });
 
-        wx.showLoading({ title: '更新中...', mask: true });
-
         try {
+          console.log('开始上传图片到服务器...');
+          const uploadResult = await uploadImage(tempFilePath);
+          console.log('图片上传成功:', uploadResult);
+          
+          const serverUrl = uploadResult.url;
+          
+          wx.showLoading({ title: '更新中...', mask: true });
+
           await updateUserInfo({
-            avatar: tempFilePath
+            avatar: serverUrl
+          });
+
+          this.setData({
+            'userInfo.avatar': serverUrl
           });
 
           wx.hideLoading();

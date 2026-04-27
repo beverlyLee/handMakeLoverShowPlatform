@@ -1,30 +1,39 @@
-const { getProducts, getProductDetail } = require('../../api/products');
+const { getCategoriesWithHotProducts } = require('../../api/products');
 const { showToast } = require('../../utils/util');
+const config = require('../../utils/config');
+
+const DEFAULT_IMAGE = 'https://picsum.photos/seed/handmade-craft-default/400/400';
+
+function getFullImageUrl(url) {
+  if (!url) {
+    return DEFAULT_IMAGE;
+  }
+  
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  
+  if (url.startsWith('/uploads/')) {
+    const baseUrl = config.baseUrl.replace('/api', '');
+    return baseUrl + url;
+  }
+  
+  return url;
+}
 
 Page({
   data: {
     welcomeText: '欢迎来到手工爱好者平台',
-    products: [],
-    currentSort: 'default',
-    sortOptions: [
-      { key: 'default', label: '默认排序', value: 'default' },
-      { key: 'price_asc', label: '价格从低到高', value: 'price_asc' },
-      { key: 'price_desc', label: '价格从高到低', value: 'price_desc' },
-      { key: 'popular', label: '人气最高', value: 'popular' },
-      { key: 'sales', label: '销量最高', value: 'sales' }
-    ],
-    currentSortLabel: '默认排序',
-    showSortDropdown: false,
-    page: 1,
-    pageSize: 10,
-    hasMore: true,
+    categories: [],
+    currentSwiperIndex: {},
     isLoading: false,
-    isRefreshing: false
+    isRefreshing: false,
+    defaultImage: DEFAULT_IMAGE
   },
 
   onLoad() {
     console.log('首页加载完成');
-    this.loadProducts();
+    this.loadCategoriesWithHotProducts();
   },
 
   onReady() {
@@ -48,86 +57,77 @@ Page({
 
   onPullDownRefresh() {
     this.setData({
-      page: 1,
-      hasMore: true,
-      products: [],
       isRefreshing: true
     });
-    this.loadProducts().then(() => {
+    this.loadCategoriesWithHotProducts().then(() => {
       wx.stopPullDownRefresh();
       this.setData({ isRefreshing: false });
     });
   },
 
-  onReachBottom() {
-    if (this.data.hasMore && !this.data.isLoading) {
-      this.setData({
-        page: this.data.page + 1
-      });
-      this.loadProducts(true);
-    }
-  },
-
-  async loadProducts(append = false) {
+  async loadCategoriesWithHotProducts() {
     if (this.data.isLoading) return;
 
     this.setData({ isLoading: true });
 
     try {
-      const params = {
-        page: this.data.page,
-        size: this.data.pageSize,
-        sort: this.data.currentSort
-      };
+      const result = await getCategoriesWithHotProducts({ limit: 3 });
+      const categories = result || [];
+      
+      const processedCategories = categories.map(category => {
+        const processedCategory = { ...category };
+        
+        if (processedCategory.hot_products && processedCategory.hot_products.length > 0) {
+          processedCategory.hot_products = processedCategory.hot_products.map(product => {
+            const processedProduct = { ...product };
+            
+            if (!processedProduct.cover_image) {
+              if (processedProduct.images && processedProduct.images.length > 0) {
+                processedProduct.cover_image = processedProduct.images[0];
+              } else {
+                processedProduct.cover_image = DEFAULT_IMAGE;
+              }
+            }
+            
+            processedProduct.cover_image = getFullImageUrl(processedProduct.cover_image);
+            
+            if (!processedProduct.images || processedProduct.images.length === 0) {
+              processedProduct.images = [processedProduct.cover_image];
+            } else {
+              processedProduct.images = processedProduct.images.map(img => getFullImageUrl(img));
+            }
+            
+            return processedProduct;
+          });
+        }
+        
+        return processedCategory;
+      });
+      
+      const currentSwiperIndex = {};
+      processedCategories.forEach(category => {
+        currentSwiperIndex[category.id] = 0;
+      });
 
-      const result = await getProducts(params);
-      const newProducts = (result && result.list) || result || [];
-
-      if (append) {
-        this.setData({
-          products: [...this.data.products, ...newProducts],
-          hasMore: newProducts.length >= this.data.pageSize,
-          isLoading: false
-        });
-      } else {
-        this.setData({
-          products: newProducts,
-          hasMore: newProducts.length >= this.data.pageSize,
-          isLoading: false
-        });
-      }
+      this.setData({
+        categories: processedCategories,
+        currentSwiperIndex: currentSwiperIndex,
+        isLoading: false
+      });
     } catch (error) {
-      console.error('加载作品列表失败:', error);
+      console.error('加载分类及热门作品失败:', error);
       this.setData({ isLoading: false, isRefreshing: false });
       showToast('加载失败，请重试');
     }
   },
 
-  toggleSortDropdown() {
+  onSwiperChange(e) {
+    const categoryId = e.currentTarget.dataset.categoryId;
+    const current = e.detail.current;
+    
     this.setData({
-      showSortDropdown: !this.data.showSortDropdown
+      [`currentSwiperIndex.${categoryId}`]: current
     });
-  },
-
-  selectSort(e) {
-    const sortKey = e.currentTarget.dataset.sort;
-    const sortLabel = e.currentTarget.dataset.label;
-
-    if (this.data.currentSort === sortKey) {
-      this.setData({ showSortDropdown: false });
-      return;
-    }
-
-    this.setData({
-      currentSort: sortKey,
-      currentSortLabel: sortLabel,
-      showSortDropdown: false,
-      page: 1,
-      products: [],
-      hasMore: true
-    });
-
-    this.loadProducts();
   },
 
   goToProductDetail(e) {
@@ -137,12 +137,22 @@ Page({
     });
   },
 
-  goToTeacherProfile(e) {
-    e.stopPropagation();
-    const teacherId = e.currentTarget.dataset.teacherId;
-    wx.navigateTo({
-      url: `/pages/teacher-home/index?id=${teacherId}`
-    });
+  onImageError(e) {
+    const categoryId = e.currentTarget.dataset.categoryId;
+    const productIndex = e.currentTarget.dataset.productIndex;
+    
+    console.log('图片加载失败，使用默认图片:', { categoryId, productIndex });
+    
+    const categories = this.data.categories;
+    if (categories && categories.length > 0) {
+      const category = categories.find(cat => cat.id === categoryId);
+      if (category && category.hot_products && category.hot_products[productIndex]) {
+        category.hot_products[productIndex].cover_image = DEFAULT_IMAGE;
+        this.setData({
+          categories: categories
+        });
+      }
+    }
   },
 
   preventBubble() {

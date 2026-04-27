@@ -2,8 +2,26 @@ const { getProductDetail } = require('../../api/products');
 const { getProfile } = require('../../api/auth');
 const { showToast } = require('../../utils/util');
 const { getUserInfo } = require('../../utils/storage');
+const config = require('../../utils/config');
 
 const DEFAULT_IMAGE = 'https://picsum.photos/seed/handmade-craft-default/400/400';
+
+function getFullImageUrl(url) {
+  if (!url) {
+    return DEFAULT_IMAGE;
+  }
+  
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  
+  if (url.startsWith('/uploads/')) {
+    const baseUrl = config.baseUrl.replace('/api', '');
+    return baseUrl + url;
+  }
+  
+  return url;
+}
 
 Page({
   data: {
@@ -104,6 +122,10 @@ Page({
         if (!product.cover_image && product.images && product.images.length > 0) {
           product.cover_image = product.images[0];
         }
+        
+        product.cover_image = getFullImageUrl(product.cover_image);
+        
+        product.images = product.images.map(img => getFullImageUrl(img));
       }
       
       this.setData({
