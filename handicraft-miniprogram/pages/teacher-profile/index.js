@@ -1,9 +1,10 @@
 const { getTeacherPublicInfo, getTeacherInfo, updateTeacherInfo, getUserInfo } = require('../../api/users');
 const { getProducts, createProduct, getCategories } = require('../../api/products');
+const { getSpecialties } = require('../../api/specialties');
 const { showToast } = require('../../utils/util');
 const storage = require('../../utils/storage');
 
-const SPECIALTY_OPTIONS = [
+const DEFAULT_SPECIALTIES = [
   { label: '棒针编织', value: '棒针编织', checked: false },
   { label: '钩针编织', value: '钩针编织', checked: false },
   { label: '编织', value: '编织', checked: false },
@@ -24,8 +25,10 @@ const SPECIALTY_OPTIONS = [
   { label: '黏土', value: '黏土', checked: false }
 ];
 
+let specialtyList = [...DEFAULT_SPECIALTIES];
+
 function createSpecialtyOptions(selectedSpecialties = []) {
-  return SPECIALTY_OPTIONS.map(option => ({
+  return specialtyList.map(option => ({
     ...option,
     checked: selectedSpecialties.indexOf(option.value) > -1
   }));
@@ -46,7 +49,7 @@ Page({
     isOwner: false,
     currentUser: null,
     
-    specialtyOptions: SPECIALTY_OPTIONS,
+    specialtyOptions: [],
     
     showEditDialog: false,
     editDialogField: '',
@@ -112,12 +115,29 @@ Page({
       await Promise.all([
         this.loadCurrentUser(),
         this.loadTeacherInfo(),
-        this.loadCategories()
+        this.loadCategories(),
+        this.loadSpecialties()
       ]);
     } catch (error) {
       console.error('加载数据失败:', error);
     } finally {
       this.setData({ isLoading: false });
+    }
+  },
+
+  async loadSpecialties() {
+    try {
+      const specialties = await getSpecialties();
+      if (specialties && Array.isArray(specialties)) {
+        specialtyList = specialties.map(item => ({
+          label: item.name,
+          value: item.name,
+          checked: false
+        }));
+      }
+    } catch (error) {
+      console.error('加载擅长领域失败:', error);
+      specialtyList = [...DEFAULT_SPECIALTIES];
     }
   },
 
@@ -257,6 +277,12 @@ Page({
 
   contactTeacher() {
     showToast('联系老师功能开发中');
+  },
+
+  goToEditInfo() {
+    wx.navigateTo({
+      url: '/pages/teacher-info-edit/index'
+    });
   },
 
   openEditDialog(e) {

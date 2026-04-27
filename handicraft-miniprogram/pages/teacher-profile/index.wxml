@@ -44,6 +44,10 @@
         <button wx:if="{{!isOwner}}" class="action-btn action-btn-secondary" bindtap="contactTeacher">
           <text class="btn-text">咨询</text>
         </button>
+        <button wx:if="{{isOwner}}" class="action-btn action-btn-edit-info" bindtap="goToEditInfo">
+          <text class="btn-icon">✏️</text>
+          <text class="btn-text">修改入驻信息</text>
+        </button>
       </view>
     </view>
 

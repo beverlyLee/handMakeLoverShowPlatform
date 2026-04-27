@@ -1,9 +1,10 @@
-const { getTeacherPublicInfo, getTeacherPublicOrderStats, getUserInfo, updateTeacherInfo } = require('../../api/users');
-const { getProducts, createProduct, getCategories } = require('../../api/products');
+const { getTeacherPublicInfo, getTeacherPublicOrderStats, getUserInfo, updateTeacherInfo, updateUserInfo } = require('../../api/users');
+const { getProducts, createProduct, getCategories, updateProduct, deleteProduct } = require('../../api/products');
+const { getSpecialties } = require('../../api/specialties');
 const { showToast } = require('../../utils/util');
 const storage = require('../../utils/storage');
 
-const SPECIALTY_OPTIONS = [
+const DEFAULT_SPECIALTIES = [
   { label: '棒针编织', value: '棒针编织', checked: false },
   { label: '钩针编织', value: '钩针编织', checked: false },
   { label: '编织', value: '编织', checked: false },
@@ -24,8 +25,10 @@ const SPECIALTY_OPTIONS = [
   { label: '黏土', value: '黏土', checked: false }
 ];
 
+let specialtyList = [...DEFAULT_SPECIALTIES];
+
 function createSpecialtyOptions(selectedSpecialties = []) {
-  return SPECIALTY_OPTIONS.map(option => ({
+  return specialtyList.map(option => ({
     ...option,
     checked: selectedSpecialties.indexOf(option.value) > -1
   }));
@@ -49,7 +52,7 @@ Page({
     currentUser: null,
     isOwner: false,
     
-    specialtyOptions: SPECIALTY_OPTIONS,
+    specialtyOptions: [],
     
     showEditDialog: false,
     editDialogField: '',
@@ -73,6 +76,7 @@ Page({
       title: '',
       description: '',
       category_id: null,
+      category_name: '',
       price: '',
       original_price: '',
       stock: 999,
@@ -80,7 +84,9 @@ Page({
       images: [],
       cover_image: ''
     },
-    creatingProduct: false
+    creatingProduct: false,
+    isEditingProduct: false,
+    editingProductId: null
   },
 
   onLoad(options) {
@@ -124,8 +130,9 @@ Page({
 
   onShareAppMessage() {
     const teacher = this.data.teacher;
+    const teacherName = (teacher && teacher.user_info && teacher.user_info.nickname) || (teacher && teacher.real_name) || '手作老师';
     return {
-      title: (teacher && teacher.real_name) || '手作老师',
+      title: teacherName,
       path: `/pages/teacher-home/index?id=${this.data.teacherId}`
     };
   },
@@ -138,6 +145,7 @@ Page({
         this.loadCurrentUser(),
         this.loadTeacherInfo(),
         this.loadCategories(),
+        this.loadSpecialties(),
         this.loadTeacherProducts()
       ]);
       
@@ -220,6 +228,22 @@ Page({
       this.setData({ categories: categories || [] });
     } catch (error) {
       console.error('加载分类失败:', error);
+    }
+  },
+
+  async loadSpecialties() {
+    try {
+      const specialties = await getSpecialties();
+      if (specialties && Array.isArray(specialties)) {
+        specialtyList = specialties.map(item => ({
+          label: item.name,
+          value: item.name,
+          checked: false
+        }));
+      }
+    } catch (error) {
+      console.error('加载擅长领域失败:', error);
+      specialtyList = [...DEFAULT_SPECIALTIES];
     }
   },
 
@@ -313,6 +337,12 @@ Page({
     showToast('联系老师功能开发中');
   },
 
+  goToEditInfo() {
+    wx.navigateTo({
+      url: '/pages/teacher-info-edit/index'
+    });
+  },
+
   goToEditProfile() {
     showToast('请在当前页面点击编辑按钮');
   },
@@ -377,17 +407,34 @@ Page({
         updateData[editDialogField] = editDialogValue;
       }
       
-      await updateTeacherInfo(updateData);
-      
-      const updatedTeacher = {
-        ...teacher,
-        ...updateData
-      };
-      
-      this.setData({
-        teacher: updatedTeacher,
-        savingEdit: false
-      });
+      if (editDialogField === 'nickname') {
+        await updateUserInfo(updateData);
+        
+        const updatedTeacher = {
+          ...teacher,
+          user_info: {
+            ...teacher.user_info,
+            nickname: editDialogValue
+          }
+        };
+        
+        this.setData({
+          teacher: updatedTeacher,
+          savingEdit: false
+        });
+      } else {
+        await updateTeacherInfo(updateData);
+        
+        const updatedTeacher = {
+          ...teacher,
+          ...updateData
+        };
+        
+        this.setData({
+          teacher: updatedTeacher,
+          savingEdit: false
+        });
+      }
       
       wx.hideLoading();
       this.closeEditDialog();
@@ -535,6 +582,8 @@ Page({
   openProductCreate() {
     this.setData({
       showProductCreate: true,
+      isEditingProduct: false,
+      editingProductId: null,
       productForm: {
         title: '',
         description: '',
@@ -550,8 +599,44 @@ Page({
     });
   },
 
+  openProductEdit(e) {
+    const product = e.currentTarget.dataset.product;
+    if (!product) return;
+
+    const { categories } = this.data;
+    let category_name = '';
+    if (product.category_id && categories) {
+      const cat = categories.find(c => c.id === product.category_id);
+      if (cat) {
+        category_name = cat.name;
+      }
+    }
+
+    this.setData({
+      showProductCreate: true,
+      isEditingProduct: true,
+      editingProductId: product.id,
+      productForm: {
+        title: product.title || '',
+        description: product.description || '',
+        category_id: product.category_id || null,
+        category_name: category_name || '',
+        price: product.price ? String(product.price) : '',
+        original_price: product.original_price ? String(product.original_price) : '',
+        stock: product.stock ? String(product.stock) : '999',
+        tags: product.tags || [],
+        images: product.images || [],
+        cover_image: product.cover_image || ''
+      }
+    });
+  },
+
   closeProductCreate() {
-    this.setData({ showProductCreate: false });
+    this.setData({ 
+      showProductCreate: false,
+      isEditingProduct: false,
+      editingProductId: null
+    });
   },
 
   onProductInput(e) {
@@ -606,7 +691,7 @@ Page({
   },
 
   async createProduct() {
-    const { productForm, teacher } = this.data;
+    const { productForm, teacher, isEditingProduct, editingProductId } = this.data;
     
     if (!productForm.title) {
       showToast('请填写作品标题');
@@ -620,7 +705,7 @@ Page({
     this.setData({ creatingProduct: true });
     
     try {
-      const createData = {
+      const productData = {
         title: productForm.title,
         description: productForm.description,
         category_id: productForm.category_id,
@@ -633,32 +718,72 @@ Page({
         cover_image: productForm.cover_image
       };
       
-      if (createData.images.length === 0) {
-        createData.images = [
+      if (productData.images.length === 0) {
+        productData.images = [
           'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=handmade%20craft%20artwork%20elegant%20handcrafted%20product&image_size=square'
         ];
-        createData.cover_image = createData.images[0];
+        productData.cover_image = productData.images[0];
       }
       
-      await createProduct(createData);
-      
-      const newProductCount = ((teacher && teacher.product_count) || 0) + 1;
+      if (isEditingProduct && editingProductId) {
+        await updateProduct(editingProductId, productData);
+        showToast('作品更新成功');
+      } else {
+        await createProduct(productData);
+        const newProductCount = ((teacher && teacher.product_count) || 0) + 1;
+        this.setData({
+          'teacher.product_count': newProductCount
+        });
+        showToast('作品创建成功');
+      }
       
       this.setData({
         showProductCreate: false,
         creatingProduct: false,
+        isEditingProduct: false,
+        editingProductId: null,
         products: [],
-        productsPage: 1,
-        'teacher.product_count': newProductCount
+        productsPage: 1
       });
       
       this.loadTeacherProducts();
-      showToast('作品创建成功');
     } catch (error) {
-      console.error('创建作品失败:', error);
+      console.error(isEditingProduct ? '更新作品失败:' : '创建作品失败:', error);
       this.setData({ creatingProduct: false });
-      showToast('创建失败，请重试');
+      showToast(isEditingProduct ? '更新失败，请重试' : '创建失败，请重试');
     }
+  },
+
+  deleteProduct(e) {
+    const product = e.currentTarget.dataset.product;
+    if (!product) return;
+
+    const self = this;
+    wx.showModal({
+      title: '确认删除',
+      content: '确定要删除该作品吗？删除后无法恢复。',
+      success: async (res) => {
+        if (res.confirm) {
+          try {
+            await deleteProduct(product.id);
+            
+            const newProductCount = Math.max(0, ((self.data.teacher && self.data.teacher.product_count) || 1) - 1);
+            
+            self.setData({
+              products: [],
+              productsPage: 1,
+              'teacher.product_count': newProductCount
+            });
+            
+            self.loadTeacherProducts();
+            showToast('作品已删除');
+          } catch (error) {
+            console.error('删除作品失败:', error);
+            showToast('删除失败，请重试');
+          }
+        }
+      }
+    });
   },
 
   preventMove() {

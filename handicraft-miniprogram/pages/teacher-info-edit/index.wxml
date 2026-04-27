@@ -1,8 +1,8 @@
-<view class="apply-container">
-  <view class="apply-header">
-    <view class="header-icon">🎨</view>
-    <text class="header-title">成为手作老师</text>
-    <text class="header-desc">分享您的手作技艺，开启创作之旅</text>
+<view class="edit-container">
+  <view class="edit-header">
+    <view class="header-icon">✏️</view>
+    <text class="header-title">修改入驻信息</text>
+    <text class="header-desc">完善您的个人资料，展示专业形象</text>
   </view>
 
   <view class="form-section">
@@ -33,13 +33,12 @@
         <text class="required-mark">*</text>
       </view>
       <input 
-        class="form-input" 
-        placeholder="请输入身份证号" 
+        class="form-input form-input-disabled" 
+        placeholder="身份证号" 
         value="{{formData.id_card}}"
-        data-field="id_card"
-        bindinput="onInputChange"
-        maxlength="18"
+        disabled
       />
+      <text class="form-hint">身份证号已隐藏，如需修改请联系客服</text>
     </view>
 
     <view class="form-item">
@@ -48,14 +47,12 @@
         <text class="required-mark">*</text>
       </view>
       <input 
-        class="form-input" 
-        type="number"
-        placeholder="请输入手机号" 
+        class="form-input form-input-disabled" 
+        placeholder="手机号" 
         value="{{formData.phone}}"
-        data-field="phone"
-        bindinput="onInputChange"
-        maxlength="11"
+        disabled
       />
+      <text class="form-hint">手机号已隐藏，如需修改请联系客服</text>
     </view>
   </view>
 
@@ -98,28 +95,20 @@
         value="{{formData.intro}}"
         data-field="intro"
         bindinput="onInputChange"
-        maxlength="{{introMaxLength}}"
+        maxlength="500"
         auto-height
       />
-      <view class="textarea-count">
-        <text class="count-text">{{introCurrentLength}}/{{introMaxLength}}</text>
-      </view>
     </view>
   </view>
 
   <view class="submit-section">
     <button 
       class="submit-btn {{isSubmitting ? 'submit-btn-disabled' : ''}}" 
-      bindtap="submitApply"
+      bindtap="submitForm"
       disabled="{{isSubmitting}}"
     >
-      <text class="submit-text">{{isSubmitting ? '提交中...' : '提交申请'}}</text>
+      <text class="submit-text">{{isSubmitting ? '保存中...' : '保存修改'}}</text>
     </button>
-  </view>
-
-  <view class="agreement-section">
-    <text class="agreement-text">提交申请即表示您同意</text>
-    <text class="agreement-link">《手作老师入驻协议》</text>
   </view>
 </view>
 

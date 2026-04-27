@@ -1,4 +1,5 @@
 const { applyTeacher } = require('../../api/users');
+const { getSpecialties } = require('../../api/specialties');
 const { showToast } = require('../../utils/util');
 const storage = require('../../utils/storage');
 
@@ -9,28 +10,46 @@ Page({
       id_card: '',
       phone: '',
       specialties: [],
-      intro: '',
-      work_photos: []
+      intro: ''
     },
-    specialtyOptions: [
-      { label: '编织', value: '编织', checked: false },
-      { label: '陶艺', value: '陶艺', checked: false },
-      { label: '刺绣', value: '刺绣', checked: false },
-      { label: '皮革', value: '皮革', checked: false },
-      { label: '木工', value: '木工', checked: false },
-      { label: '纸艺', value: '纸艺', checked: false },
-      { label: '串珠', value: '串珠', checked: false },
-      { label: '其他', value: '其他', checked: false }
-    ],
+    specialtyOptions: [],
     showSpecialtyPicker: false,
     introMaxLength: 500,
     introCurrentLength: 0,
-    maxPhotos: 5,
     isSubmitting: false
   },
 
   onLoad() {
     console.log('手作老师入驻页面加载');
+    this.loadSpecialties();
+  },
+
+  async loadSpecialties() {
+    try {
+      const specialties = await getSpecialties();
+      if (specialties && Array.isArray(specialties)) {
+        const options = specialties.map(item => ({
+          label: item.name,
+          value: item.name,
+          checked: false
+        }));
+        this.setData({ specialtyOptions: options });
+      }
+    } catch (error) {
+      console.error('加载擅长领域失败:', error);
+      this.setData({
+        specialtyOptions: [
+          { label: '编织', value: '编织', checked: false },
+          { label: '陶艺', value: '陶艺', checked: false },
+          { label: '刺绣', value: '刺绣', checked: false },
+          { label: '皮革', value: '皮革', checked: false },
+          { label: '木工', value: '木工', checked: false },
+          { label: '纸艺', value: '纸艺', checked: false },
+          { label: '串珠', value: '串珠', checked: false },
+          { label: '其他', value: '其他', checked: false }
+        ]
+      });
+    }
   },
 
   onInputChange(e) {
@@ -73,52 +92,6 @@ Page({
   confirmSpecialty() {
     this.setData({
       showSpecialtyPicker: false
-    });
-  },
-
-  chooseWorkPhoto() {
-    const { formData, maxPhotos } = this.data;
-    const currentCount = formData.work_photos.length;
-    
-    if (currentCount >= maxPhotos) {
-      showToast(`最多只能上传${maxPhotos}张作品照片`);
-      return;
-    }
-
-    const remainingCount = maxPhotos - currentCount;
-    
-    wx.chooseMedia({
-      count: remainingCount,
-      mediaType: ['image'],
-      sourceType: ['album', 'camera'],
-      success: (res) => {
-        const tempFiles = res.tempFiles.map(file => file.tempFilePath);
-        const newPhotos = [...formData.work_photos, ...tempFiles];
-        
-        this.setData({
-          'formData.work_photos': newPhotos
-        });
-      }
-    });
-  },
-
-  deletePhoto(e) {
-    const { index } = e.currentTarget.dataset;
-    const work_photos = [...this.data.formData.work_photos];
-    work_photos.splice(index, 1);
-    
-    this.setData({
-      'formData.work_photos': work_photos
-    });
-  },
-
-  previewPhoto(e) {
-    const { index } = e.currentTarget.dataset;
-    const { work_photos } = this.data.formData;
-    
-    wx.previewImage({
-      current: work_photos[index],
-      urls: work_photos
     });
   },
 

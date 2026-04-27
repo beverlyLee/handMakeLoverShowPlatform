@@ -11,7 +11,8 @@
     "pages/product-detail/index",
     "pages/work-detail/index",
     "pages/teacher-profile/index",
-    "pages/teacher-home/index"
+    "pages/teacher-home/index",
+    "pages/teacher-info-edit/index"
   ],
   "window": {
     "navigationBarBackgroundColor": "#795548",

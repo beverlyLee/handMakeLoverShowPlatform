@@ -572,6 +572,54 @@
   color: #999;
 }
 
+.product-actions {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 16rpx;
+  padding-top: 16rpx;
+  border-top: 1rpx solid #f0f0f0;
+}
+
+.product-actions .action-btn {
+  flex: 1;
+  height: 60rpx;
+  line-height: 60rpx;
+  border-radius: 30rpx;
+  font-size: 24rpx;
+  border: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #FFF8E7;
+  color: #795548;
+  border: 1rpx solid rgba(121, 85, 72, 0.2);
+}
+
+.product-actions .action-btn::after {
+  border: none;
+}
+
+.product-actions .action-btn:active {
+  opacity: 0.7;
+}
+
+.product-actions .action-btn-delete {
+  background-color: #FFEBEE;
+  color: #E53935;
+  border: 1rpx solid rgba(229, 57, 53, 0.2);
+}
+
+.product-actions .action-icon {
+  margin-right: 4rpx;
+  font-size: 24rpx;
+}
+
+.product-actions .action-text {
+  font-weight: 500;
+}
+
 .empty-state {
   display: flex;
   flex-direction: column;

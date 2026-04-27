@@ -140,11 +140,23 @@
 }
 
 .action-btn-secondary {
-  background-color: rgba(255, 255, 255, 0.2);
-  color: #fff;
-}
+    background-color: rgba(255, 255, 255, 0.2);
+    color: #fff;
+  }
 
-.action-btn-edit {
+  .action-btn-edit-info {
+    background-color: rgba(255, 255, 255, 0.95);
+    color: #795548;
+    font-weight: bold;
+    font-size: 26rpx;
+  }
+
+  .action-btn-edit-info .btn-icon {
+    margin-right: 8rpx;
+    font-size: 24rpx;
+  }
+
+  .action-btn-edit {
   background-color: #fff;
   color: #795548;
 }

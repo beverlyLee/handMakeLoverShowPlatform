@@ -147,7 +147,7 @@
     </view>
   </view>
 
-  <view class="bio-card-section">
+  <view class="bio-card-section" wx:if="{{currentRole === 'teacher'}}">
     <view class="card-header">
       <view class="header-left">
         <text class="header-icon">📝</text>

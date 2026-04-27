@@ -15,12 +15,12 @@
           />
           <view class="teacher-detail">
             <view class="teacher-name-row">
-              <text class="teacher-name">{{teacher.real_name || '手作老师'}}</text>
+              <text class="teacher-name">{{teacher.user_info ? teacher.user_info.nickname : '' || teacher.real_name || '手作老师'}}</text>
               <view class="verify-badge" wx:if="{{teacher.is_verified}}">
                 <text class="verify-icon">✓</text>
                 <text class="verify-text">已认证</text>
               </view>
-              <view class="edit-btn-small" wx:if="{{isOwner}}" bindtap="openEditDialog" data-field="real_name" data-title="真实姓名" data-value="{{teacher.real_name}}">
+              <view class="edit-btn-small" wx:if="{{isOwner}}" bindtap="openEditDialog" data-field="nickname" data-title="昵称" data-value="{{teacher.user_info ? teacher.user_info.nickname : ''}}">
                 <text class="edit-icon">✏️</text>
               </view>
             </view>
@@ -79,9 +79,9 @@
             <text class="btn-icon">💬</text>
             <text class="btn-text">咨询</text>
           </button>
-          <button wx:if="{{isOwner}}" class="action-btn action-btn-manage" bindtap="goToManage">
-            <text class="btn-icon">⚙️</text>
-            <text class="btn-text">管理后台</text>
+          <button wx:if="{{isOwner}}" class="action-btn action-btn-manage" bindtap="goToEditInfo">
+            <text class="btn-icon">✏️</text>
+            <text class="btn-text">修改入驻信息</text>
           </button>
         </view>
       </view>
@@ -200,10 +200,8 @@
               wx:for="{{products}}" 
               wx:key="id" 
               class="product-card"
-              bindtap="goToProductDetail"
-              data-id="{{item.id}}"
             >
-              <view class="product-image-wrapper">
+              <view class="product-image-wrapper" catchtap="goToProductDetail" data-id="{{item.id}}">
                 <image class="product-image" src="{{item.cover_image}}" mode="aspectFill" />
                 <view class="product-tags-overlay" wx:if="{{item.tags && item.tags.length > 0}}">
                   <text class="product-tag">{{item.tags[0]}}</text>
@@ -213,7 +211,7 @@
                 </view>
               </view>
               <view class="product-info">
-                <text class="product-title" lines="2">{{item.title}}</text>
+                <text class="product-title" lines="2" catchtap="goToProductDetail" data-id="{{item.id}}">{{item.title}}</text>
                 <view class="product-price-row">
                   <view class="price-section">
                     <text class="price-symbol">¥</text>
@@ -223,6 +221,16 @@
                   <view class="favorite-section" wx:if="{{item.favorite_count > 0}}">
                     <text class="favorite-icon">❤</text>
                     <text class="favorite-count">{{item.favorite_count}}</text>
+                  </view>
+                </view>
+                <view class="product-actions" wx:if="{{isOwner}}">
+                  <view class="action-btn" catchtap="openProductEdit" data-product="{{item}}">
+                    <text class="action-icon">✏️</text>
+                    <text class="action-text">编辑</text>
+                  </view>
+                  <view class="action-btn action-btn-delete" catchtap="deleteProduct" data-product="{{item}}">
+                    <text class="action-icon">🗑️</text>
+                    <text class="action-text">删除</text>
                   </view>
                 </view>
               </view>
@@ -365,7 +373,7 @@
       <view class="modal-mask" bindtap="closeProductCreate"></view>
       <view class="modal-content">
         <view class="modal-header">
-          <text class="modal-title">发布新作品</text>
+          <text class="modal-title">{{isEditingProduct ? '编辑作品' : '发布新作品'}}</text>
           <view class="modal-close" bindtap="closeProductCreate">
             <text class="close-icon">✕</text>
           </view>
