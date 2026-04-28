@@ -154,6 +154,8 @@ def migrate():
         add_column_if_not_exists('orders', 'estimated_arrival_days INTEGER')
         add_column_if_not_exists('orders', 'estimated_arrival_time DATETIME')
         add_column_if_not_exists('orders', 'accept_time DATETIME')
+        add_column_if_not_exists('orders', 'start_making_time DATETIME')
+        add_column_if_not_exists('orders', 'complete_making_time DATETIME')
         
         print("\n正在检查 teacher_profiles 表:")
         add_column_if_not_exists('teacher_profiles', 'auto_accept BOOLEAN DEFAULT 0')

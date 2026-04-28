@@ -14,7 +14,6 @@ STATUS_NAMES = {
     'pending_accept': '待接单',
     'accepted': '已接单',
     'in_progress': '制作中',
-    'ready_to_ship': '制作完成',
     'paid': '待发货',
     'shipped': '待收货',
     'delivered': '已送达',
@@ -51,7 +50,6 @@ def get_order_stats_from_query(query):
         'pending_accept': 0,
         'accepted': 0,
         'in_progress': 0,
-        'ready_to_ship': 0,
         'paid': 0,
         'shipped': 0,
         'delivered': 0,
@@ -60,20 +58,43 @@ def get_order_stats_from_query(query):
         'rejected': 0,
         'total_amount': 0,
         'today_orders': 0,
-        'today_amount': 0
+        'today_amount': 0,
+        'today_complete_making': 0,
+        'today_shipped': 0,
+        'today_income': 0,
+        'month_income': 0,
+        'in_progress_and_shipped': 0
     }
     
     today = datetime.utcnow().date()
+    current_month = today.month
+    current_year = today.year
     
     for order in orders:
         stats[order.status] = stats.get(order.status, 0) + 1
-        if order.status in ['pending_accept', 'accepted', 'in_progress', 'ready_to_ship', 'paid', 'shipped', 'delivered', 'completed']:
+        if order.status in ['pending_accept', 'in_progress', 'paid', 'shipped', 'delivered', 'completed']:
             stats['total_amount'] += order.pay_amount
         
         if order.created_at and order.created_at.date() == today:
             stats['today_orders'] += 1
-            if order.status in ['pending_accept', 'accepted', 'in_progress', 'ready_to_ship', 'paid', 'shipped', 'delivered', 'completed']:
-                stats['today_amount'] += order.pay_amount
+        
+        if order.complete_making_time and order.complete_making_time.date() == today:
+            stats['today_complete_making'] += 1
+        
+        if order.ship_time and order.ship_time.date() == today:
+            stats['today_shipped'] += 1
+        
+        if order.complete_time and order.complete_time.date() == today:
+            stats['today_income'] += order.pay_amount
+        
+        if order.complete_time and order.complete_time.month == current_month and order.complete_time.year == current_year:
+            stats['month_income'] += order.pay_amount
+        
+        if order.status in ['pending_accept', 'in_progress', 'paid', 'shipped', 'delivered', 'completed'] and order.created_at and order.created_at.date() == today:
+            stats['today_amount'] += order.pay_amount
+    
+    stats['in_progress_and_shipped'] = stats['in_progress'] + stats['shipped']
+    stats['in_progress_pending_ship'] = stats['in_progress'] + stats['paid']
     
     return stats
 
@@ -391,24 +412,11 @@ def pay_order(order_id):
     
     order.pay_time = datetime.utcnow()
     order.updated_at = datetime.utcnow()
-    
-    teacher_profile = TeacherProfile.query.filter_by(user_id=order.teacher_id).first()
-    auto_accepted = False
-    
-    if teacher_profile and teacher_profile.auto_accept:
-        order.status = 'accepted'
-        order.accept_time = datetime.utcnow()
-        auto_accepted = True
-    else:
-        order.status = 'pending_accept'
+    order.status = 'pending_accept'
     
     db.session.commit()
     
-    msg = '支付成功，等待老师接单'
-    if auto_accepted:
-        msg = '支付成功，老师已自动接单'
-    
-    return jsonify(success(data=order.to_dict(), msg=msg))
+    return jsonify(success(data=order.to_dict(), msg='支付成功，等待老师接单'))
 
 @order_bp.route('/<order_id>/cancel', methods=['POST'])
 @login_required
@@ -496,12 +504,23 @@ def accept_order(order_id):
     if order.teacher_id != user_id:
         return jsonify(error(code=ResponseCode.PERMISSION_DENIED, msg='无权操作此订单')), 403
     
-    order.status = 'accepted'
+    data = request.get_json() or {}
+    action = data.get('action', 'start_making')  # 'start_making', 'ship'
+    
     order.accept_time = datetime.utcnow()
     order.updated_at = datetime.utcnow()
+    
+    if action == 'ship':
+        order.status = 'paid'
+        msg = '已进入待发货状态'
+    else:
+        order.status = 'in_progress'
+        order.start_making_time = datetime.utcnow()
+        msg = '已开始制作'
+    
     db.session.commit()
     
-    return jsonify(success(data=order.to_dict(), msg='接单成功'))
+    return jsonify(success(data=order.to_dict(), msg=msg))
 
 
 @order_bp.route('/<order_id>/reject', methods=['POST'])
@@ -543,8 +562,8 @@ def ship_order(order_id):
     if not order:
         return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='订单不存在')), 404
     
-    if order.status not in ['accepted', 'in_progress', 'ready_to_ship', 'paid']:
-        return jsonify(error(code=ResponseCode.OPERATION_FAILED, msg=f'只有已接单、制作中、制作完成或待发货状态可以发货，当前状态: {STATUS_NAMES.get(order.status)}')), 400
+    if order.status not in ['in_progress', 'paid']:
+        return jsonify(error(code=ResponseCode.OPERATION_FAILED, msg=f'只有制作中或待发货状态可以发货，当前状态: {STATUS_NAMES.get(order.status)}')), 400
     
     if order.teacher_id != user_id:
         return jsonify(error(code=ResponseCode.PERMISSION_DENIED, msg='无权操作此订单')), 403
@@ -613,11 +632,14 @@ def start_making_order(order_id):
     if not order:
         return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='订单不存在')), 404
     
-    if order.status not in ['accepted', 'pending_accept']:
-        return jsonify(error(code=ResponseCode.OPERATION_FAILED, msg=f'只有已接单或待接单状态可以开始制作，当前状态: {STATUS_NAMES.get(order.status)}')), 400
+    if order.status not in ['pending_accept', 'paid']:
+        return jsonify(error(code=ResponseCode.OPERATION_FAILED, msg=f'只有待接单或待发货状态可以开始制作，当前状态: {STATUS_NAMES.get(order.status)}')), 400
     
     if order.teacher_id != user_id:
         return jsonify(error(code=ResponseCode.PERMISSION_DENIED, msg='无权操作此订单')), 403
+    
+    if order.status == 'pending_accept':
+        order.accept_time = datetime.utcnow()
     
     order.status = 'in_progress'
     order.updated_at = datetime.utcnow()
@@ -641,11 +663,12 @@ def complete_making_order(order_id):
     if order.teacher_id != user_id:
         return jsonify(error(code=ResponseCode.PERMISSION_DENIED, msg='无权操作此订单')), 403
     
-    order.status = 'ready_to_ship'
+    order.status = 'paid'
+    order.complete_making_time = datetime.utcnow()
     order.updated_at = datetime.utcnow()
     db.session.commit()
     
-    return jsonify(success(data=order.to_dict(), msg='制作完成，等待发货'))
+    return jsonify(success(data=order.to_dict(), msg='制作完成，已进入待发货状态'))
 
 
 @order_bp.route('/<order_id>/edit', methods=['PUT'])
@@ -661,7 +684,7 @@ def edit_order(order_id):
         return jsonify(error(code=ResponseCode.PERMISSION_DENIED, msg='无权操作此订单')), 403
     
     can_edit_all = order.status == 'pending'
-    can_edit_address = order.status in ['pending_accept', 'accepted', 'in_progress', 'ready_to_ship']
+    can_edit_address = order.status in ['pending_accept', 'in_progress', 'paid']
     
     if not can_edit_all and not can_edit_address:
         return jsonify(error(code=ResponseCode.OPERATION_FAILED, msg='当前订单状态不可修改')), 400
@@ -679,6 +702,8 @@ def edit_order(order_id):
             order.pay_amount = data['pay_amount']
         if 'remark' in data:
             order.remark = data['remark']
+        if 'shipping_method' in data:
+            order.shipping_method = data['shipping_method']
         
         if 'items' in data:
             for item in order.items:
@@ -696,6 +721,14 @@ def edit_order(order_id):
                     total_price=item_data.get('total_price') or (item_data.get('price', 0) * item_data.get('quantity', 1))
                 )
                 db.session.add(order_item)
+        
+        new_total_amount = order.total_amount
+        new_discount_amount = order.discount_amount
+        new_shipping_fee = order.shipping_fee
+        new_pay_amount = max(new_total_amount - new_discount_amount + new_shipping_fee, 0)
+        
+        if 'pay_amount' not in data:
+            order.pay_amount = new_pay_amount
     
     if can_edit_all or can_edit_address:
         if 'address' in data:

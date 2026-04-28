@@ -94,9 +94,10 @@ function deleteOrder(orderId) {
 /**
  * 接单（老师端）
  * @param {string} orderId - 订单ID
+ * @param {Object} data - 接单参数，可选 action: 'accept', 'start_making', 'ship'
  */
-function acceptOrder(orderId) {
-  return post(`/orders/${orderId}/accept`);
+function acceptOrder(orderId, data = {}) {
+  return post(`/orders/${orderId}/accept`, data);
 }
 
 /**

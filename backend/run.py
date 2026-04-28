@@ -29,6 +29,43 @@ def load_json_file(filename):
             return json.load(f)
     return {}
 
+def migrate_database():
+    with app.app_context():
+        from sqlalchemy import text
+        
+        print("="*60)
+        print("数据库迁移检查...")
+        print("="*60)
+        
+        def add_column_if_not_exists(table_name, column_def):
+            try:
+                column_name = column_def.split(' ')[0]
+                
+                check_sql = text(f"PRAGMA table_info({table_name})")
+                result = db.session.execute(check_sql)
+                columns = [row[1] for row in result]
+                
+                if column_name not in columns:
+                    alter_sql = text(f"ALTER TABLE {table_name} ADD COLUMN {column_def}")
+                    db.session.execute(alter_sql)
+                    db.session.commit()
+                    print(f"✓ 已添加列: {table_name}.{column_name}")
+                    return True
+                else:
+                    print(f"✓ 列已存在: {table_name}.{column_name}")
+                    return False
+            except Exception as e:
+                print(f"✗ 添加列失败 {table_name}.{column_name}: {e}")
+                return False
+        
+        print("\n正在检查 orders 表:")
+        
+        add_column_if_not_exists('orders', 'start_making_time DATETIME')
+        add_column_if_not_exists('orders', 'complete_making_time DATETIME')
+        
+        print("\n数据库迁移检查完成！")
+        print("="*60)
+
 def init_database():
     with app.app_context():
         db.create_all()
@@ -288,6 +325,7 @@ def init_database():
         print(f"擅长领域数: {Specialty.query.count()}")
 
 with app.app_context():
+    migrate_database()
     init_database()
 
 if __name__ == '__main__':

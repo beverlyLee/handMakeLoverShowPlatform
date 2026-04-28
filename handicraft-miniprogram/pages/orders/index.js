@@ -10,7 +10,6 @@ const {
   rejectOrder,
   shipOrder,
   getTeacherOrderStats,
-  startMakingOrder,
   completeMakingOrder,
   editOrder
 } = require('../../api/orders');
@@ -22,7 +21,7 @@ const CUSTOMER_TABS = [
   { label: '待付款', value: 'pending' },
   { label: '待接单', value: 'pending_accept' },
   { label: '制作中', value: 'in_progress' },
-  { label: '待发货', value: 'accepted,ready_to_ship,paid' },
+  { label: '待发货', value: 'paid' },
   { label: '待收货', value: 'shipped' },
   { label: '已完成', value: 'completed' }
 ];
@@ -32,8 +31,7 @@ const TEACHER_TABS = [
   { label: '待付款', value: 'pending' },
   { label: '待接单', value: 'pending_accept' },
   { label: '制作中', value: 'in_progress' },
-  { label: '制作完成', value: 'ready_to_ship' },
-  { label: '待发货', value: 'accepted,paid' },
+  { label: '待发货', value: 'paid' },
   { label: '待收货', value: 'shipped' },
   { label: '已完成', value: 'completed' }
 ];
@@ -53,7 +51,6 @@ const STATUS_TEXT_MAP = {
   'pending_accept': '待接单',
   'accepted': '已接单',
   'in_progress': '制作中',
-  'ready_to_ship': '制作完成',
   'paid': '待发货',
   'shipped': '待收货',
   'delivered': '已送达',
@@ -84,7 +81,6 @@ Page({
     showAcceptDialog: false,
     showRejectDialog: false,
     showShipDialog: false,
-    showStartMakingDialog: false,
     showCompleteMakingDialog: false,
     showEditDialog: false,
     selectedOrder: null,
@@ -446,38 +442,15 @@ Page({
     });
   },
 
-  async confirmAccept() {
-    if (!this.data.selectedOrder) return;
-
-    wx.showLoading({ title: '接单中...', mask: true });
-
-    try {
-      await acceptOrder(this.data.selectedOrder.id);
-      wx.hideLoading();
-      showToast('接单成功', 'success');
-      this.closeAcceptDialog();
-
-      this.setData({ page: 1, orders: [], hasMore: true });
-      await Promise.all([
-        this.loadOrders(),
-        this.loadOrderStats()
-      ]);
-    } catch (error) {
-      console.error('接单失败:', error);
-      wx.hideLoading();
-      showToast(error.msg || '接单失败，请重试');
-    }
-  },
-
   async acceptAndShip() {
     if (!this.data.selectedOrder) return;
 
     wx.showLoading({ title: '处理中...', mask: true });
 
     try {
-      await acceptOrder(this.data.selectedOrder.id);
+      await acceptOrder(this.data.selectedOrder.id, { action: 'ship' });
       wx.hideLoading();
-      showToast('已接单，可在待发货中查看', 'success');
+      showToast('已接单，已进入待发货状态', 'success');
       this.closeAcceptDialog();
 
       this.setData({ page: 1, orders: [], hasMore: true });
@@ -498,7 +471,7 @@ Page({
     wx.showLoading({ title: '处理中...', mask: true });
 
     try {
-      await startMakingOrder(this.data.selectedOrder.id);
+      await acceptOrder(this.data.selectedOrder.id, { action: 'start_making' });
       wx.hideLoading();
       showToast('已开始制作', 'success');
       this.closeAcceptDialog();
@@ -734,48 +707,6 @@ Page({
 
   stopPropagation() {
     return;
-  },
-
-  showStartMakingDialog(e) {
-    const orderId = e.currentTarget.dataset.id;
-    const order = this.data.orders.find(o => o.id === orderId);
-
-    if (order) {
-      this.setData({
-        selectedOrder: order,
-        showStartMakingDialog: true
-      });
-    }
-  },
-
-  closeStartMakingDialog() {
-    this.setData({
-      showStartMakingDialog: false,
-      selectedOrder: null
-    });
-  },
-
-  async startMaking() {
-    if (!this.data.selectedOrder) return;
-
-    wx.showLoading({ title: '操作中...', mask: true });
-
-    try {
-      await startMakingOrder(this.data.selectedOrder.id);
-      wx.hideLoading();
-      showToast('已开始制作', 'success');
-      this.closeStartMakingDialog();
-
-      this.setData({ page: 1, orders: [], hasMore: true });
-      await Promise.all([
-        this.loadOrders(),
-        this.loadOrderStats()
-      ]);
-    } catch (error) {
-      console.error('开始制作失败:', error);
-      wx.hideLoading();
-      showToast(error.msg || '操作失败，请重试');
-    }
   },
 
   showCompleteMakingDialog(e) {

@@ -57,6 +57,8 @@ class Order(db.Model):
     estimated_arrival_time = db.Column(db.DateTime)
     
     accept_time = db.Column(db.DateTime)
+    start_making_time = db.Column(db.DateTime)
+    complete_making_time = db.Column(db.DateTime)
     ship_time = db.Column(db.DateTime)
     deliver_time = db.Column(db.DateTime)
     complete_time = db.Column(db.DateTime)
@@ -89,7 +91,6 @@ class Order(db.Model):
         'pending_accept': '待接单',
         'accepted': '已接单',
         'in_progress': '制作中',
-        'ready_to_ship': '制作完成',
         'paid': '待发货',
         'shipped': '待收货',
         'delivered': '已送达',
@@ -134,6 +135,10 @@ class Order(db.Model):
             self.estimated_arrival_time = self.ship_time + timedelta(days=self.estimated_arrival_days)
 
     def to_dict(self, include_logistics=True, include_detail=True):
+        customer_nickname = None
+        if self.customer:
+            customer_nickname = self.customer.nickname or self.customer.username
+        
         result = {
             'id': self.id,
             'user_id': self.user_id,
@@ -150,6 +155,8 @@ class Order(db.Model):
             'pay_method_name': self.pay_method_name,
             'pay_time': self.pay_time.strftime('%Y-%m-%d %H:%M:%S') if self.pay_time else None,
             'accept_time': self.accept_time.strftime('%Y-%m-%d %H:%M:%S') if self.accept_time else None,
+            'start_making_time': self.start_making_time.strftime('%Y-%m-%d %H:%M:%S') if self.start_making_time else None,
+            'complete_making_time': self.complete_making_time.strftime('%Y-%m-%d %H:%M:%S') if self.complete_making_time else None,
             'shipping_method': self.shipping_method,
             'shipping_method_name': self.shipping_method_name,
             'shipping_company': self.shipping_company,
@@ -162,6 +169,7 @@ class Order(db.Model):
             'cancel_time': self.cancel_time.strftime('%Y-%m-%d %H:%M:%S') if self.cancel_time else None,
             'cancel_reason': self.cancel_reason,
             'remark': self.remark,
+            'customer_nickname': customer_nickname,
             'address': {
                 'name': self.address_name,
                 'phone': self.address_phone,
