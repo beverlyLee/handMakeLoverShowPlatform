@@ -76,7 +76,7 @@ Page({
 
       this.updateNavigationBar();
     } catch (error) {
-      console.error('加载聊天记录失败:', error);
+      console.log('加载聊天记录失败:', error);
       this.setData({ isLoading: false });
       this.loadMockMessages();
     }
@@ -312,7 +312,7 @@ Page({
 
       showToast('发送成功', 'success');
     } catch (error) {
-      console.error('发送消息失败:', error);
+      console.log('发送消息失败:', error);
       
       const updatedList = newList.map(msg => {
         if (msg.id === tempMessage.id) {

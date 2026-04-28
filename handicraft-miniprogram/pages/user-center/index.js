@@ -509,7 +509,7 @@ Page({
                    (counts.activity || 0) + (counts.chat || 0);
       this.setData({ unreadTotal: total });
     } catch (error) {
-      console.error('获取消息未读数量失败:', error);
+      console.log('获取消息未读数量失败:', error);
       this.setData({ unreadTotal: 5 });
     }
   },

@@ -35,6 +35,20 @@ const MESSAGE_TYPES = {
   }
 };
 
+function getPreviewText(content) {
+  if (!content) return '';
+  const str = String(content);
+  const firstLine = str.split('\n')[0];
+  return firstLine.substring(0, 60);
+}
+
+function isItemUnread(item) {
+  if (item.itemType === 'conversation') {
+    return item.unread_count > 0;
+  }
+  return !item.isRead;
+}
+
 Page({
   data: {
     activeTab: 'all',
@@ -62,7 +76,9 @@ Page({
     deleteMessageId: null,
     showBatchDialog: false,
     selectedIds: [],
-    isEditMode: false
+    isEditMode: false,
+    swipeButtonWidth: 140,
+    currentSwipedIndex: null
   },
 
   onLoad() {
@@ -149,7 +165,9 @@ Page({
               ...item,
               type: 'chat',
               isRead: item.unread_count === 0,
-              createTime: item.last_message_time
+              createTime: item.last_message_time,
+              preview: getPreviewText(item.last_message),
+              isUnread: item.unread_count > 0
             }));
           }
         } catch (convError) {
@@ -170,7 +188,9 @@ Page({
               ...item,
               messageId: item.id,
               isRead: item.is_read || false,
-              typeConfig: MESSAGE_TYPES[item.type] || MESSAGE_TYPES.system
+              typeConfig: MESSAGE_TYPES[item.type] || MESSAGE_TYPES.system,
+              preview: getPreviewText(item.content),
+              isUnread: !(item.is_read || false)
             }));
           }
         } catch (msgError) {
@@ -179,24 +199,28 @@ Page({
       }
 
       if (messages.length === 0 && conversations.length === 0) {
-        this.loadMockData();
+        this.setData({ 
+          messageList: [], 
+          isLoading: false,
+          hasMore: false
+        });
         return;
       }
 
       let allItems = [];
       if (activeTab === 'all') {
         allItems = [
-          ...messages.map(m => ({ ...m, itemType: 'message', isSelected: false })),
-          ...conversations.map(c => ({ ...c, itemType: 'conversation', isSelected: false }))
+          ...messages.map(m => ({ ...m, itemType: 'message', isSelected: false, x: 0 })),
+          ...conversations.map(c => ({ ...c, itemType: 'conversation', isSelected: false, x: 0 }))
         ].sort((a, b) => {
           const timeA = safeParseDate(a.createTime || a.last_message_time || 0).getTime();
           const timeB = safeParseDate(b.createTime || b.last_message_time || 0).getTime();
           return timeB - timeA;
         });
       } else if (activeTab === 'chat') {
-        allItems = conversations.map(c => ({ ...c, itemType: 'conversation', isSelected: false }));
+        allItems = conversations.map(c => ({ ...c, itemType: 'conversation', isSelected: false, x: 0 }));
       } else {
-        allItems = messages.map(m => ({ ...m, itemType: 'message', isSelected: false }));
+        allItems = messages.map(m => ({ ...m, itemType: 'message', isSelected: false, x: 0 }));
       }
 
       this.setData({
@@ -206,9 +230,12 @@ Page({
         hasMore: allItems.length >= pageSize
       });
     } catch (error) {
-      console.error('加载消息失败:', error);
-      this.setData({ isLoading: false });
-      this.loadMockData();
+      console.log('加载消息失败:', error);
+      this.setData({ 
+        isLoading: false,
+        messageList: []
+      });
+      showToast('加载消息失败', 'error');
     }
   },
 
@@ -235,7 +262,10 @@ Page({
               itemType: 'conversation',
               isRead: item.unread_count === 0,
               createTime: item.last_message_time,
-              isSelected: false
+              isSelected: false,
+              x: 0,
+              preview: getPreviewText(item.last_message),
+              isUnread: item.unread_count > 0
             }));
             newItems = [...newItems, ...convItems];
           }
@@ -259,7 +289,10 @@ Page({
               messageId: item.id,
               isRead: item.is_read || false,
               typeConfig: MESSAGE_TYPES[item.type] || MESSAGE_TYPES.system,
-              isSelected: false
+              isSelected: false,
+              x: 0,
+              preview: getPreviewText(item.content),
+              isUnread: !(item.is_read || false)
             }));
             newItems = [...newItems, ...messageItems];
           }
@@ -282,125 +315,12 @@ Page({
         hasMore: newItems.length >= pageSize
       });
     } catch (error) {
-      console.error('加载更多消息失败:', error);
+      console.log('加载更多消息失败:', error);
       this.setData({ 
         isLoading: false,
         page: this.data.page - 1
       });
     }
-  },
-
-  loadMockData() {
-    const mockMessages = [
-      {
-        id: 1,
-        itemType: 'message',
-        messageId: 1,
-        type: 'system',
-        typeConfig: MESSAGE_TYPES.system,
-        title: '欢迎加入手工爱好者平台',
-        content: '欢迎您加入手工爱好者平台，这里汇聚了众多手作达人和爱好者。立即开始探索精彩的手作世界吧！',
-        sender: '系统管理员',
-        senderAvatar: '',
-        createTime: '2024-04-28 10:30:00',
-        isRead: false
-      },
-      {
-        id: 2,
-        itemType: 'message',
-        messageId: 2,
-        type: 'order',
-        typeConfig: MESSAGE_TYPES.order,
-        title: '订单发货通知',
-        content: '您的订单 ORD202404250001 已发货，快递公司：顺丰速运，快递单号：SF1234567890',
-        sender: '订单中心',
-        senderAvatar: '',
-        createTime: '2024-04-27 14:20:00',
-        isRead: false
-      },
-      {
-        id: 3,
-        itemType: 'message',
-        messageId: 3,
-        type: 'activity',
-        typeConfig: MESSAGE_TYPES.activity,
-        title: '五一手工节活动开始啦！',
-        content: '五一期间，平台推出手工节特别活动，精选手作材料包低至5折，更有满减优惠等你参与！',
-        sender: '运营团队',
-        senderAvatar: '',
-        createTime: '2024-04-26 09:00:00',
-        isRead: true
-      },
-      {
-        id: 4,
-        itemType: 'message',
-        messageId: 4,
-        type: 'system',
-        typeConfig: MESSAGE_TYPES.system,
-        title: '账号安全提醒',
-        content: '检测到您的账号在新设备上登录，如非本人操作，请及时修改密码。',
-        sender: '系统管理员',
-        senderAvatar: '',
-        createTime: '2024-04-25 18:30:00',
-        isRead: true
-      }
-    ];
-
-    const mockConversations = [
-      {
-        id: 1,
-        itemType: 'conversation',
-        name: '手作大师',
-        avatar: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=craft%20master%20avatar%20warm%20friendly&image_size=square',
-        last_message: '您好，您的订单已经发出了~预计3-5天可以送达',
-        last_message_time: '2024-04-28 10:30:00',
-        unread_count: 2,
-        isRead: false,
-        type: 'chat'
-      },
-      {
-        id: 2,
-        itemType: 'conversation',
-        name: '编织女王',
-        avatar: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=knitting%20crafts%20teacher%20avatar%20warm&image_size=square',
-        last_message: '好的，教程视频已经发送给您了，请注意查收',
-        last_message_time: '2024-04-27 15:20:00',
-        unread_count: 0,
-        isRead: true,
-        type: 'chat'
-      }
-    ];
-
-    let allItems = [];
-    const { activeTab } = this.data;
-
-    const mockMessagesWithSelect = mockMessages.map(item => ({
-      ...item,
-      isSelected: false
-    }));
-
-    const mockConversationsWithSelect = mockConversations.map(item => ({
-      ...item,
-      isSelected: false
-    }));
-
-    if (activeTab === 'all') {
-      allItems = [...mockMessagesWithSelect, ...mockConversationsWithSelect].sort((a, b) => {
-        const timeA = safeParseDate(a.createTime || a.last_message_time || 0).getTime();
-        const timeB = safeParseDate(b.createTime || b.last_message_time || 0).getTime();
-        return timeB - timeA;
-      });
-    } else if (activeTab === 'chat') {
-      allItems = mockConversationsWithSelect;
-    } else {
-      allItems = mockMessagesWithSelect.filter(m => m.type === activeTab);
-    }
-
-    this.setData({
-      messageList: allItems,
-      isLoading: false,
-      hasMore: false
-    });
   },
 
   switchTab(e) {
@@ -439,7 +359,7 @@ Page({
       await markAsRead(messageId);
       this.loadUnreadCount();
     } catch (error) {
-      console.error('标记已读失败:', error);
+      console.log('标记已读失败:', error);
     }
   },
 
@@ -483,7 +403,7 @@ Page({
       this.loadUnreadCount();
     } catch (error) {
       wx.hideLoading();
-      console.error('删除失败:', error);
+      console.log('删除失败:', error);
       showToast('删除失败，请重试');
     }
   },
@@ -517,13 +437,15 @@ Page({
     
     const updatedList = messageList.map(item => ({
       ...item,
-      isSelected: false
+      isSelected: false,
+      x: 0
     }));
 
     this.setData({
       isEditMode: newIsEditMode,
       selectedIds: [],
-      messageList: updatedList
+      messageList: updatedList,
+      currentSwipedIndex: null
     });
   },
 
@@ -635,7 +557,174 @@ Page({
       this.loadUnreadCount();
     } catch (error) {
       wx.hideLoading();
-      console.error('批量删除失败:', error);
+      console.log('批量删除失败:', error);
+      showToast('删除失败，请重试');
+    }
+  },
+
+  closeOtherSwipedItems(currentIndex) {
+    const { messageList, currentSwipedIndex } = this.data;
+    
+    if (currentSwipedIndex !== null && currentSwipedIndex !== currentIndex) {
+      const updatedList = messageList.map((item, index) => {
+        if (index === currentSwipedIndex && item.x !== 0) {
+          return { ...item, x: 0 };
+        }
+        return item;
+      });
+      
+      this.setData({
+        messageList: updatedList,
+        currentSwipedIndex: null
+      });
+    }
+  },
+
+  onMovableViewChange(e) {
+    const { source, x } = e.detail;
+    const index = e.currentTarget.dataset.index;
+    const { messageList, swipeButtonWidth } = this.data;
+    
+    if (source === 'touch') {
+      this.closeOtherSwipedItems(index);
+    }
+  },
+
+  onSwipeEnd(e) {
+    const index = e.currentTarget.dataset.index;
+    const { messageList, swipeButtonWidth } = this.data;
+    
+    const item = messageList[index];
+    const currentX = item.x || 0;
+    
+    const hasMarkButton = !item.isRead || (item.itemType === 'conversation' && item.unread_count > 0);
+    const totalButtonWidth = hasMarkButton ? swipeButtonWidth * 2 : swipeButtonWidth;
+    
+    const threshold = totalButtonWidth / 2;
+    
+    let newX = 0;
+    
+    if (currentX < -threshold) {
+      newX = -totalButtonWidth;
+    } else {
+      newX = 0;
+    }
+    
+    const updatedList = messageList.map((m, i) => {
+      if (i === index) {
+        return { ...m, x: newX };
+      }
+      return m;
+    });
+    
+    this.setData({
+      messageList: updatedList,
+      currentSwipedIndex: newX < 0 ? index : null
+    });
+  },
+
+  onSwipeAction(e) {
+    const { action, index, id, itemType } = e.currentTarget.dataset;
+    const { messageList } = this.data;
+    
+    if (action === 'markRead') {
+      this.handleMarkReadByIndex(index, id, itemType);
+    } else if (action === 'delete') {
+      wx.showModal({
+        title: '确认删除',
+        content: '确定要删除这条消息吗？',
+        confirmColor: '#DC3545',
+        success: (res) => {
+          if (res.confirm) {
+            this.handleDeleteByIndex(index, id, itemType);
+          }
+        }
+      });
+    }
+  },
+
+  handleMarkReadByIndex(index, id, itemType) {
+    const { messageList } = this.data;
+    
+    wx.showLoading({ title: '处理中...', mask: true });
+
+    if (itemType === 'message') {
+      markAsRead(id).then(() => {
+        const updatedList = messageList.map((m, i) => {
+          if (i === index) {
+            return { ...m, isRead: true, x: 0 };
+          }
+          return m;
+        });
+        
+        this.setData({
+          messageList: updatedList,
+          currentSwipedIndex: null
+        });
+        
+        wx.hideLoading();
+        showToast('已标记为已读', 'success');
+        this.loadUnreadCount();
+      }).catch(() => {
+        wx.hideLoading();
+        showToast('操作失败，请重试');
+      });
+    } else {
+      const updatedList = messageList.map((m, i) => {
+        if (i === index) {
+          return { ...m, unread_count: 0, isRead: true, x: 0 };
+        }
+        return m;
+      });
+      
+      this.setData({
+        messageList: updatedList,
+        currentSwipedIndex: null
+      });
+      
+      wx.hideLoading();
+      showToast('已标记为已读', 'success');
+      this.loadUnreadCount();
+    }
+  },
+
+  handleDeleteByIndex(index, id, itemType) {
+    const { messageList } = this.data;
+    
+    wx.showLoading({ title: '删除中...', mask: true });
+
+    try {
+      if (itemType === 'message') {
+        deleteMessage(id).then(() => {
+          const newList = messageList.filter((m, i) => i !== index);
+          
+          this.setData({
+            messageList: newList,
+            currentSwipedIndex: null
+          });
+          
+          wx.hideLoading();
+          showToast('删除成功', 'success');
+          this.loadUnreadCount();
+        }).catch(() => {
+          wx.hideLoading();
+          showToast('删除失败，请重试');
+        });
+      } else {
+        const newList = messageList.filter((m, i) => i !== index);
+        
+        this.setData({
+          messageList: newList,
+          currentSwipedIndex: null
+        });
+        
+        wx.hideLoading();
+        showToast('删除成功', 'success');
+        this.loadUnreadCount();
+      }
+    } catch (error) {
+      wx.hideLoading();
+      console.log('删除失败:', error);
       showToast('删除失败，请重试');
     }
   },

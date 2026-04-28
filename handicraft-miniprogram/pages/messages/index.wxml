@@ -30,57 +30,93 @@
 
   <view class="message-list-wrapper">
     <view class="message-list" wx:if="{{messageList.length > 0}}">
-      <view 
+      <movable-area 
         wx:for="{{messageList}}" 
         wx:key="id"
-        class="message-item {{item.isRead ? 'message-read' : ''}} {{isEditMode ? 'message-edit-mode' : ''}}"
+        class="message-movable-area"
       >
-        <view class="select-wrapper" wx:if="{{isEditMode}}" bindtap="toggleSelect" data-id="{{item.messageId || item.id}}" data-item-type="{{item.itemType}}">
-          <view class="select-box {{item.isSelected ? 'selected' : ''}}">
-            <text class="select-check" wx:if="{{item.isSelected}}">✓</text>
+        <movable-view 
+          class="message-movable-view"
+          direction="horizontal"
+          x="{{item.x || 0}}"
+          out-of-bounds="true"
+          damping="30"
+          friction="15"
+          data-index="{{index}}"
+          bindchange="onMovableViewChange"
+          bindtouchend="onSwipeEnd"
+        >
+          <view class="message-item {{isEditMode ? 'message-edit-mode' : ''}}">
+            <view class="select-wrapper" wx:if="{{isEditMode}}" bindtap="toggleSelect" data-id="{{item.messageId || item.id}}" data-item-type="{{item.itemType}}">
+              <view class="select-box {{item.isSelected ? 'selected' : ''}}">
+                <text class="select-check" wx:if="{{item.isSelected}}">✓</text>
+              </view>
+            </view>
+            
+            <view class="message-content-wrapper" bindtap="goToDetail" data-item-type="{{item.itemType}}" data-message-id="{{item.messageId}}" data-id="{{item.id}}" data-is-read="{{item.isRead}}">
+              <view class="message-left-wrapper">
+                <view class="message-icon-wrapper" wx:if="{{item.itemType === 'message'}}">
+                  <view class="message-icon" style="background: {{item.typeConfig.bgColor}}">
+                    <text class="icon-text">{{item.typeConfig.icon}}</text>
+                  </view>
+                  <view class="unread-dot" wx:if="{{item.isUnread}}"></view>
+                </view>
+
+                <view class="message-avatar-wrapper" wx:if="{{item.itemType === 'conversation'}}">
+                  <image class="message-avatar" src="{{item.avatar}}" mode="aspectFill" />
+                  <view class="unread-dot" wx:if="{{item.isUnread}}"></view>
+                </view>
+              </view>
+
+              <view class="message-info">
+                <view class="message-header">
+                  <text class="message-title">
+                    {{item.itemType === 'conversation' ? item.name : item.title}}
+                  </text>
+                  <text class="message-time">
+                    {{item.createTime || item.last_message_time ? (item.createTime ? item.createTime.slice(5, 16) : item.last_message_time.slice(5, 16)) : ''}}
+                  </text>
+                </view>
+                <view class="message-preview">
+                  <text class="message-desc" lines="1">
+                    {{item.preview}}
+                  </text>
+                </view>
+              </view>
+
+              <view class="message-arrow">
+                <text class="arrow-icon">›</text>
+              </view>
+            </view>
+          </view>
+        </movable-view>
+
+        <view class="swipe-actions">
+          <view 
+            class="swipe-action-item swipe-action-mark" 
+            wx:if="{{!item.isRead || (item.itemType === 'conversation' && item.unread_count > 0)}}"
+            bindtap="onSwipeAction"
+            data-action="markRead"
+            data-index="{{index}}"
+            data-id="{{item.messageId || item.id}}"
+            data-item-type="{{item.itemType}}"
+          >
+            <text class="swipe-action-icon">✓</text>
+            <text class="swipe-action-text">已读</text>
+          </view>
+          <view 
+            class="swipe-action-item swipe-action-delete"
+            bindtap="onSwipeAction"
+            data-action="delete"
+            data-index="{{index}}"
+            data-id="{{item.messageId || item.id}}"
+            data-item-type="{{item.itemType}}"
+          >
+            <text class="swipe-action-icon">🗑️</text>
+            <text class="swipe-action-text">删除</text>
           </view>
         </view>
-        
-        <view class="message-content-wrapper" bindtap="goToDetail" data-item-type="{{item.itemType}}" data-message-id="{{item.messageId}}" data-id="{{item.id}}" data-is-read="{{item.isRead}}">
-          <view class="message-icon-wrapper" wx:if="{{item.itemType === 'message'}}">
-            <view class="message-icon" style="background: {{item.typeConfig.bgColor}}">
-              <text class="icon-text">{{item.typeConfig.icon}}</text>
-            </view>
-            <view class="unread-dot" wx:if="{{!item.isRead}}"></view>
-          </view>
-
-          <view class="message-avatar-wrapper" wx:if="{{item.itemType === 'conversation'}}">
-            <image class="message-avatar" src="{{item.avatar}}" mode="aspectFill" />
-            <view class="unread-badge" wx:if="{{item.unread_count > 0}}">
-              <text class="badge-text">{{item.unread_count > 99 ? '99+' : item.unread_count}}</text>
-            </view>
-          </view>
-
-          <view class="message-info">
-            <view class="message-header">
-              <text class="message-title {{item.isRead ? 'text-faded' : ''}}">
-                {{item.itemType === 'conversation' ? item.name : item.title}}
-              </text>
-              <text class="message-time">
-                {{item.createTime || item.last_message_time ? (item.createTime ? item.createTime.slice(5, 16) : item.last_message_time.slice(5, 16)) : ''}}
-              </text>
-            </view>
-            <view class="message-preview">
-              <text class="message-desc {{item.isRead ? 'text-faded' : ''}}" lines="1">
-                {{item.itemType === 'conversation' ? item.last_message : item.content}}
-              </text>
-            </view>
-          </view>
-
-          <view class="message-arrow">
-            <text class="arrow-icon">›</text>
-          </view>
-        </view>
-
-        <view class="message-delete-btn" wx:if="{{!isEditMode}}" bindtap="showDeleteConfirm" data-item-type="{{item.itemType}}" data-message-id="{{item.messageId}}" data-id="{{item.id}}">
-          <text class="delete-text">删除</text>
-        </view>
-      </view>
+      </movable-area>
     </view>
 
     <view class="empty-state" wx:elif="{{!isLoading}}">

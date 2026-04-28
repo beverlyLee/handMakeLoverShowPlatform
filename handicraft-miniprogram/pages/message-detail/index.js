@@ -73,7 +73,7 @@ Page({
         title: typeConfig.name
       });
     } catch (error) {
-      console.error('加载消息详情失败:', error);
+      console.log('加载消息详情失败:', error);
       this.setData({ isLoading: false });
       this.loadMockData();
     }
@@ -113,7 +113,7 @@ Page({
       await markAsRead(messageId);
       this.setData({ isRead: true });
     } catch (error) {
-      console.error('标记已读失败:', error);
+      console.log('标记已读失败:', error);
     }
   },
 
@@ -146,7 +146,7 @@ Page({
       }, 1500);
     } catch (error) {
       wx.hideLoading();
-      console.error('删除失败:', error);
+      console.log('删除失败:', error);
       showToast('删除失败，请重试');
     }
   },

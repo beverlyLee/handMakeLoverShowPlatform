@@ -8,7 +8,8 @@ from sqlalchemy import text
 from app.models import (
     User, Address, TeacherProfile, Order, OrderItem, 
     Category, Product, Specialty, Coupon, UserCoupon,
-    Logistics, LogisticsItem, Image
+    Logistics, LogisticsItem, Image,
+    Message, Conversation, ChatMessage
 )
 
 app = create_app()
@@ -123,10 +124,10 @@ def migrate():
         print("数据库迁移脚本")
         print("="*60)
         
-        print("\n【1/4】创建新表...")
+        print("\n【1/5】创建新表...")
         print("-"*40)
         
-        new_tables = ['coupons', 'user_coupons', 'logistics', 'logistics_items', 'images']
+        new_tables = ['coupons', 'user_coupons', 'logistics', 'logistics_items', 'images', 'messages', 'conversations', 'chat_messages']
         for table in new_tables:
             if not check_table_exists(table):
                 print(f"  创建表: {table}")
@@ -230,9 +231,257 @@ def migrate():
             db.session.commit()
             print(f"  ✓ 已导入 {user_coupon_count} 个用户优惠券")
         else:
-            print(f"\n用户优惠券表已有数据 ({UserCoupon.query.count()} 条)，跳过导入")
+                print(f"\n用户优惠券表已有数据 ({UserCoupon.query.count()} 条)，跳过导入")
         
         migrate_order_addresses()
+        
+        print("\n【5/5】初始化消息数据...")
+        print("-"*40)
+        
+        if not Message.query.first():
+            print("\n开始初始化消息数据...")
+            
+            mock_messages = [
+                {
+                    'id': 1,
+                    'user_id': 1,
+                    'type': 'system',
+                    'title': '欢迎加入手工爱好者平台',
+                    'content': '亲爱的手作爱好者：\n\n🎉 欢迎加入手工爱好者平台！\n\n在这里，您可以：\n• 浏览精选手工作品\n• 与手作达人交流学习\n• 购买优质手工材料\n• 分享您的创作故事\n\n我们致力于为手工爱好者打造一个温馨、专业的交流社区。\n\n✨ 新用户专享福利：\n首次下单立享9折优惠，优惠码：NEWCRAFT\n\n如有任何问题，欢迎随时联系客服。\n\n祝您创作愉快！\n\n—— 手工爱好者平台团队',
+                    'sender': '系统管理员',
+                    'is_read': False,
+                    'created_at': parse_datetime('2024-04-27 10:00:00')
+                },
+                {
+                    'id': 2,
+                    'user_id': 1,
+                    'type': 'order',
+                    'title': '订单发货通知',
+                    'content': '您好！您的订单 ORD202404250001 已发货。\n\n📦 订单信息：\n• 商品：手工编织羊毛围巾 x1\n• 快递公司：顺丰速运\n• 快递单号：SF1234567890\n\n预计3-5个工作日送达，请注意查收。\n\n如有问题，请联系客服。',
+                    'sender': '订单中心',
+                    'is_read': False,
+                    'created_at': parse_datetime('2024-04-27 14:30:00')
+                },
+                {
+                    'id': 3,
+                    'user_id': 1,
+                    'type': 'activity',
+                    'title': '五一手工市集活动预告',
+                    'content': '🎪 五一手工市集来啦！\n\n时间：2024年5月1日-5月3日\n地点：市中心文化广场\n\n活动内容：\n• 手作达人现场展示\n• 手工DIY体验区\n• 手工作品义卖\n• 手工材料特卖\n\n现场注册用户可获赠精美手工小礼品一份！\n\n更多详情请关注我们的公众号。\n\n期待与您相见！',
+                    'sender': '活动运营',
+                    'is_read': False,
+                    'created_at': parse_datetime('2024-04-28 09:00:00')
+                },
+                {
+                    'id': 4,
+                    'user_id': 1,
+                    'type': 'system',
+                    'title': '账号安全提醒',
+                    'content': '尊敬的用户：\n\n系统检测到您的账号在新设备上登录。\n\n📱 登录信息：\n• 设备：iPhone 14\n• 时间：2024-04-28 10:30:00\n• IP：192.168.1.100\n\n如果这是您本人的操作，请忽略此消息。\n\n如果不是您本人操作，请立即：\n1. 修改密码\n2. 检查账号绑定信息\n3. 联系客服\n\n为保障您的账号安全，请勿将密码告知他人。',
+                    'sender': '安全中心',
+                    'is_read': True,
+                    'read_at': parse_datetime('2024-04-28 10:35:00'),
+                    'created_at': parse_datetime('2024-04-28 10:30:00')
+                },
+                {
+                    'id': 5,
+                    'user_id': 1,
+                    'type': 'order',
+                    'title': '订单完成提醒',
+                    'content': '您好！您的订单 ORD202404200002 已确认收货，订单已完成。\n\n📦 订单信息：\n• 商品：手工陶瓷茶杯套装 x1\n• 下单时间：2024-04-20\n• 完成时间：2024-04-28\n\n🌟 感谢您的购买！\n\n如果您对商品满意，欢迎在订单评价中分享您的使用体验。您的评价对其他用户很有帮助。\n\n如有任何问题，请联系客服。',
+                    'sender': '订单中心',
+                    'is_read': True,
+                    'read_at': parse_datetime('2024-04-28 12:00:00'),
+                    'created_at': parse_datetime('2024-04-28 11:00:00')
+                }
+            ]
+            
+            for msg_data in mock_messages:
+                message = Message(
+                    id=msg_data.get('id'),
+                    user_id=msg_data.get('user_id'),
+                    type=msg_data.get('type'),
+                    title=msg_data.get('title'),
+                    content=msg_data.get('content'),
+                    sender=msg_data.get('sender'),
+                    sender_avatar=msg_data.get('sender_avatar'),
+                    is_read=msg_data.get('is_read', False),
+                    read_at=msg_data.get('read_at'),
+                    related_id=msg_data.get('related_id'),
+                    related_type=msg_data.get('related_type'),
+                    created_at=msg_data.get('created_at')
+                )
+                db.session.add(message)
+            
+            db.session.commit()
+            print(f"  ✓ 已初始化 {len(mock_messages)} 条消息")
+            
+            print("\n开始初始化会话和聊天数据...")
+            
+            mock_conversations = [
+                {
+                    'id': 1,
+                    'user1_id': 1,
+                    'user2_id': 2,
+                    'last_message': '好的，我今天下午有空，可以过来学习',
+                    'last_message_time': parse_datetime('2024-04-28 15:30:00'),
+                    'last_message_sender_id': 2,
+                    'user1_unread': 2,
+                    'user2_unread': 0
+                },
+                {
+                    'id': 2,
+                    'user1_id': 1,
+                    'user2_id': 3,
+                    'last_message': '感谢您的购买！如果有任何问题随时联系我',
+                    'last_message_time': parse_datetime('2024-04-27 09:15:00'),
+                    'last_message_sender_id': 3,
+                    'user1_unread': 0,
+                    'user2_unread': 0
+                }
+            ]
+            
+            for conv_data in mock_conversations:
+                conversation = Conversation(
+                    id=conv_data.get('id'),
+                    user1_id=conv_data.get('user1_id'),
+                    user2_id=conv_data.get('user2_id'),
+                    last_message=conv_data.get('last_message'),
+                    last_message_time=conv_data.get('last_message_time'),
+                    last_message_sender_id=conv_data.get('last_message_sender_id'),
+                    user1_unread=conv_data.get('user1_unread', 0),
+                    user2_unread=conv_data.get('user2_unread', 0)
+                )
+                db.session.add(conversation)
+            
+            mock_chat_messages = [
+                {
+                    'id': 1,
+                    'conversation_id': 1,
+                    'sender_id': 2,
+                    'content': '您好！我是手工编织的张老师，请问您有什么想学习的吗？',
+                    'message_type': 'text',
+                    'is_read': True,
+                    'created_at': parse_datetime('2024-04-25 10:00:00')
+                },
+                {
+                    'id': 2,
+                    'conversation_id': 1,
+                    'sender_id': 1,
+                    'content': '张老师您好！我对编织很感兴趣，但是完全没有基础，请问可以学吗？',
+                    'message_type': 'text',
+                    'is_read': True,
+                    'created_at': parse_datetime('2024-04-25 10:15:00')
+                },
+                {
+                    'id': 3,
+                    'conversation_id': 1,
+                    'sender_id': 2,
+                    'content': '当然可以！我们有专门针对零基础学员的入门课程。从最基本的起针、平针开始，一步步教您。您什么时候有空可以过来试听一下？',
+                    'message_type': 'text',
+                    'is_read': True,
+                    'created_at': parse_datetime('2024-04-25 10:30:00')
+                },
+                {
+                    'id': 4,
+                    'conversation_id': 1,
+                    'sender_id': 1,
+                    'content': '太好了！我周末有空，请问周六上午可以吗？',
+                    'message_type': 'text',
+                    'is_read': True,
+                    'created_at': parse_datetime('2024-04-25 14:00:00')
+                },
+                {
+                    'id': 5,
+                    'conversation_id': 1,
+                    'sender_id': 2,
+                    'content': '周六上午9点到11点我有空，您可以过来。工作室地址在创意园A栋302室。',
+                    'message_type': 'text',
+                    'is_read': False,
+                    'created_at': parse_datetime('2024-04-25 16:00:00')
+                },
+                {
+                    'id': 6,
+                    'conversation_id': 1,
+                    'sender_id': 2,
+                    'content': '另外，提醒一下，第一次上课不需要带任何材料，我们会提供基础的编织工具和毛线。您只要人来就可以了😊',
+                    'message_type': 'text',
+                    'is_read': False,
+                    'created_at': parse_datetime('2024-04-25 16:05:00')
+                },
+                {
+                    'id': 7,
+                    'conversation_id': 1,
+                    'sender_id': 1,
+                    'content': '好的，我今天下午有空，可以过来学习',
+                    'message_type': 'text',
+                    'is_read': False,
+                    'created_at': parse_datetime('2024-04-28 15:30:00')
+                },
+                {
+                    'id': 8,
+                    'conversation_id': 2,
+                    'sender_id': 3,
+                    'content': '您好！我是手工陶瓷坊的李师傅。感谢您购买了我们的陶瓷茶杯套装！',
+                    'message_type': 'text',
+                    'is_read': True,
+                    'created_at': parse_datetime('2024-04-20 14:00:00')
+                },
+                {
+                    'id': 9,
+                    'conversation_id': 2,
+                    'sender_id': 1,
+                    'content': '李师傅您好！茶杯收到了，非常精美！请问使用时有什么需要注意的吗？',
+                    'message_type': 'text',
+                    'is_read': True,
+                    'created_at': parse_datetime('2024-04-25 10:00:00')
+                },
+                {
+                    'id': 10,
+                    'conversation_id': 2,
+                    'sender_id': 3,
+                    'content': '非常高兴您喜欢！这款陶瓷茶杯是手工拉坯烧制的，使用时请注意：\n\n1. 首次使用建议用温水清洗\n2. 避免温差过大（不要从冰箱直接倒开水）\n3. 建议手洗，避免洗碗机\n4. 不适合微波炉使用\n\n如果有任何问题，随时联系我！',
+                    'message_type': 'text',
+                    'is_read': True,
+                    'created_at': parse_datetime('2024-04-25 10:30:00')
+                },
+                {
+                    'id': 11,
+                    'conversation_id': 2,
+                    'sender_id': 1,
+                    'content': '好的，明白了！谢谢您的提醒，我会注意的。',
+                    'message_type': 'text',
+                    'is_read': True,
+                    'created_at': parse_datetime('2024-04-25 11:00:00')
+                },
+                {
+                    'id': 12,
+                    'conversation_id': 2,
+                    'sender_id': 3,
+                    'content': '感谢您的购买！如果有任何问题随时联系我',
+                    'message_type': 'text',
+                    'is_read': True,
+                    'created_at': parse_datetime('2024-04-27 09:15:00')
+                }
+            ]
+            
+            for chat_data in mock_chat_messages:
+                chat_message = ChatMessage(
+                    id=chat_data.get('id'),
+                    conversation_id=chat_data.get('conversation_id'),
+                    sender_id=chat_data.get('sender_id'),
+                    content=chat_data.get('content'),
+                    message_type=chat_data.get('message_type', 'text'),
+                    is_read=chat_data.get('is_read', False),
+                    read_at=chat_data.get('read_at'),
+                    created_at=chat_data.get('created_at')
+                )
+                db.session.add(chat_message)
+            
+            db.session.commit()
+            print(f"  ✓ 已初始化 {len(mock_conversations)} 个会话，{len(mock_chat_messages)} 条聊天消息")
+        else:
+            print(f"\n消息表已有数据 ({Message.query.count()} 条)，跳过初始化")
         
         print("\n" + "="*60)
         print("数据库迁移完成！")
@@ -247,6 +496,9 @@ def migrate():
         print(f"优惠券数: {Coupon.query.count()}")
         print(f"用户优惠券数: {UserCoupon.query.count()}")
         print(f"擅长领域数: {Specialty.query.count()}")
+        print(f"消息数: {Message.query.count()}")
+        print(f"会话数: {Conversation.query.count()}")
+        print(f"聊天消息数: {ChatMessage.query.count()}")
 
 if __name__ == '__main__':
     migrate()

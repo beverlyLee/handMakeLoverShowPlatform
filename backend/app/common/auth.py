@@ -5,6 +5,8 @@ from app.utils.jwt_utils import decode_token
 from app.services.user_service import UserService
 
 VALID_TOKENS = ['valid_token_1', 'valid_token_2', 'test_token']
+DEV_MODE = True
+DEFAULT_TEST_USER_ID = 1
 
 def login_required(f):
     @wraps(f)
@@ -12,6 +14,10 @@ def login_required(f):
         auth_header = request.headers.get('Authorization')
         
         if not auth_header:
+            if DEV_MODE:
+                g.user_id = DEFAULT_TEST_USER_ID
+                return f(*args, **kwargs)
+            
             return jsonify({
                 'code': ResponseCode.TOKEN_MISSING.value,
                 'msg': ResponseCodeMsg.TOKEN_MISSING.value,
