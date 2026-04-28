@@ -1,10 +1,23 @@
-const { getOrders, payOrder, cancelOrder, confirmOrder, getTeacherOrders, updateOrderStatus, deleteOrder } = require('../../api/orders');
+const { 
+  getOrders, 
+  payOrder, 
+  cancelOrder, 
+  confirmOrder, 
+  getTeacherOrders, 
+  updateOrderStatus, 
+  deleteOrder,
+  acceptOrder,
+  rejectOrder,
+  shipOrder,
+  getTeacherOrderStats
+} = require('../../api/orders');
 const { showToast } = require('../../utils/util');
 const storage = require('../../utils/storage');
 
 const CUSTOMER_TABS = [
   { label: '全部', value: '' },
   { label: '待付款', value: 'pending' },
+  { label: '待接单', value: 'pending_accept' },
   { label: '待发货', value: 'paid' },
   { label: '待收货', value: 'shipped' },
   { label: '已完成', value: 'completed' }
@@ -12,11 +25,34 @@ const CUSTOMER_TABS = [
 
 const TEACHER_TABS = [
   { label: '全部', value: '' },
-  { label: '待发货', value: 'paid' },
+  { label: '待接单', value: 'pending_accept' },
+  { label: '待发货', value: 'accepted,paid' },
   { label: '待收货', value: 'shipped' },
-  { label: '已完成', value: 'completed' },
-  { label: '已取消', value: 'cancelled' }
+  { label: '已完成', value: 'completed' }
 ];
+
+const SHIPPING_COMPANIES = [
+  { label: '顺丰速运', value: 'sf' },
+  { label: '京东物流', value: 'jd' },
+  { label: '中通快递', value: 'zt' },
+  { label: '圆通速递', value: 'yt' },
+  { label: '韵达快递', value: 'yd' },
+  { label: 'EMS', value: 'ems' },
+  { label: '其他', value: 'other' }
+];
+
+const STATUS_TEXT_MAP = {
+  'pending': '待付款',
+  'pending_accept': '待接单',
+  'accepted': '已接单',
+  'paid': '待发货',
+  'shipped': '待收货',
+  'delivered': '已送达',
+  'completed': '已完成',
+  'cancelled': '已取消',
+  'rejected': '已拒绝',
+  'deleted': '已删除'
+};
 
 Page({
   data: {
@@ -33,8 +69,22 @@ Page({
     userInfo: null,
     teacherInfo: null,
 
+    orderStats: null,
+    statsLoading: false,
+
+    showAcceptDialog: false,
+    showRejectDialog: false,
     showShipDialog: false,
     selectedOrder: null,
+
+    rejectReason: '',
+    shippingCompany: 'sf',
+    shippingCompanyIndex: 0,
+    trackingNumber: '',
+    shippingCompanies: SHIPPING_COMPANIES,
+
+    searchKeyword: '',
+    showSearch: false,
 
     expandedOrders: {},
     formattedOrders: []
@@ -75,7 +125,10 @@ Page({
       orders: [],
       hasMore: true
     });
-    this.loadOrders().then(() => {
+    Promise.all([
+      this.loadOrders(),
+      this.loadOrderStats()
+    ]).then(() => {
       wx.stopPullDownRefresh();
     });
   },
@@ -112,7 +165,10 @@ Page({
         hasMore: true
       });
 
-      await this.loadOrders();
+      await Promise.all([
+        this.loadOrders(),
+        isTeacher ? this.loadOrderStats() : Promise.resolve()
+      ]);
     } else {
       console.log('用户信息为空，使用默认角色');
       this.setData({
@@ -125,6 +181,27 @@ Page({
       });
 
       await this.loadOrders();
+    }
+  },
+
+  async loadOrderStats() {
+    if (!this.data.isTeacher) return;
+    
+    this.setData({ statsLoading: true });
+    
+    try {
+      const userId = this.data.userInfo?.id;
+      const teacherInfo = this.data.teacherInfo;
+      const teacherId = userId || (teacherInfo?.user_id) || 2;
+      
+      const result = await getTeacherOrderStats({ teacher_id: teacherId });
+      this.setData({
+        orderStats: result.stats,
+        statsLoading: false
+      });
+    } catch (error) {
+      console.error('加载订单统计失败:', error);
+      this.setData({ statsLoading: false });
     }
   },
 
@@ -144,9 +221,13 @@ Page({
         params.status = this.data.currentTab;
       }
 
+      if (this.data.searchKeyword) {
+        params.keyword = this.data.searchKeyword;
+      }
+
       const userId = this.data.userInfo?.id;
       const teacherInfo = this.data.teacherInfo;
-      const teacherId = teacherInfo?.teacher_id ? parseInt(teacherInfo.teacher_id.replace(/[^0-9]/g, '').slice(-8)) : 2;
+      const teacherId = userId || (teacherInfo?.user_id) || 2;
 
       if (this.data.currentRole === 'customer' && userId) {
         params.user_id = userId;
@@ -204,27 +285,48 @@ Page({
     this.loadOrders();
   },
 
+  toggleSearch() {
+    this.setData({
+      showSearch: !this.data.showSearch,
+      searchKeyword: ''
+    });
+  },
+
+  onSearchInput(e) {
+    this.setData({
+      searchKeyword: e.detail.value
+    });
+  },
+
+  doSearch() {
+    this.setData({
+      page: 1,
+      orders: [],
+      hasMore: true
+    });
+    this.loadOrders();
+  },
+
+  clearSearch() {
+    this.setData({
+      searchKeyword: '',
+      page: 1,
+      orders: [],
+      hasMore: true
+    });
+    this.loadOrders();
+  },
+
   getStatusText(status) {
-    const statusMap = {
-      'pending': '待付款',
-      'paid': '待发货',
-      'shipped': '待收货',
-      'delivered': '已送达',
-      'completed': '已完成',
-      'cancelled': '已取消'
-    };
-    return statusMap[status] || status;
+    return STATUS_TEXT_MAP[status] || status;
   },
 
   getTeacherStatusText(status) {
-    const statusMap = {
-      'paid': '待发货',
-      'shipped': '待收货',
-      'delivered': '已送达',
-      'completed': '已完成',
-      'cancelled': '已取消'
-    };
-    return statusMap[status] || status;
+    return STATUS_TEXT_MAP[status] || status;
+  },
+
+  isPendingAccept(status) {
+    return status === 'pending_accept';
   },
 
   goToOrderDetail(e) {
@@ -297,6 +399,105 @@ Page({
     });
   },
 
+  showAcceptDialog(e) {
+    const orderId = e.currentTarget.dataset.id;
+    const order = this.data.orders.find(o => o.id === orderId);
+
+    if (order) {
+      this.setData({
+        selectedOrder: order,
+        showAcceptDialog: true
+      });
+    }
+  },
+
+  closeAcceptDialog() {
+    this.setData({
+      showAcceptDialog: false,
+      selectedOrder: null
+    });
+  },
+
+  async confirmAccept() {
+    if (!this.data.selectedOrder) return;
+
+    wx.showLoading({ title: '接单中...', mask: true });
+
+    try {
+      await acceptOrder(this.data.selectedOrder.id);
+      wx.hideLoading();
+      showToast('接单成功', 'success');
+      this.closeAcceptDialog();
+
+      this.setData({ page: 1, orders: [], hasMore: true });
+      await Promise.all([
+        this.loadOrders(),
+        this.loadOrderStats()
+      ]);
+    } catch (error) {
+      console.error('接单失败:', error);
+      wx.hideLoading();
+      showToast(error.msg || '接单失败，请重试');
+    }
+  },
+
+  showRejectDialog(e) {
+    const orderId = e.currentTarget.dataset.id;
+    const order = this.data.orders.find(o => o.id === orderId);
+
+    if (order) {
+      this.setData({
+        selectedOrder: order,
+        showRejectDialog: true,
+        rejectReason: ''
+      });
+    }
+  },
+
+  closeRejectDialog() {
+    this.setData({
+      showRejectDialog: false,
+      selectedOrder: null,
+      rejectReason: ''
+    });
+  },
+
+  onRejectReasonInput(e) {
+    this.setData({
+      rejectReason: e.detail.value
+    });
+  },
+
+  async confirmReject() {
+    if (!this.data.selectedOrder) return;
+
+    if (!this.data.rejectReason.trim()) {
+      showToast('请填写拒单理由');
+      return;
+    }
+
+    wx.showLoading({ title: '提交中...', mask: true });
+
+    try {
+      await rejectOrder(this.data.selectedOrder.id, {
+        reject_reason: this.data.rejectReason
+      });
+      wx.hideLoading();
+      showToast('拒单成功', 'success');
+      this.closeRejectDialog();
+
+      this.setData({ page: 1, orders: [], hasMore: true });
+      await Promise.all([
+        this.loadOrders(),
+        this.loadOrderStats()
+      ]);
+    } catch (error) {
+      console.error('拒单失败:', error);
+      wx.hideLoading();
+      showToast(error.msg || '拒单失败，请重试');
+    }
+  },
+
   showShipOrderDialog(e) {
     const orderId = e.currentTarget.dataset.id;
     const order = this.data.orders.find(o => o.id === orderId);
@@ -304,7 +505,10 @@ Page({
     if (order) {
       this.setData({
         selectedOrder: order,
-        showShipDialog: true
+        showShipDialog: true,
+        shippingCompany: 'sf',
+        shippingCompanyIndex: 0,
+        trackingNumber: ''
       });
     }
   },
@@ -312,18 +516,44 @@ Page({
   closeShipDialog() {
     this.setData({
       showShipDialog: false,
-      selectedOrder: null
+      selectedOrder: null,
+      shippingCompany: 'sf',
+      shippingCompanyIndex: 0,
+      trackingNumber: ''
+    });
+  },
+
+  onShippingCompanyChange(e) {
+    const index = e.detail.value;
+    const company = this.data.shippingCompanies[index];
+    this.setData({
+      shippingCompanyIndex: index,
+      shippingCompany: company.value
+    });
+  },
+
+  onTrackingNumberInput(e) {
+    this.setData({
+      trackingNumber: e.detail.value
     });
   },
 
   async shipOrder() {
     if (!this.data.selectedOrder) return;
 
-    wx.showLoading({ title: '操作中...', mask: true });
+    if (!this.data.trackingNumber.trim()) {
+      showToast('请填写物流单号');
+      return;
+    }
+
+    wx.showLoading({ title: '发货中...', mask: true });
 
     try {
-      await updateOrderStatus(this.data.selectedOrder.id, {
-        status: 'shipped'
+      await shipOrder(this.data.selectedOrder.id, {
+        shipping_company: this.data.shippingCompany,
+        tracking_number: this.data.trackingNumber.trim(),
+        shipping_method: 'express',
+        estimated_arrival_days: 3
       });
 
       wx.hideLoading();
@@ -331,11 +561,14 @@ Page({
       this.closeShipDialog();
 
       this.setData({ page: 1, orders: [], hasMore: true });
-      this.loadOrders();
+      await Promise.all([
+        this.loadOrders(),
+        this.loadOrderStats()
+      ]);
     } catch (error) {
       console.error('发货失败:', error);
       wx.hideLoading();
-      showToast('操作失败，请重试');
+      showToast(error.msg || '发货失败，请重试');
     }
   },
 
@@ -387,7 +620,9 @@ Page({
         formattedShippingFee: order.shipping_fee ? order.shipping_fee.toFixed(2) : '0.00',
         hasLogistics: order.logistics && order.logistics.items && order.logistics.items.length > 0,
         hasPriceDetail: order.total_amount > 0 || order.discount_amount > 0 || order.shipping_fee > 0,
-        hasAddress: order.address && order.address.name && order.address.phone
+        hasAddress: order.address && order.address.name && order.address.phone,
+        isPendingAccept: order.status === 'pending_accept',
+        statusText: STATUS_TEXT_MAP[order.status] || order.status
       };
       
       if (order.price_detail) {
@@ -409,6 +644,18 @@ Page({
     this.setData({
       expandedOrders: expandedOrders
     });
+  },
+
+  copyTrackingNumber(e) {
+    const trackingNumber = e.currentTarget.dataset.tracking;
+    if (trackingNumber) {
+      wx.setClipboardData({
+        data: trackingNumber,
+        success: () => {
+          showToast('已复制物流单号', 'success');
+        }
+      });
+    }
   },
 
   stopPropagation() {

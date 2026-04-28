@@ -5,17 +5,20 @@ from app.common.auth import login_required
 from app.models import Order, OrderItem, User, TeacherProfile, UserCoupon, Coupon
 from app.database import db
 from app.services.user_service import UserService
-from datetime import datetime
+from datetime import datetime, timedelta
 
 order_bp = Blueprint('orders', __name__)
 
 STATUS_NAMES = {
     'pending': '待付款',
+    'pending_accept': '待接单',
+    'accepted': '已接单',
     'paid': '待发货',
     'shipped': '待收货',
     'delivered': '已送达',
     'completed': '已完成',
     'cancelled': '已取消',
+    'rejected': '已拒绝',
     'deleted': '已删除'
 }
 
@@ -43,11 +46,14 @@ def get_order_stats_from_query(query):
     stats = {
         'total': len(orders),
         'pending': 0,
+        'pending_accept': 0,
+        'accepted': 0,
         'paid': 0,
         'shipped': 0,
         'delivered': 0,
         'completed': 0,
         'cancelled': 0,
+        'rejected': 0,
         'total_amount': 0,
         'today_orders': 0,
         'today_amount': 0
@@ -57,12 +63,12 @@ def get_order_stats_from_query(query):
     
     for order in orders:
         stats[order.status] = stats.get(order.status, 0) + 1
-        if order.status in ['paid', 'shipped', 'delivered', 'completed']:
+        if order.status in ['pending_accept', 'accepted', 'paid', 'shipped', 'delivered', 'completed']:
             stats['total_amount'] += order.pay_amount
         
         if order.created_at and order.created_at.date() == today:
             stats['today_orders'] += 1
-            if order.status in ['paid', 'shipped', 'delivered', 'completed']:
+            if order.status in ['pending_accept', 'accepted', 'paid', 'shipped', 'delivered', 'completed']:
                 stats['today_amount'] += order.pay_amount
     
     return stats
@@ -127,7 +133,11 @@ def get_teacher_orders():
     query = Order.query.filter_by(teacher_id=teacher_id).filter(Order.status != 'deleted')
     
     if status:
-        query = query.filter_by(status=status)
+        if ',' in status:
+            status_list = [s.strip() for s in status.split(',')]
+            query = query.filter(Order.status.in_(status_list))
+        else:
+            query = query.filter_by(status=status)
     
     stats = get_order_stats_from_query(query)
     
@@ -375,12 +385,26 @@ def pay_order(order_id):
     if order.user_id != user_id:
         return jsonify(error(code=ResponseCode.PERMISSION_DENIED, msg='无权支付此订单')), 403
     
-    order.status = 'paid'
     order.pay_time = datetime.utcnow()
     order.updated_at = datetime.utcnow()
+    
+    teacher_profile = TeacherProfile.query.filter_by(user_id=order.teacher_id).first()
+    auto_accepted = False
+    
+    if teacher_profile and teacher_profile.auto_accept:
+        order.status = 'accepted'
+        order.accept_time = datetime.utcnow()
+        auto_accepted = True
+    else:
+        order.status = 'pending_accept'
+    
     db.session.commit()
     
-    return jsonify(success(data=order.to_dict(), msg='支付成功'))
+    msg = '支付成功，等待老师接单'
+    if auto_accepted:
+        msg = '支付成功，老师已自动接单'
+    
+    return jsonify(success(data=order.to_dict(), msg=msg))
 
 @order_bp.route('/<order_id>/cancel', methods=['POST'])
 @login_required
@@ -451,3 +475,126 @@ def delete_order(order_id):
     db.session.commit()
     
     return jsonify(success(data=None, msg='订单已删除'))
+
+
+@order_bp.route('/<order_id>/accept', methods=['POST'])
+@login_required
+def accept_order(order_id):
+    user_dict, user_id = get_current_user()
+    order = Order.query.get(order_id)
+    
+    if not order:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='订单不存在')), 404
+    
+    if order.status != 'pending_accept':
+        return jsonify(error(code=ResponseCode.OPERATION_FAILED, msg=f'只有待接单状态可以接单，当前状态: {STATUS_NAMES.get(order.status)}')), 400
+    
+    if order.teacher_id != user_id:
+        return jsonify(error(code=ResponseCode.PERMISSION_DENIED, msg='无权操作此订单')), 403
+    
+    order.status = 'accepted'
+    order.accept_time = datetime.utcnow()
+    order.updated_at = datetime.utcnow()
+    db.session.commit()
+    
+    return jsonify(success(data=order.to_dict(), msg='接单成功'))
+
+
+@order_bp.route('/<order_id>/reject', methods=['POST'])
+@login_required
+def reject_order(order_id):
+    user_dict, user_id = get_current_user()
+    order = Order.query.get(order_id)
+    
+    if not order:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='订单不存在')), 404
+    
+    if order.status != 'pending_accept':
+        return jsonify(error(code=ResponseCode.OPERATION_FAILED, msg=f'只有待接单状态可以拒单，当前状态: {STATUS_NAMES.get(order.status)}')), 400
+    
+    if order.teacher_id != user_id:
+        return jsonify(error(code=ResponseCode.PERMISSION_DENIED, msg='无权操作此订单')), 403
+    
+    data = request.get_json() or {}
+    reject_reason = data.get('reject_reason', '')
+    
+    if not reject_reason:
+        return jsonify(error(code=ResponseCode.PARAM_MISSING, msg='请填写拒单理由')), 400
+    
+    order.status = 'rejected'
+    order.reject_time = datetime.utcnow()
+    order.reject_reason = reject_reason
+    order.updated_at = datetime.utcnow()
+    db.session.commit()
+    
+    return jsonify(success(data=order.to_dict(), msg='拒单成功'))
+
+
+@order_bp.route('/<order_id>/ship', methods=['POST'])
+@login_required
+def ship_order(order_id):
+    user_dict, user_id = get_current_user()
+    order = Order.query.get(order_id)
+    
+    if not order:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='订单不存在')), 404
+    
+    if order.status not in ['accepted', 'paid']:
+        return jsonify(error(code=ResponseCode.OPERATION_FAILED, msg=f'只有已接单或待发货状态可以发货，当前状态: {STATUS_NAMES.get(order.status)}')), 400
+    
+    if order.teacher_id != user_id:
+        return jsonify(error(code=ResponseCode.PERMISSION_DENIED, msg='无权操作此订单')), 403
+    
+    data = request.get_json() or {}
+    shipping_company = data.get('shipping_company', '')
+    tracking_number = data.get('tracking_number', '')
+    shipping_method = data.get('shipping_method', 'standard')
+    estimated_arrival_days = data.get('estimated_arrival_days', 3)
+    
+    if not tracking_number:
+        return jsonify(error(code=ResponseCode.PARAM_MISSING, msg='请填写物流单号')), 400
+    
+    order.status = 'shipped'
+    order.shipping_company = shipping_company
+    order.tracking_number = tracking_number
+    order.shipping_method = shipping_method
+    order.estimated_arrival_days = estimated_arrival_days
+    order.ship_time = datetime.utcnow()
+    
+    if order.ship_time:
+        order.estimated_arrival_time = order.ship_time + timedelta(days=estimated_arrival_days)
+    
+    order.updated_at = datetime.utcnow()
+    db.session.commit()
+    
+    return jsonify(success(data=order.to_dict(), msg='发货成功'))
+
+
+@order_bp.route('/<order_id>/logistics', methods=['GET'])
+@login_required
+def get_order_logistics(order_id):
+    user_dict, user_id = get_current_user()
+    order = Order.query.get(order_id)
+    
+    if not order:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='订单不存在')), 404
+    
+    if order.user_id != user_id and order.teacher_id != user_id:
+        return jsonify(error(code=ResponseCode.PERMISSION_DENIED, msg='无权查看此订单')), 403
+    
+    logistics_info = {
+        'order_id': order.id,
+        'status': order.status,
+        'status_name': STATUS_NAMES.get(order.status, order.status),
+        'shipping_company': order.shipping_company,
+        'tracking_number': order.tracking_number,
+        'shipping_method': order.shipping_method,
+        'ship_time': order.ship_time.strftime('%Y-%m-%d %H:%M:%S') if order.ship_time else None,
+        'estimated_arrival_time': order.estimated_arrival_time.strftime('%Y-%m-%d') if order.estimated_arrival_time else None,
+        'tracking_items': []
+    }
+    
+    if order.logistics and order.logistics.items:
+        logistics_info['tracking_items'] = [item.to_dict() for item in order.logistics.items]
+    
+    return jsonify(success(data=logistics_info))

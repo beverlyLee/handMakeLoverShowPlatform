@@ -18,6 +18,16 @@ SHIPPING_METHODS = {
     'yt': '圆通速递'
 }
 
+SHIPPING_COMPANIES = {
+    'sf': '顺丰速运',
+    'jd': '京东物流',
+    'zt': '中通快递',
+    'yt': '圆通速递',
+    'yd': '韵达快递',
+    'ems': 'EMS',
+    'other': '其他'
+}
+
 class Order(db.Model):
     __tablename__ = 'orders'
     
@@ -46,6 +56,7 @@ class Order(db.Model):
     estimated_arrival_days = db.Column(db.Integer, default=3)
     estimated_arrival_time = db.Column(db.DateTime)
     
+    accept_time = db.Column(db.DateTime)
     ship_time = db.Column(db.DateTime)
     deliver_time = db.Column(db.DateTime)
     complete_time = db.Column(db.DateTime)
@@ -75,11 +86,14 @@ class Order(db.Model):
 
     STATUS_NAMES = {
         'pending': '待付款',
+        'pending_accept': '待接单',
+        'accepted': '已接单',
         'paid': '待发货',
         'shipped': '待收货',
         'delivered': '已送达',
         'completed': '已完成',
         'cancelled': '已取消',
+        'rejected': '已拒绝',
         'deleted': '已删除'
     }
 
@@ -133,6 +147,7 @@ class Order(db.Model):
             'pay_method': self.pay_method,
             'pay_method_name': self.pay_method_name,
             'pay_time': self.pay_time.strftime('%Y-%m-%d %H:%M:%S') if self.pay_time else None,
+            'accept_time': self.accept_time.strftime('%Y-%m-%d %H:%M:%S') if self.accept_time else None,
             'shipping_method': self.shipping_method,
             'shipping_method_name': self.shipping_method_name,
             'shipping_company': self.shipping_company,

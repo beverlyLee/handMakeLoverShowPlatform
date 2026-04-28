@@ -153,6 +153,8 @@ class TeacherProfile(db.Model):
     is_verified = db.Column(db.Boolean, default=False)
     verified_at = db.Column(db.DateTime)
     
+    auto_accept = db.Column(db.Boolean, default=False)
+    
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -244,6 +246,7 @@ class TeacherProfile(db.Model):
             'follower_count': self.follower_count,
             'verified': self.is_verified,
             'is_verified': self.is_verified,
+            'auto_accept': self.auto_accept,
             'verify_time': self.verified_at.strftime('%Y-%m-%d %H:%M:%S') if self.verified_at else None,
             'verified_at': self.verified_at.strftime('%Y-%m-%d %H:%M:%S') if self.verified_at else None,
             'apply_time': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None,

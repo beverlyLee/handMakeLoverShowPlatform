@@ -2,7 +2,7 @@
   <view class="role-banner" wx:if="{{currentRole === 'teacher'}}">
     <view class="banner-content">
       <text class="banner-icon">🎨</text>
-      <text class="banner-text">商家视图 - 管理您的销售订单</text>
+      <text class="banner-text">手作老师视图 - 管理您的销售订单</text>
     </view>
   </view>
 
@@ -13,28 +13,86 @@
     </view>
   </view>
 
-  <view class="tabs-section">
-    <scroll-view class="tabs-scroll" scroll-x>
-      <view class="tabs-list">
-        <view 
-          wx:for="{{orderTabs}}" 
-          wx:key="value" 
-          class="tab-item {{currentTab === item.value ? 'active' : ''}}"
-          bindtap="switchTab"
-          data-tab="{{item.value}}"
-        >
-          <text class="tab-text">{{item.label}}</text>
-          <view class="tab-indicator" wx:if="{{currentTab === item.value}}"></view>
-        </view>
+  <view class="stats-section" wx:if="{{currentRole === 'teacher' && orderStats}}">
+    <view class="stats-grid">
+      <view class="stat-item">
+        <text class="stat-value">{{orderStats.pending_accept || 0}}</text>
+        <text class="stat-label">待接单</text>
       </view>
-    </scroll-view>
+      <view class="stat-item">
+        <text class="stat-value">{{orderStats.accepted || 0}}</text>
+        <text class="stat-label">已接单</text>
+      </view>
+      <view class="stat-item">
+        <text class="stat-value">{{orderStats.paid || 0}}</text>
+        <text class="stat-label">待发货</text>
+      </view>
+      <view class="stat-item">
+        <text class="stat-value">{{orderStats.completed || 0}}</text>
+        <text class="stat-label">已完成</text>
+      </view>
+    </view>
+    <view class="stats-summary" wx:if="{{orderStats.today_orders > 0 || orderStats.today_amount > 0}}">
+      <text class="summary-text">今日订单：{{orderStats.today_orders}}单，销售额：¥{{orderStats.today_amount}}</text>
+    </view>
+  </view>
+
+  <view class="search-section" wx:if="{{showSearch}}">
+    <view class="search-box">
+      <input 
+        class="search-input" 
+        placeholder="搜索订单号/商品名称" 
+        value="{{searchKeyword}}"
+        bindinput="onSearchInput"
+        confirm-type="search"
+        bindconfirm="doSearch"
+      />
+      <view class="search-btn" bindtap="doSearch">
+        <text class="search-btn-text">搜索</text>
+      </view>
+      <view class="clear-btn" wx:if="{{searchKeyword}}" bindtap="clearSearch">
+        <text class="clear-icon">×</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="tabs-section">
+    <view class="tabs-header">
+      <scroll-view class="tabs-scroll" scroll-x>
+        <view class="tabs-list">
+          <view 
+            wx:for="{{orderTabs}}" 
+            wx:key="value" 
+            class="tab-item {{currentTab === item.value ? 'active' : ''}}"
+            bindtap="switchTab"
+            data-tab="{{item.value}}"
+          >
+            <text class="tab-text">{{item.label}}</text>
+            <view class="tab-badge" wx:if="{{item.value === 'pending_accept' && orderStats && orderStats.pending_accept > 0}}">
+              <text class="badge-text">{{orderStats.pending_accept}}</text>
+            </view>
+            <view class="tab-indicator" wx:if="{{currentTab === item.value}}"></view>
+          </view>
+        </view>
+      </scroll-view>
+      <view class="search-icon" bindtap="toggleSearch">
+        <text class="icon-text">{{showSearch ? '✕' : '🔍'}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="pending-alert" wx:if="{{currentRole === 'teacher' && orderStats && orderStats.pending_accept > 0 && currentTab === ''}}">
+    <view class="alert-content">
+      <text class="alert-icon">🔔</text>
+      <text class="alert-text">您有 {{orderStats.pending_accept}} 个待处理订单，请及时处理！</text>
+    </view>
   </view>
 
   <view class="orders-list" wx:if="{{orders.length > 0}}">
     <view 
       wx:for="{{formattedOrders}}" 
       wx:key="id" 
-      class="order-card {{currentRole === 'teacher' ? 'teacher-order-card' : ''}} {{expandedOrders[item.id] ? 'expanded' : ''}}"
+      class="order-card {{currentRole === 'teacher' ? 'teacher-order-card' : ''}} {{item.isPendingAccept ? 'pending-accept-card' : ''}} {{expandedOrders[item.id] ? 'expanded' : ''}}"
     >
       <view class="order-header" catchtap="toggleOrderDetail" data-id="{{item.id}}">
         <view class="shop-info" wx:if="{{currentRole !== 'teacher'}}">
@@ -47,6 +105,9 @@
         </view>
         <view class="order-status {{item.status}}">
           <text class="status-text">{{currentRole === 'teacher' ? getTeacherStatusText(item.status) : getStatusText(item.status)}}</text>
+        </view>
+        <view class="pending-highlight" wx:if="{{item.isPendingAccept}}">
+          <text class="highlight-text">待处理</text>
         </view>
         <text class="expand-icon">{{expandedOrders[item.id] ? '▼' : '▶'}}</text>
       </view>
@@ -103,19 +164,33 @@
           >评价</button>
 
           <button 
-            wx:if="{{currentRole === 'teacher' && item.status === 'paid'}}" 
+            wx:if="{{currentRole === 'teacher' && item.status === 'pending_accept'}}" 
+            class="action-btn primary"
+            bindtap="showAcceptDialog"
+            data-id="{{item.id}}"
+          >接单</button>
+          <button 
+            wx:if="{{currentRole === 'teacher' && item.status === 'pending_accept'}}" 
+            class="action-btn secondary reject-btn"
+            bindtap="showRejectDialog"
+            data-id="{{item.id}}"
+          >拒绝</button>
+
+          <button 
+            wx:if="{{currentRole === 'teacher' && (item.status === 'accepted' || item.status === 'paid')}}" 
             class="action-btn primary"
             bindtap="showShipOrderDialog"
             data-id="{{item.id}}"
           >发货</button>
-          <button 
-            wx:if="{{currentRole === 'teacher' && item.status === 'cancelled'}}" 
-            class="action-btn secondary"
-            style="opacity: 0.6;"
-          >已取消</button>
 
           <button 
-            wx:if="{{item.status === 'cancelled' || item.status === 'completed'}}" 
+            wx:if="{{item.status === 'cancelled' || item.status === 'rejected'}}" 
+            class="action-btn secondary"
+            style="opacity: 0.6;"
+          >{{item.status === 'rejected' ? '已拒绝' : '已取消'}}</button>
+
+          <button 
+            wx:if="{{item.status === 'completed' || item.status === 'cancelled' || item.status === 'rejected'}}" 
             class="action-btn secondary"
             bindtap="deleteOrder"
             data-id="{{item.id}}"
@@ -134,6 +209,31 @@
           </view>
         </view>
 
+        <view class="expand-section" wx:if="{{item.tracking_number}}">
+          <view class="expand-title">
+            <text class="title-text">🚚 物流信息</text>
+          </view>
+          <view class="expand-content">
+            <view class="info-row">
+              <text class="info-label">物流公司：</text>
+              <text class="info-value">{{item.shipping_company_name || item.shipping_company || '快递'}}</text>
+            </view>
+            <view class="info-row tracking-row" catchtap="copyTrackingNumber" data-tracking="{{item.tracking_number}}">
+              <text class="info-label">运单编号：</text>
+              <text class="info-value tracking-number">{{item.tracking_number}}</text>
+              <text class="copy-hint">点击复制</text>
+            </view>
+            <view class="info-row" wx:if="{{item.ship_time}}">
+              <text class="info-label">发货时间：</text>
+              <text class="info-value">{{item.ship_time}}</text>
+            </view>
+            <view class="info-row" wx:if="{{item.estimated_arrival_time}}">
+              <text class="info-label">预计送达：</text>
+              <text class="info-value">{{item.estimated_arrival_time}}</text>
+            </view>
+          </view>
+        </view>
+
         <view class="expand-section" wx:if="{{item.pay_method || item.pay_time}}">
           <view class="expand-title">
             <text class="title-text">💰 支付信息</text>
@@ -146,30 +246,6 @@
             <view class="info-row" wx:if="{{item.pay_time}}">
               <text class="info-label">支付时间：</text>
               <text class="info-value">{{item.pay_time}}</text>
-            </view>
-          </view>
-        </view>
-
-        <view class="expand-section" wx:if="{{item.shipping_method || item.tracking_number}}">
-          <view class="expand-title">
-            <text class="title-text">🚚 物流信息</text>
-          </view>
-          <view class="expand-content">
-            <view class="info-row" wx:if="{{item.shipping_method}}">
-              <text class="info-label">配送方式：</text>
-              <text class="info-value">{{item.shipping_method_name || item.shipping_method}}</text>
-            </view>
-            <view class="info-row" wx:if="{{item.tracking_number}}">
-              <text class="info-label">运单编号：</text>
-              <text class="info-value">{{item.tracking_number}}</text>
-            </view>
-            <view class="info-row" wx:if="{{item.estimated_arrival_time}}">
-              <text class="info-label">预计送达：</text>
-              <text class="info-value">{{item.estimated_arrival_time}}</text>
-            </view>
-            <view class="info-row" wx:if="{{item.ship_time}}">
-              <text class="info-label">发货时间：</text>
-              <text class="info-value">{{item.ship_time}}</text>
             </view>
           </view>
         </view>
@@ -225,6 +301,15 @@
           </view>
         </view>
 
+        <view class="expand-section" wx:if="{{item.reject_reason}}">
+          <view class="expand-title">
+            <text class="title-text">❌ 拒单理由</text>
+          </view>
+          <view class="expand-content">
+            <text class="content-text reject-reason">{{item.reject_reason}}</text>
+          </view>
+        </view>
+
         <view class="expand-section">
           <view class="expand-title">
             <text class="title-text">ℹ️ 订单信息</text>
@@ -255,38 +340,133 @@
   </view>
 </view>
 
-<view class="ship-dialog-mask" wx:if="{{showShipDialog && selectedOrder}}" catchtouchmove="stopPropagation">
-  <view class="ship-dialog">
-    <view class="ship-dialog-header">
-      <text class="ship-dialog-title">确认发货</text>
-      <view class="ship-dialog-close" bindtap="closeShipDialog">
+<view class="dialog-mask" wx:if="{{showAcceptDialog && selectedOrder}}" catchtouchmove="stopPropagation">
+  <view class="dialog">
+    <view class="dialog-header">
+      <text class="dialog-title">确认接单</text>
+      <view class="dialog-close" bindtap="closeAcceptDialog">
         <text class="close-icon">×</text>
       </view>
     </view>
-    <view class="ship-dialog-content">
-      <view class="ship-info-item">
-        <text class="ship-info-label">订单编号：</text>
-        <text class="ship-info-value">{{selectedOrder.id}}</text>
+    <view class="dialog-content">
+      <view class="info-item">
+        <text class="info-label">订单编号：</text>
+        <text class="info-value">{{selectedOrder.id}}</text>
       </view>
-      <view class="ship-info-item">
-        <text class="ship-info-label">商品数量：</text>
-        <text class="ship-info-value">{{selectedOrder.items.length}}件</text>
+      <view class="info-item">
+        <text class="info-label">商品数量：</text>
+        <text class="info-value">{{selectedOrder.items.length}}件</text>
       </view>
-      <view class="ship-info-item">
-        <text class="ship-info-label">订单金额：</text>
-        <text class="ship-info-value">¥{{selectedOrder.pay_amount}}</text>
+      <view class="info-item">
+        <text class="info-label">订单金额：</text>
+        <text class="info-value">¥{{selectedOrder.pay_amount}}</text>
       </view>
-      <view class="ship-info-item ship-info-address">
-        <text class="ship-info-label">收货地址：</text>
-        <text class="ship-info-value">{{selectedOrder.address.province}}{{selectedOrder.address.city}}{{selectedOrder.address.district}}{{selectedOrder.address.detail}}</text>
+      <view class="info-item address-item">
+        <text class="info-label">收货地址：</text>
+        <text class="info-value">{{selectedOrder.address.province}}{{selectedOrder.address.city}}{{selectedOrder.address.district}}{{selectedOrder.address.detail}}</text>
       </view>
-      <view class="ship-tip">
-        <text class="ship-tip-text">📦 发货后订单状态将更新为"待收货"</text>
+      <view class="dialog-tip">
+        <text class="tip-text">✅ 接单后请及时与买家沟通，准备发货事宜</text>
       </view>
     </view>
-    <view class="ship-dialog-footer">
-      <button class="ship-btn ship-btn-cancel" bindtap="closeShipDialog">取消</button>
-      <button class="ship-btn ship-btn-confirm" bindtap="shipOrder">确认发货</button>
+    <view class="dialog-footer">
+      <button class="dialog-btn dialog-btn-cancel" bindtap="closeAcceptDialog">取消</button>
+      <button class="dialog-btn dialog-btn-confirm" bindtap="confirmAccept">确认接单</button>
+    </view>
+  </view>
+</view>
+
+<view class="dialog-mask" wx:if="{{showRejectDialog && selectedOrder}}" catchtouchmove="stopPropagation">
+  <view class="dialog reject-dialog">
+    <view class="dialog-header reject-header">
+      <text class="dialog-title">拒绝订单</text>
+      <view class="dialog-close" bindtap="closeRejectDialog">
+        <text class="close-icon">×</text>
+      </view>
+    </view>
+    <view class="dialog-content">
+      <view class="info-item">
+        <text class="info-label">订单编号：</text>
+        <text class="info-value">{{selectedOrder.id}}</text>
+      </view>
+      <view class="form-item">
+        <text class="form-label">拒单理由 <text class="required">*</text></text>
+        <textarea 
+          class="form-textarea" 
+          placeholder="请填写拒单理由（如：暂时无法制作、材料不足等）"
+          value="{{rejectReason}}"
+          bindinput="onRejectReasonInput"
+          maxlength="200"
+        />
+        <text class="char-count">{{rejectReason.length}}/200</text>
+      </view>
+      <view class="dialog-tip reject-tip">
+        <text class="tip-text">⚠️ 拒单后订单将无法恢复，请谨慎操作</text>
+      </view>
+    </view>
+    <view class="dialog-footer">
+      <button class="dialog-btn dialog-btn-cancel" bindtap="closeRejectDialog">取消</button>
+      <button class="dialog-btn dialog-btn-reject" bindtap="confirmReject">确认拒绝</button>
+    </view>
+  </view>
+</view>
+
+<view class="dialog-mask" wx:if="{{showShipDialog && selectedOrder}}" catchtouchmove="stopPropagation">
+  <view class="dialog ship-dialog">
+    <view class="dialog-header ship-header">
+      <text class="dialog-title">确认发货</text>
+      <view class="dialog-close" bindtap="closeShipDialog">
+        <text class="close-icon">×</text>
+      </view>
+    </view>
+    <view class="dialog-content">
+      <view class="info-item">
+        <text class="info-label">订单编号：</text>
+        <text class="info-value">{{selectedOrder.id}}</text>
+      </view>
+      <view class="info-item">
+        <text class="info-label">商品数量：</text>
+        <text class="info-value">{{selectedOrder.items.length}}件</text>
+      </view>
+      <view class="info-item address-item">
+        <text class="info-label">收货地址：</text>
+        <text class="info-value">{{selectedOrder.address.name}} {{selectedOrder.address.phone}}
+{{selectedOrder.address.province}}{{selectedOrder.address.city}}{{selectedOrder.address.district}}{{selectedOrder.address.detail}}</text>
+      </view>
+      
+      <view class="form-item">
+        <text class="form-label">物流公司 <text class="required">*</text></text>
+        <picker 
+          class="form-picker" 
+          mode="selector" 
+          range="{{shippingCompanies}}" 
+          range-key="label"
+          bindchange="onShippingCompanyChange"
+        >
+          <view class="picker-content">
+            <text class="picker-text">{{shippingCompanies[shippingCompanyIndex].label}}</text>
+            <text class="picker-arrow">▼</text>
+          </view>
+        </picker>
+      </view>
+      
+      <view class="form-item">
+        <text class="form-label">物流单号 <text class="required">*</text></text>
+        <input 
+          class="form-input" 
+          placeholder="请输入物流单号"
+          value="{{trackingNumber}}"
+          bindinput="onTrackingNumberInput"
+        />
+      </view>
+      
+      <view class="dialog-tip">
+        <text class="tip-text">📦 发货后订单状态将更新为"待收货"，买家可查看物流信息</text>
+      </view>
+    </view>
+    <view class="dialog-footer">
+      <button class="dialog-btn dialog-btn-cancel" bindtap="closeShipDialog">取消</button>
+      <button class="dialog-btn dialog-btn-confirm" bindtap="shipOrder">确认发货</button>
     </view>
   </view>
 </view>

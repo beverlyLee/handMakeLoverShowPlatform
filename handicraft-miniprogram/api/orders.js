@@ -91,6 +91,40 @@ function deleteOrder(orderId) {
   return del(`/orders/${orderId}`);
 }
 
+/**
+ * 接单（老师端）
+ * @param {string} orderId - 订单ID
+ */
+function acceptOrder(orderId) {
+  return post(`/orders/${orderId}/accept`);
+}
+
+/**
+ * 拒单（老师端）
+ * @param {string} orderId - 订单ID
+ * @param {Object} data - { reject_reason }
+ */
+function rejectOrder(orderId, data) {
+  return post(`/orders/${orderId}/reject`, data);
+}
+
+/**
+ * 发货（老师端）
+ * @param {string} orderId - 订单ID
+ * @param {Object} data - { shipping_company, tracking_number, shipping_method, estimated_arrival_days }
+ */
+function shipOrder(orderId, data) {
+  return post(`/orders/${orderId}/ship`, data);
+}
+
+/**
+ * 获取订单物流信息
+ * @param {string} orderId - 订单ID
+ */
+function getOrderLogistics(orderId) {
+  return get(`/orders/${orderId}/logistics`);
+}
+
 module.exports = {
   getOrders,
   getOrderDetail,
@@ -102,5 +136,9 @@ module.exports = {
   updateOrderStatus,
   getTeacherOrders,
   getTeacherOrderStats,
-  deleteOrder
+  deleteOrder,
+  acceptOrder,
+  rejectOrder,
+  shipOrder,
+  getOrderLogistics
 };
