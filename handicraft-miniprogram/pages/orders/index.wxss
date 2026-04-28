@@ -429,6 +429,17 @@
   border-radius: 12rpx;
   margin-right: 20rpx;
   background-color: #F5F5F5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.item-image-placeholder {
+  background: linear-gradient(135deg, #FFF8E1 0%, #FFE0B2 100%);
+}
+
+.placeholder-icon {
+  font-size: 60rpx;
 }
 
 .item-info {
@@ -502,23 +513,36 @@
 .order-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 20rpx;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: 12rpx;
+  flex-wrap: nowrap;
+  padding-top: 8rpx;
 }
 
 .action-btn {
-  height: 64rpx;
-  padding: 0 32rpx;
-  border-radius: 32rpx;
-  font-size: 26rpx;
-  line-height: 64rpx;
+  height: 56rpx;
+  padding: 0 24rpx;
+  border-radius: 28rpx;
+  font-size: 24rpx;
+  line-height: 56rpx;
   border: none;
   margin: 0;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .action-btn.primary {
-  background-color: #795548;
+  background: linear-gradient(135deg, #795548 0%, #5D4037 100%);
   color: #fff;
+  box-shadow: 0 4rpx 12rpx rgba(121, 85, 72, 0.3);
+}
+
+.action-btn.primary:active {
+  opacity: 0.8;
+  transform: scale(0.98);
 }
 
 .action-btn.secondary {

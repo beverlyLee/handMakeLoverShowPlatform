@@ -13,7 +13,7 @@ const {
   completeMakingOrder,
   editOrder
 } = require('../../api/orders');
-const { showToast } = require('../../utils/util');
+const { showToast, getFullImageUrl, DEFAULT_IMAGE } = require('../../utils/util');
 const storage = require('../../utils/storage');
 
 const CUSTOMER_TABS = [
@@ -111,7 +111,8 @@ Page({
     showSearch: false,
 
     expandedOrders: {},
-    formattedOrders: []
+    formattedOrders: [],
+    defaultImage: DEFAULT_IMAGE
   },
 
   onLoad(options) {
@@ -679,6 +680,13 @@ Page({
         formatted.formattedPricePay = order.price_detail.pay_amount ? order.price_detail.pay_amount.toFixed(2) : '0.00';
       }
       
+      if (formatted.items && Array.isArray(formatted.items)) {
+        formatted.items = formatted.items.map(item => ({
+          ...item,
+          product_image: getFullImageUrl(item.product_image)
+        }));
+      }
+      
       return formatted;
     });
   },
@@ -848,6 +856,29 @@ Page({
       console.error('修改订单失败:', error);
       wx.hideLoading();
       showToast(error.msg || '修改失败，请重试');
+    }
+  },
+
+  onItemImageError(e) {
+    const orderIndex = e.currentTarget.dataset.orderIndex;
+    const itemIndex = e.currentTarget.dataset.itemIndex;
+    
+    console.log('订单商品图片加载失败，使用默认图片:', { orderIndex, itemIndex });
+    
+    const orders = this.data.orders;
+    if (orders && orders[orderIndex] && orders[orderIndex].items && orders[orderIndex].items[itemIndex]) {
+      orders[orderIndex].items[itemIndex].product_image = DEFAULT_IMAGE;
+      this.setData({
+        orders: orders
+      });
+    }
+    
+    const formattedOrders = this.data.formattedOrders;
+    if (formattedOrders && formattedOrders[orderIndex] && formattedOrders[orderIndex].items && formattedOrders[orderIndex].items[itemIndex]) {
+      formattedOrders[orderIndex].items[itemIndex].product_image = DEFAULT_IMAGE;
+      this.setData({
+        formattedOrders: formattedOrders
+      });
     }
   }
 });

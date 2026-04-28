@@ -135,7 +135,14 @@
 
       <view class="order-items" catchtap="toggleOrderDetail" data-id="{{item.id}}">
         <view class="order-item" wx:for="{{item.items}}" wx:for-item="orderItem" wx:key="id">
-          <image class="item-image" src="{{orderItem.product_image}}" mode="aspectFill" />
+          <image 
+            class="item-image {{!orderItem.product_image ? 'item-image-placeholder' : ''}}" 
+            src="{{orderItem.product_image || defaultImage}}" 
+            mode="aspectFill"
+            binderror="onItemImageError"
+            data-order-index="{{index}}"
+            data-item-index="{{index2}}"
+          />
           <view class="item-info">
             <text class="item-title" lines="2">{{orderItem.product_title}}</text>
             <view class="item-price-row">

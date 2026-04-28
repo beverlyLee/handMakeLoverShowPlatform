@@ -201,13 +201,32 @@ def get_image(image_uuid):
         
         current_app.logger.info(f'读取图片: {image_uuid}, 大小: {image.size}, 类型: {image.content_type}')
         
-        image_data = BytesIO(image.data)
+        if not image.data:
+            current_app.logger.error(f'图片数据为空: {image_uuid}')
+            return jsonify(error(msg='图片数据为空')), 500
         
-        response = send_file(
-            image_data,
-            mimetype=image.content_type,
-            as_attachment=False
-        )
+        try:
+            image_bytes = bytes(image.data) if not isinstance(image.data, bytes) else image.data
+            image_data = BytesIO(image_bytes)
+            image_data.seek(0)
+        except Exception as e:
+            current_app.logger.error(f'处理图片数据失败: {image_uuid}, 错误: {str(e)}')
+            return jsonify(error(msg='图片数据处理失败')), 500
+        
+        try:
+            response = send_file(
+                image_data,
+                mimetype=image.content_type,
+                as_attachment=False,
+                download_name=image.filename
+            )
+        except TypeError:
+            response = send_file(
+                image_data,
+                mimetype=image.content_type,
+                as_attachment=False,
+                attachment_filename=image.filename
+            )
         
         response.headers['Cache-Control'] = 'public, max-age=604800'
         response.headers['ETag'] = etag

@@ -39,28 +39,22 @@ function isPlaceholderImage(url) {
 }
 
 function getFullImageUrl(url) {
-  console.log(`[getFullImageUrl] 原始 URL: ${url}`);
   
   if (!url) {
-    console.log(`[getFullImageUrl] URL 为空，使用默认图片: ${DEFAULT_IMAGE}`);
     return DEFAULT_IMAGE;
   }
   
   const isPlaceholder = isPlaceholderImage(url);
-  console.log(`[getFullImageUrl] 是否是占位图片: ${isPlaceholder}, URL: ${url}`);
   
   if (isPlaceholder) {
-    console.log(`[getFullImageUrl] 识别到占位图片，使用默认图片: ${url} -> ${DEFAULT_IMAGE}`);
     return DEFAULT_IMAGE;
   }
   
   if (url.startsWith('http://') || url.startsWith('https://')) {
-    console.log(`[getFullImageUrl] 完整 URL，直接返回: ${url}`);
     return url;
   }
   
   if (url.startsWith('/assets/') || url.startsWith('assets/')) {
-    console.log(`[getFullImageUrl] 本地资源路径，直接返回: ${url}`);
     return url;
   }
   
