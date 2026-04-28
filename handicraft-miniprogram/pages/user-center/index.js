@@ -2,6 +2,7 @@ const { getUserInfo, updateUserInfo, switchRole, getUserRoles } = require('../..
 const { getTeacherOrderStats } = require('../../api/orders');
 const { logout } = require('../../api/auth');
 const { uploadImage } = require('../../api/upload');
+const { getUnreadCount } = require('../../api/messages');
 const { showToast, processUserInfo, DEFAULT_IMAGE, getFullImageUrl } = require('../../utils/util');
 const storage = require('../../utils/storage');
 
@@ -36,13 +37,15 @@ Page({
 
     isTeacher: false,
     isCustomer: true,
-    hasMultipleRoles: false
+    hasMultipleRoles: false,
+    unreadTotal: 0
   },
 
   onLoad() {
     console.log('用户中心页面加载');
     this.initTestToken();
     this.loadUserInfo();
+    this.loadMessageUnreadCount();
   },
 
   initTestToken() {
@@ -56,6 +59,7 @@ Page({
   onShow() {
     console.log('用户中心页面显示');
     this.loadUserInfo();
+    this.loadMessageUnreadCount();
   },
 
   onReady() {
@@ -494,6 +498,25 @@ Page({
   goToAddressManage() {
     wx.navigateTo({
       url: '/pages/address-list/index'
+    });
+  },
+
+  async loadMessageUnreadCount() {
+    try {
+      const result = await getUnreadCount();
+      const counts = result || {};
+      const total = (counts.system || 0) + (counts.order || 0) + 
+                   (counts.activity || 0) + (counts.chat || 0);
+      this.setData({ unreadTotal: total });
+    } catch (error) {
+      console.error('获取消息未读数量失败:', error);
+      this.setData({ unreadTotal: 5 });
+    }
+  },
+
+  goToMessages() {
+    wx.switchTab({
+      url: '/pages/messages/index'
     });
   },
 

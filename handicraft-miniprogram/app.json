@@ -5,6 +5,8 @@
     "pages/orders/index",
     "pages/messages/index",
     "pages/user-center/index",
+    "pages/message-detail/index",
+    "pages/chat/index",
     "pages/teacher-apply/index",
     "pages/address-list/index",
     "pages/address-edit/index",

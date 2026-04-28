@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "聊天",
+  "navigationBarBackgroundColor": "#795548",
+  "navigationBarTextStyle": "white",
+  "backgroundColor": "#FFF8E7",
+  "enablePullDownRefresh": true
+}

@@ -1,82 +1,113 @@
 <view class="messages-container">
-  <view class="message-types">
-    <view class="message-type-item" bindtap="goToNotification" data-type="system">
-      <view class="type-icon-wrapper system">
-        <text class="type-icon">📢</text>
-        <view class="badge" wx:if="{{unreadCounts.system > 0}}">
-          <text class="badge-text">{{unreadCounts.system}}</text>
+  <view class="tab-bar">
+    <scroll-view scroll-x class="tab-scroll" enhanced show-scrollbar="{{false}}">
+      <view class="tabs-wrapper">
+        <view 
+          wx:for="{{tabs}}" 
+          wx:key="key"
+          class="tab-item {{activeTab === item.key ? 'tab-active' : ''}}"
+          bindtap="switchTab"
+          data-tab="{{item.key}}"
+        >
+          <text class="tab-text">{{item.name}}</text>
+          <view class="tab-dot" wx:if="{{item.key !== 'all' && unreadCounts[item.key] > 0}}">
+            <text class="tab-dot-text">{{unreadCounts[item.key] > 99 ? '99+' : unreadCounts[item.key]}}</text>
+          </view>
         </view>
       </view>
-      <view class="type-info">
-        <text class="type-title">系统通知</text>
-        <text class="type-desc">{{lastMessages.system || '暂无系统消息'}}</text>
+    </scroll-view>
+    <view class="tab-actions">
+      <view class="action-btn" wx:if="{{!isEditMode}}" bindtap="markAllAsRead">
+        <text class="action-icon">📖</text>
+        <text class="action-text">全部已读</text>
       </view>
-      <text class="arrow-icon">›</text>
-    </view>
-
-    <view class="message-type-item" bindtap="goToNotification" data-type="order">
-      <view class="type-icon-wrapper order">
-        <text class="type-icon">📦</text>
-        <view class="badge" wx:if="{{unreadCounts.order > 0}}">
-          <text class="badge-text">{{unreadCounts.order}}</text>
-        </view>
+      <view class="action-btn" bindtap="toggleEditMode">
+        <text class="action-icon">{{isEditMode ? '✓' : '☰'}}</text>
+        <text class="action-text">{{isEditMode ? '完成' : '编辑'}}</text>
       </view>
-      <view class="type-info">
-        <text class="type-title">订单消息</text>
-        <text class="type-desc">{{lastMessages.order || '暂无订单消息'}}</text>
-      </view>
-      <text class="arrow-icon">›</text>
-    </view>
-
-    <view class="message-type-item" bindtap="goToNotification" data-type="activity">
-      <view class="type-icon-wrapper activity">
-        <text class="type-icon">🎉</text>
-        <view class="badge" wx:if="{{unreadCounts.activity > 0}}">
-          <text class="badge-text">{{unreadCounts.activity}}</text>
-        </view>
-      </view>
-      <view class="type-info">
-        <text class="type-title">活动消息</text>
-        <text class="type-desc">{{lastMessages.activity || '暂无活动消息'}}</text>
-      </view>
-      <text class="arrow-icon">›</text>
     </view>
   </view>
 
-  <view class="chat-section">
-    <view class="section-header">
-      <text class="section-title">聊天消息</text>
-    </view>
-
-    <view class="chat-list" wx:if="{{chatList.length > 0}}">
+  <view class="message-list-wrapper">
+    <view class="message-list" wx:if="{{messageList.length > 0}}">
       <view 
-        wx:for="{{chatList}}" 
-        wx:key="id" 
-        class="chat-item"
-        bindtap="goToChat"
-        data-id="{{item.id}}"
+        wx:for="{{messageList}}" 
+        wx:key="id"
+        class="message-item {{item.isRead ? 'message-read' : ''}} {{isEditMode ? 'message-edit-mode' : ''}}"
       >
-        <view class="avatar-wrapper">
-          <image class="chat-avatar" src="{{item.avatar}}" mode="aspectFill" />
-          <view class="badge" wx:if="{{item.unread_count > 0}}">
-            <text class="badge-text">{{item.unread_count}}</text>
+        <view class="select-wrapper" wx:if="{{isEditMode}}" bindtap="toggleSelect" data-id="{{item.messageId || item.id}}" data-item-type="{{item.itemType}}">
+          <view class="select-box {{item.isSelected ? 'selected' : ''}}">
+            <text class="select-check" wx:if="{{item.isSelected}}">✓</text>
           </view>
         </view>
-        <view class="chat-info">
-          <view class="chat-header">
-            <text class="chat-name">{{item.name}}</text>
-            <text class="chat-time">{{item.last_message_time}}</text>
+        
+        <view class="message-content-wrapper" bindtap="goToDetail" data-item-type="{{item.itemType}}" data-message-id="{{item.messageId}}" data-id="{{item.id}}" data-is-read="{{item.isRead}}">
+          <view class="message-icon-wrapper" wx:if="{{item.itemType === 'message'}}">
+            <view class="message-icon" style="background: {{item.typeConfig.bgColor}}">
+              <text class="icon-text">{{item.typeConfig.icon}}</text>
+            </view>
+            <view class="unread-dot" wx:if="{{!item.isRead}}"></view>
           </view>
-          <view class="chat-preview">
-            <text class="chat-last-message" lines="1">{{item.last_message}}</text>
+
+          <view class="message-avatar-wrapper" wx:if="{{item.itemType === 'conversation'}}">
+            <image class="message-avatar" src="{{item.avatar}}" mode="aspectFill" />
+            <view class="unread-badge" wx:if="{{item.unread_count > 0}}">
+              <text class="badge-text">{{item.unread_count > 99 ? '99+' : item.unread_count}}</text>
+            </view>
           </view>
+
+          <view class="message-info">
+            <view class="message-header">
+              <text class="message-title {{item.isRead ? 'text-faded' : ''}}">
+                {{item.itemType === 'conversation' ? item.name : item.title}}
+              </text>
+              <text class="message-time">
+                {{item.createTime || item.last_message_time ? (item.createTime ? item.createTime.slice(5, 16) : item.last_message_time.slice(5, 16)) : ''}}
+              </text>
+            </view>
+            <view class="message-preview">
+              <text class="message-desc {{item.isRead ? 'text-faded' : ''}}" lines="1">
+                {{item.itemType === 'conversation' ? item.last_message : item.content}}
+              </text>
+            </view>
+          </view>
+
+          <view class="message-arrow">
+            <text class="arrow-icon">›</text>
+          </view>
+        </view>
+
+        <view class="message-delete-btn" wx:if="{{!isEditMode}}" bindtap="showDeleteConfirm" data-item-type="{{item.itemType}}" data-message-id="{{item.messageId}}" data-id="{{item.id}}">
+          <text class="delete-text">删除</text>
         </view>
       </view>
     </view>
 
-    <view class="empty-chat" wx:else>
-      <text class="empty-icon">💬</text>
-      <text class="empty-text">暂无聊天消息</text>
+    <view class="empty-state" wx:elif="{{!isLoading}}">
+      <view class="empty-icon-wrapper">
+        <text class="empty-icon">📭</text>
+      </view>
+      <text class="empty-title">暂无消息</text>
+      <text class="empty-desc">您的消息列表是空的</text>
+    </view>
+
+    <view class="loading-state" wx:if="{{isLoading && messageList.length === 0}}">
+      <text class="loading-text">加载中...</text>
+    </view>
+
+    <view class="load-more" wx:if="{{isLoading && messageList.length > 0}}">
+      <text class="load-more-text">加载更多...</text>
+    </view>
+  </view>
+
+  <view class="edit-footer" wx:if="{{isEditMode}}">
+    <view class="edit-action {{selectedIds.length === messageList.length && messageList.length > 0 ? 'active' : ''}}" bindtap="selectAll">
+      <text class="edit-action-icon">{{selectedIds.length === messageList.length && messageList.length > 0 ? '✓' : '○'}}</text>
+      <text class="edit-action-text">全选</text>
+    </view>
+    <view class="edit-action edit-action-primary {{selectedIds.length === 0 ? 'disabled' : ''}}" bindtap="batchDelete">
+      <text class="edit-action-icon">🗑️</text>
+      <text class="edit-action-text">删除({{selectedIds.length}})</text>
     </view>
   </view>
 </view>

@@ -589,6 +589,30 @@
   font-weight: 500;
 }
 
+.action-right {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.unread-badge {
+  min-width: 36rpx;
+  height: 36rpx;
+  background: linear-gradient(135deg, #E65100 0%, #BF360C 100%);
+  border-radius: 18rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10rpx;
+  border: 2rpx solid #fff;
+}
+
+.badge-text {
+  font-size: 20rpx;
+  color: #fff;
+  font-weight: bold;
+}
+
 /* 退出登录区域 */
 .logout-section {
   margin: 60rpx 30rpx 0;

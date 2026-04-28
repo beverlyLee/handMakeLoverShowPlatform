@@ -1,0 +1,128 @@
+<view class="chat-container">
+  <view class="chat-messages-wrapper">
+    <scroll-view 
+      scroll-y 
+      class="chat-scroll"
+      scroll-into-view="{{scrollToBottom ? 'bottom-anchor' : ''}}"
+      scroll-with-animation
+    >
+      <view class="loading-more" wx:if="{{isLoading && messageList.length > 0}}">
+        <text class="loading-text">加载更多消息...</text>
+      </view>
+
+      <view class="empty-state" wx:if="{{!isLoading && messageList.length === 0}}">
+        <view class="empty-icon-wrapper">
+          <text class="empty-icon">💬</text>
+        </view>
+        <text class="empty-title">暂无消息</text>
+        <text class="empty-desc">开始与对方聊天吧</text>
+      </view>
+
+      <view class="message-list" wx:else>
+        <view 
+          wx:for="{{messageList}}" 
+          wx:key="id"
+          class="message-item {{item.isSelf ? 'message-self' : 'message-other'}}"
+          id="msg-{{item.id}}"
+        >
+          <view class="message-time-wrapper" wx:if="{{item.showTime}}">
+            <view class="time-line"></view>
+            <view class="time-badge">
+              <text class="time-text">{{formatTime(item.createTime)}}</text>
+            </view>
+            <view class="time-line"></view>
+          </view>
+
+          <view class="message-content-wrapper">
+            <view class="avatar-wrapper" wx:if="{{!item.isSelf}}">
+              <view class="avatar-placeholder" wx:if="{{!item.senderAvatar}}">
+                <text class="avatar-icon">👤</text>
+              </view>
+              <image 
+                class="sender-avatar" 
+                src="{{item.senderAvatar}}" 
+                mode="aspectFill"
+                wx:else
+              />
+            </view>
+
+            <view class="message-bubble-wrapper">
+              <view class="message-bubble {{item.isSelf ? 'bubble-self' : 'bubble-other'}} {{item.sendFailed ? 'bubble-failed' : ''}}">
+                <text class="message-text">{{item.content}}</text>
+              </view>
+              
+              <view class="message-status" wx:if="{{item.isSelf}}">
+                <view class="sending-indicator" wx:if="{{item.isSending}}">
+                  <text class="sending-dot"></text>
+                </view>
+                <view class="failed-indicator" wx:elif="{{item.sendFailed}}" bindtap="resendMessage" data-id="{{item.id}}">
+                  <text class="failed-icon">⚠️</text>
+                  <text class="failed-text">重发</text>
+                </view>
+                <view class="sent-indicator" wx:else>
+                  <text class="sent-icon">✓</text>
+                </view>
+              </view>
+            </view>
+
+            <view class="avatar-wrapper" wx:if="{{item.isSelf}}">
+              <view class="avatar-placeholder avatar-self">
+                <text class="avatar-icon">👤</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <view class="bottom-anchor" id="bottom-anchor"></view>
+    </scroll-view>
+  </view>
+
+  <view class="input-area safe-area-bottom">
+    <view class="input-wrapper">
+      <textarea 
+        class="message-input"
+        value="{{inputValue}}"
+        placeholder="说点什么..."
+        placeholder-class="input-placeholder"
+        maxlength="200"
+        bindinput="onInputChange"
+        bindfocus="onInputFocus"
+        bindblur="onInputBlur"
+        auto-height
+        adjust-position="{{true}}"
+        show-confirm-bar="{{false}}"
+      />
+      <view class="input-counter">
+        <text class="count-text {{inputValue.length > 180 ? 'count-warning' : ''}}">{{inputValue.length}}/200</text>
+      </view>
+    </view>
+    <view class="action-btns">
+      <view class="cancel-btn" bindtap="showCancelConfirm">
+        <text class="btn-text">取消</text>
+      </view>
+      <view class="send-btn {{inputValue.trim().length === 0 || isSending ? 'send-disabled' : ''}}" bindtap="sendMessage">
+        <text class="btn-text">{{isSending ? '发送中...' : '发送'}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="cancel-dialog-mask" wx:if="{{showCancelDialog}}" catchtouchmove="preventMove">
+    <view class="cancel-dialog">
+      <view class="dialog-header">
+        <text class="dialog-title">确认离开</text>
+      </view>
+      <view class="dialog-content">
+        <text class="dialog-desc">您输入的内容将不会保存，确定要离开吗？</text>
+      </view>
+      <view class="dialog-footer">
+        <view class="dialog-btn dialog-btn-cancel" bindtap="closeCancelDialog">
+          <text class="btn-text">继续编辑</text>
+        </view>
+        <view class="dialog-btn dialog-btn-confirm" bindtap="confirmCancel">
+          <text class="btn-text">确定离开</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

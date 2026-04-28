@@ -292,6 +292,118 @@ function showToast(title, icon = 'none') {
   });
 }
 
+/**
+ * 安全的日期解析函数，解决 iOS 下日期格式兼容性问题
+ * iOS 只支持: "yyyy/MM/dd", "yyyy/MM/dd HH:mm:ss", "yyyy-MM-dd", 
+ *             "yyyy-MM-ddTHH:mm:ss", "yyyy-MM-ddTHH:mm:ss+HH:mm"
+ * 不支持: "yyyy-MM-dd HH:mm:ss"（带空格的时间格式）
+ * @param {string} timeStr - 日期字符串
+ * @returns {Date} 日期对象
+ */
+function safeParseDate(timeStr) {
+  if (!timeStr) {
+    return new Date(0);
+  }
+
+  if (typeof timeStr === 'number') {
+    return new Date(timeStr);
+  }
+
+  if (timeStr instanceof Date) {
+    return timeStr;
+  }
+
+  let safeTimeStr = timeStr;
+
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(safeTimeStr)) {
+    safeTimeStr = safeTimeStr.replace(' ', 'T');
+  }
+
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(safeTimeStr)) {
+    safeTimeStr = safeTimeStr.replace(' ', 'T') + ':00';
+  }
+
+  if (/^\d{4}\/\d{2}\/\d{2}/.test(safeTimeStr)) {
+    safeTimeStr = safeTimeStr.replace(/\//g, '-');
+    if (safeTimeStr.includes(' ')) {
+      safeTimeStr = safeTimeStr.replace(' ', 'T');
+    }
+  }
+
+  const parsedDate = new Date(safeTimeStr);
+
+  if (isNaN(parsedDate.getTime())) {
+    console.warn(`[safeParseDate] 无法解析日期: ${timeStr}，使用当前时间`);
+    return new Date();
+  }
+
+  return parsedDate;
+}
+
+/**
+ * 格式化相对时间
+ * @param {string} timeStr - 日期字符串
+ * @returns {string} 格式化后的时间（如：刚刚、5分钟前、昨天等）
+ */
+function formatRelativeTime(timeStr) {
+  if (!timeStr) return '';
+
+  const now = new Date();
+  const time = safeParseDate(timeStr);
+  const diff = now - time;
+
+  const minute = 60 * 1000;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+
+  if (diff < minute) {
+    return '刚刚';
+  } else if (diff < hour) {
+    return `${Math.floor(diff / minute)}分钟前`;
+  } else if (diff < day) {
+    return `${Math.floor(diff / hour)}小时前`;
+  } else if (diff < 7 * day) {
+    return `${Math.floor(diff / day)}天前`;
+  } else {
+    const month = time.getMonth() + 1;
+    const date = time.getDate();
+    return `${month}月${date}日`;
+  }
+}
+
+/**
+ * 格式化日期时间
+ * @param {string} timeStr - 日期字符串
+ * @param {string} format - 格式，默认 'YYYY-MM-DD HH:mm:ss'
+ * @returns {string} 格式化后的日期时间
+ */
+function formatDateTime(timeStr, format = 'YYYY-MM-DD HH:mm:ss') {
+  if (!timeStr) return '';
+
+  const date = safeParseDate(timeStr);
+
+  if (isNaN(date.getTime())) {
+    return '';
+  }
+
+  const year = date.getFullYear();
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const day = date.getDate().toString().padStart(2, '0');
+  const hour = date.getHours().toString().padStart(2, '0');
+  const minute = date.getMinutes().toString().padStart(2, '0');
+  const second = date.getSeconds().toString().padStart(2, '0');
+
+  let result = format;
+  result = result.replace(/YYYY/g, year.toString());
+  result = result.replace(/MM/g, month);
+  result = result.replace(/DD/g, day);
+  result = result.replace(/HH/g, hour);
+  result = result.replace(/mm/g, minute);
+  result = result.replace(/ss/g, second);
+
+  return result;
+}
+
 module.exports = {
   getFullImageUrl,
   getRelativeImageUrl,
@@ -306,5 +418,8 @@ module.exports = {
   randomString,
   showLoading,
   hideLoading,
-  showToast
+  showToast,
+  safeParseDate,
+  formatRelativeTime,
+  formatDateTime
 };

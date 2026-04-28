@@ -1,0 +1,81 @@
+<view class="message-detail-container">
+  <view class="loading-state" wx:if="{{isLoading}}">
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <view class="message-content" wx:elif="{{messageDetail}}">
+    <view class="message-header-card">
+      <view class="header-left">
+        <view class="message-icon" style="background: {{typeConfig.bgColor}}">
+          <text class="icon-text">{{typeConfig.icon}}</text>
+        </view>
+        <view class="header-info">
+          <text class="message-type">{{typeConfig.name}}</text>
+          <text class="message-status" wx:if="{{!isRead}}">未读</text>
+        </view>
+      </view>
+      <view class="header-right" bindtap="showDeleteConfirm">
+        <text class="delete-icon">🗑️</text>
+      </view>
+    </view>
+
+    <view class="message-info-card">
+      <view class="info-section sender-section">
+        <view class="sender-info">
+          <image 
+            class="sender-avatar" 
+            src="{{messageDetail.sender_avatar || ''}}" 
+            mode="aspectFill"
+            wx:if="{{messageDetail.sender_avatar}}"
+          />
+          <view class="avatar-placeholder" wx:else>
+            <text class="avatar-icon">👤</text>
+          </view>
+          <view class="sender-text-info">
+            <text class="sender-name">{{messageDetail.sender || '系统消息'}}</text>
+            <text class="send-time">{{messageDetail.create_time}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="info-section title-section">
+        <text class="message-title">{{messageDetail.title}}</text>
+      </view>
+    </view>
+
+    <view class="message-body-card">
+      <view class="body-header">
+        <view class="header-line"></view>
+        <text class="body-label">消息内容</text>
+        <view class="header-line"></view>
+      </view>
+      <view class="message-content-text">
+        <text class="content-text">{{messageDetail.content}}</text>
+      </view>
+    </view>
+
+    <view class="message-actions" wx:if="{{messageDetail.type === 'order' || messageDetail.type === 'activity'}}">
+      <view class="action-btn secondary" wx:if="{{messageDetail.order_id}}" bindtap="goToOrder">
+        <text class="action-icon">📦</text>
+        <text class="action-text">查看订单</text>
+      </view>
+      <view class="action-btn primary" wx:if="{{messageDetail.activity_url}}" bindtap="goToActivity">
+        <text class="action-icon">👉</text>
+        <text class="action-text">立即参与</text>
+      </view>
+    </view>
+
+    <view class="bottom-tip">
+      <view class="tip-icon">📌</view>
+      <text class="tip-text">此消息由系统自动发送，请勿直接回复</text>
+    </view>
+  </view>
+
+  <view class="empty-state" wx:else>
+    <view class="empty-icon-wrapper">
+      <text class="empty-icon">📭</text>
+    </view>
+    <text class="empty-title">消息不存在</text>
+    <text class="empty-desc">该消息可能已被删除或不存在</text>
+  </view>
+</view>
