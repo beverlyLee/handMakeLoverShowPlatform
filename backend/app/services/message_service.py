@@ -37,7 +37,8 @@ class MessageService:
         related_id=None,
         related_type=None,
         sender='系统',
-        sender_avatar=None
+        sender_avatar=None,
+        recipient_role='customer'
     ):
         message_type = MessageService._get_message_type_by_subtype(subtype)
         
@@ -50,7 +51,8 @@ class MessageService:
             sender_avatar=sender_avatar,
             is_read=False,
             related_id=related_id,
-            related_type=related_type
+            related_type=related_type,
+            recipient_role=recipient_role
         )
         
         db.session.add(message)
@@ -125,7 +127,8 @@ class MessageService:
             content=customer_content,
             related_id=order.id,
             related_type='order',
-            sender='订单中心'
+            sender='订单中心',
+            recipient_role='customer'
         )
         
         if teacher:
@@ -147,7 +150,8 @@ class MessageService:
                 content=teacher_content,
                 related_id=order.id,
                 related_type='order',
-                sender='订单中心'
+                sender='订单中心',
+                recipient_role='teacher'
             )
     
     @staticmethod
@@ -181,7 +185,8 @@ class MessageService:
             content=customer_content,
             related_id=order.id,
             related_type='order',
-            sender='订单中心'
+            sender='订单中心',
+            recipient_role='customer'
         )
         
         if teacher:
@@ -201,7 +206,8 @@ class MessageService:
                 content=teacher_content,
                 related_id=order.id,
                 related_type='order',
-                sender='订单中心'
+                sender='订单中心',
+                recipient_role='teacher'
             )
     
     @staticmethod
@@ -224,7 +230,8 @@ class MessageService:
             content=customer_content,
             related_id=order.id,
             related_type='order',
-            sender='订单中心'
+            sender='订单中心',
+            recipient_role='customer'
         )
         
         if teacher:
@@ -243,7 +250,8 @@ class MessageService:
                 content=teacher_content,
                 related_id=order.id,
                 related_type='order',
-                sender='订单中心'
+                sender='订单中心',
+                recipient_role='teacher'
             )
     
     @staticmethod
@@ -269,7 +277,8 @@ class MessageService:
             content=customer_content,
             related_id=order.id,
             related_type='order',
-            sender='订单中心'
+            sender='订单中心',
+            recipient_role='customer'
         )
         
         if teacher:
@@ -288,7 +297,8 @@ class MessageService:
                 content=teacher_content,
                 related_id=order.id,
                 related_type='order',
-                sender='订单中心'
+                sender='订单中心',
+                recipient_role='teacher'
             )
     
     @staticmethod
@@ -317,7 +327,8 @@ class MessageService:
             content=customer_content,
             related_id=order.id,
             related_type='order',
-            sender='订单中心'
+            sender='订单中心',
+            recipient_role='customer'
         )
         
         if teacher:
@@ -337,7 +348,8 @@ class MessageService:
                 content=teacher_content,
                 related_id=order.id,
                 related_type='order',
-                sender='订单中心'
+                sender='订单中心',
+                recipient_role='teacher'
             )
     
     @staticmethod
@@ -361,7 +373,8 @@ class MessageService:
             content=customer_content,
             related_id=order.id,
             related_type='order',
-            sender='订单中心'
+            sender='订单中心',
+            recipient_role='customer'
         )
         
         if teacher:
@@ -377,7 +390,8 @@ class MessageService:
                 content=teacher_content,
                 related_id=order.id,
                 related_type='order',
-                sender='订单中心'
+                sender='订单中心',
+                recipient_role='teacher'
             )
     
     @staticmethod
@@ -400,7 +414,8 @@ class MessageService:
                 content=customer_content,
                 related_id=order.id,
                 related_type='order',
-                sender='订单中心'
+                sender='订单中心',
+                recipient_role='customer'
             )
             
             if teacher:
@@ -419,7 +434,8 @@ class MessageService:
                     content=teacher_content,
                     related_id=order.id,
                     related_type='order',
-                    sender='订单中心'
+                    sender='订单中心',
+                    recipient_role='teacher'
                 )
         else:
             if teacher:
@@ -435,7 +451,8 @@ class MessageService:
                     content=teacher_content,
                     related_id=order.id,
                     related_type='order',
-                    sender='订单中心'
+                    sender='订单中心',
+                    recipient_role='teacher'
                 )
             
             if customer:
@@ -452,7 +469,8 @@ class MessageService:
                     content=customer_content,
                     related_id=order.id,
                     related_type='order',
-                    sender='订单中心'
+                    sender='订单中心',
+                    recipient_role='customer'
                 )
     
     @staticmethod
@@ -474,7 +492,8 @@ class MessageService:
             content=content,
             related_id=review.id,
             related_type='review',
-            sender='评价中心'
+            sender='评价中心',
+            recipient_role='teacher'
         )
     
     @staticmethod
@@ -497,7 +516,8 @@ class MessageService:
                     content=content,
                     related_id=activity.id,
                     related_type='activity',
-                    sender='活动中心'
+                    sender='活动中心',
+                    recipient_role='customer'
                 )
         else:
             pass
@@ -547,7 +567,8 @@ class MessageService:
             content=customer_content,
             related_id=order.id,
             related_type='order',
-            sender='订单中心'
+            sender='订单中心',
+            recipient_role='customer'
         )
         
         if teacher:
@@ -558,7 +579,8 @@ class MessageService:
                 content=teacher_content,
                 related_id=order.id,
                 related_type='order',
-                sender='订单中心'
+                sender='订单中心',
+                recipient_role='teacher'
             )
     
     @staticmethod

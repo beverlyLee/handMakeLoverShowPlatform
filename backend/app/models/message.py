@@ -31,6 +31,8 @@ class Message(db.Model):
     related_id = db.Column(db.Integer)
     related_type = db.Column(db.String(50))
     
+    recipient_role = db.Column(db.String(20), default='customer')
+    
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -51,6 +53,7 @@ class Message(db.Model):
             'read_at': self.read_at.strftime('%Y-%m-%d %H:%M:%S') if self.read_at else None,
             'related_id': self.related_id,
             'related_type': self.related_type,
+            'recipient_role': self.recipient_role,
             'create_time': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None,
             'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None,
             'update_time': self.updated_at.strftime('%Y-%m-%d %H:%M:%S') if self.updated_at else None

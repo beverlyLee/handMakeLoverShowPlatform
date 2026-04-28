@@ -161,6 +161,9 @@ def migrate():
         print("\n正在检查 teacher_profiles 表:")
         add_column_if_not_exists('teacher_profiles', 'auto_accept BOOLEAN DEFAULT 0')
         
+        print("\n正在检查 messages 表:")
+        add_column_if_not_exists('messages', 'recipient_role VARCHAR(20) DEFAULT "customer"')
+        
         print("\n为已有订单设置默认值...")
         try:
             result1 = db.session.execute(

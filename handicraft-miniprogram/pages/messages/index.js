@@ -5,9 +5,17 @@ const {
   deleteMessage,
   batchDeleteMessages,
   markAsRead,
-  batchMarkAsRead
+  batchMarkAsRead,
+  deleteConversation,
+  batchDeleteConversations
 } = require('../../api/messages');
 const { showToast, safeParseDate } = require('../../utils/util');
+const storage = require('../../utils/storage');
+
+function getCurrentRole() {
+  const userInfo = storage.getUserInfo();
+  return userInfo?.current_role || userInfo?.role || 'customer';
+}
 
 const MESSAGE_TYPES = {
   system: {
@@ -121,7 +129,12 @@ Page({
 
   async loadUnreadCount() {
     try {
-      const result = await getUnreadCount();
+      const currentRole = getCurrentRole();
+      const params = {};
+      if (currentRole) {
+        params.role = currentRole;
+      }
+      const result = await getUnreadCount(params);
       const counts = result || {};
       const total = (counts.system || 0) + (counts.order || 0) + 
                    (counts.activity || 0) + (counts.chat || 0);
@@ -181,6 +194,10 @@ Page({
           const params = { page, size: pageSize };
           if (activeTab !== 'all') {
             params.type = activeTab;
+          }
+          const currentRole = getCurrentRole();
+          if (currentRole) {
+            params.role = currentRole;
           }
           const msgResult = await getMessages(params);
           const msgData = msgResult?.list || msgResult;
@@ -280,6 +297,10 @@ Page({
           const params = { page, size: pageSize };
           if (activeTab !== 'all') {
             params.type = activeTab;
+          }
+          const currentRole = getCurrentRole();
+          if (currentRole) {
+            params.role = currentRole;
           }
           const msgResult = await getMessages(params);
           const messages = msgResult?.list || msgResult;
@@ -384,6 +405,8 @@ Page({
     try {
       if (itemType === 'message') {
         await deleteMessage(id);
+      } else {
+        await deleteConversation(id);
       }
       
       const { messageList } = this.data;
@@ -532,12 +555,18 @@ Page({
     const messageIds = selectedIds
       .filter(item => item.itemType === 'message')
       .map(item => item.id);
+    const conversationIds = selectedIds
+      .filter(item => item.itemType === 'conversation')
+      .map(item => item.id);
 
     wx.showLoading({ title: '删除中...', mask: true });
 
     try {
       if (messageIds.length > 0) {
         await batchDeleteMessages(messageIds);
+      }
+      if (conversationIds.length > 0) {
+        await batchDeleteConversations(conversationIds);
       }
 
       const newList = messageList.filter(item => {
@@ -694,40 +723,24 @@ Page({
     
     wx.showLoading({ title: '删除中...', mask: true });
 
-    try {
-      if (itemType === 'message') {
-        deleteMessage(id).then(() => {
-          const newList = messageList.filter((m, i) => i !== index);
-          
-          this.setData({
-            messageList: newList,
-            currentSwipedIndex: null
-          });
-          
-          wx.hideLoading();
-          showToast('删除成功', 'success');
-          this.loadUnreadCount();
-        }).catch(() => {
-          wx.hideLoading();
-          showToast('删除失败，请重试');
-        });
-      } else {
-        const newList = messageList.filter((m, i) => i !== index);
-        
-        this.setData({
-          messageList: newList,
-          currentSwipedIndex: null
-        });
-        
-        wx.hideLoading();
-        showToast('删除成功', 'success');
-        this.loadUnreadCount();
-      }
-    } catch (error) {
+    const deleteApi = itemType === 'message' ? deleteMessage : deleteConversation;
+    
+    deleteApi(id).then(() => {
+      const newList = messageList.filter((m, i) => i !== index);
+      
+      this.setData({
+        messageList: newList,
+        currentSwipedIndex: null
+      });
+      
+      wx.hideLoading();
+      showToast('删除成功', 'success');
+      this.loadUnreadCount();
+    }).catch((error) => {
       wx.hideLoading();
       console.log('删除失败:', error);
       showToast('删除失败，请重试');
-    }
+    });
   },
 
   formatTime(timeStr) {

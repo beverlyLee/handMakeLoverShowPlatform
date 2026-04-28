@@ -503,7 +503,12 @@ Page({
 
   async loadMessageUnreadCount() {
     try {
-      const result = await getUnreadCount();
+      const { currentRole } = this.data;
+      const params = {};
+      if (currentRole) {
+        params.role = currentRole;
+      }
+      const result = await getUnreadCount(params);
       const counts = result || {};
       const total = (counts.system || 0) + (counts.order || 0) + 
                    (counts.activity || 0) + (counts.chat || 0);

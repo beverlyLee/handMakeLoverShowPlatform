@@ -51,9 +51,10 @@ function batchDeleteMessages(messageIds) {
 
 /**
  * 获取未读数量
+ * @param {Object} params - { role } - 可选，角色过滤
  */
-function getUnreadCount() {
-  return get('/messages/unread');
+function getUnreadCount(params = {}) {
+  return get('/messages/unread', params);
 }
 
 /**
@@ -135,6 +136,22 @@ function contactThroughOrder(orderId, content = '') {
   return post(`/messages/order/${orderId}/contact`, data);
 }
 
+/**
+ * 删除会话
+ * @param {number} conversationId - 会话ID
+ */
+function deleteConversation(conversationId) {
+  return del(`/messages/conversations/${conversationId}`);
+}
+
+/**
+ * 批量删除会话
+ * @param {Array} conversationIds - 会话ID数组
+ */
+function batchDeleteConversations(conversationIds) {
+  return del('/messages/conversations/batch-delete', { conversation_ids: conversationIds });
+}
+
 module.exports = {
   getMessages,
   getMessageDetail,
@@ -150,5 +167,7 @@ module.exports = {
   sendDirectChat,
   getConversationWithUser,
   getMessagesWithUser,
-  contactThroughOrder
+  contactThroughOrder,
+  deleteConversation,
+  batchDeleteConversations
 };

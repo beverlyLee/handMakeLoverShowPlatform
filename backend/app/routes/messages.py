@@ -24,11 +24,17 @@ def get_current_user_id():
 @login_required
 def get_unread_count():
     user_id = get_current_user_id()
+    role = request.args.get('role', None)
     
-    unread_messages = Message.query.filter_by(
+    query = Message.query.filter_by(
         user_id=user_id,
         is_read=False
-    ).all()
+    )
+    
+    if role and role in ['customer', 'teacher']:
+        query = query.filter_by(recipient_role=role)
+    
+    unread_messages = query.all()
     
     unread_by_type = {
         'system': 0,
@@ -71,11 +77,15 @@ def get_messages():
     page = request.args.get('page', 1, type=int)
     size = request.args.get('size', 20, type=int)
     msg_type = request.args.get('type', None)
+    role = request.args.get('role', None)
     
     query = Message.query.filter_by(user_id=user_id)
     
     if msg_type and msg_type in MESSAGE_TYPES:
         query = query.filter_by(type=msg_type)
+    
+    if role and role in ['customer', 'teacher']:
+        query = query.filter_by(recipient_role=role)
     
     total = query.count()
     
@@ -208,6 +218,51 @@ def batch_delete_messages():
     db.session.commit()
     
     return jsonify(success(msg=f'已删除 {deleted_count} 条消息'))
+
+
+@message_bp.route('/conversations/<int:conversation_id>', methods=['DELETE'])
+@login_required
+def delete_conversation(conversation_id):
+    user_id = get_current_user_id()
+    
+    conversation = Conversation.query.filter(
+        Conversation.id == conversation_id,
+        (Conversation.user1_id == user_id) | (Conversation.user2_id == user_id)
+    ).first()
+    
+    if not conversation:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='会话不存在')), 404
+    
+    db.session.delete(conversation)
+    db.session.commit()
+    
+    return jsonify(success(msg='删除成功'))
+
+
+@message_bp.route('/conversations/batch-delete', methods=['DELETE'])
+@login_required
+def batch_delete_conversations():
+    user_id = get_current_user_id()
+    
+    data = request.get_json()
+    if not data or 'conversation_ids' not in data:
+        return jsonify(error(code=ResponseCode.PARAM_MISSING, msg='conversation_ids 参数不能为空')), 400
+    
+    conversation_ids = data.get('conversation_ids', [])
+    if not isinstance(conversation_ids, list):
+        return jsonify(error(code=ResponseCode.PARAM_INVALID, msg='conversation_ids 必须是数组')), 400
+    
+    if len(conversation_ids) == 0:
+        return jsonify(success(msg='没有需要删除的会话'))
+    
+    deleted_count = Conversation.query.filter(
+        Conversation.id.in_(conversation_ids),
+        (Conversation.user1_id == user_id) | (Conversation.user2_id == user_id)
+    ).delete(synchronize_session=False)
+    
+    db.session.commit()
+    
+    return jsonify(success(msg=f'已删除 {deleted_count} 个会话'))
 
 
 @message_bp.route('/conversations', methods=['GET'])
