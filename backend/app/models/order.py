@@ -88,6 +88,8 @@ class Order(db.Model):
         'pending': '待付款',
         'pending_accept': '待接单',
         'accepted': '已接单',
+        'in_progress': '制作中',
+        'ready_to_ship': '制作完成',
         'paid': '待发货',
         'shipped': '待收货',
         'delivered': '已送达',

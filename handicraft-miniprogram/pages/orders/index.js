@@ -9,7 +9,10 @@ const {
   acceptOrder,
   rejectOrder,
   shipOrder,
-  getTeacherOrderStats
+  getTeacherOrderStats,
+  startMakingOrder,
+  completeMakingOrder,
+  editOrder
 } = require('../../api/orders');
 const { showToast } = require('../../utils/util');
 const storage = require('../../utils/storage');
@@ -18,14 +21,18 @@ const CUSTOMER_TABS = [
   { label: '全部', value: '' },
   { label: '待付款', value: 'pending' },
   { label: '待接单', value: 'pending_accept' },
-  { label: '待发货', value: 'paid' },
+  { label: '制作中', value: 'in_progress' },
+  { label: '待发货', value: 'accepted,ready_to_ship,paid' },
   { label: '待收货', value: 'shipped' },
   { label: '已完成', value: 'completed' }
 ];
 
 const TEACHER_TABS = [
   { label: '全部', value: '' },
+  { label: '待付款', value: 'pending' },
   { label: '待接单', value: 'pending_accept' },
+  { label: '制作中', value: 'in_progress' },
+  { label: '制作完成', value: 'ready_to_ship' },
   { label: '待发货', value: 'accepted,paid' },
   { label: '待收货', value: 'shipped' },
   { label: '已完成', value: 'completed' }
@@ -45,6 +52,8 @@ const STATUS_TEXT_MAP = {
   'pending': '待付款',
   'pending_accept': '待接单',
   'accepted': '已接单',
+  'in_progress': '制作中',
+  'ready_to_ship': '制作完成',
   'paid': '待发货',
   'shipped': '待收货',
   'delivered': '已送达',
@@ -75,6 +84,9 @@ Page({
     showAcceptDialog: false,
     showRejectDialog: false,
     showShipDialog: false,
+    showStartMakingDialog: false,
+    showCompleteMakingDialog: false,
+    showEditDialog: false,
     selectedOrder: null,
 
     rejectReason: '',
@@ -82,6 +94,22 @@ Page({
     shippingCompanyIndex: 0,
     trackingNumber: '',
     shippingCompanies: SHIPPING_COMPANIES,
+
+    editForm: {
+      totalAmount: '',
+      discountAmount: '',
+      shippingFee: '',
+      remark: '',
+      address: {
+        name: '',
+        phone: '',
+        province: '',
+        city: '',
+        district: '',
+        detail: ''
+      },
+      items: []
+    },
 
     searchKeyword: '',
     showSearch: false,
@@ -441,6 +469,52 @@ Page({
     }
   },
 
+  async acceptAndShip() {
+    if (!this.data.selectedOrder) return;
+
+    wx.showLoading({ title: '处理中...', mask: true });
+
+    try {
+      await acceptOrder(this.data.selectedOrder.id);
+      wx.hideLoading();
+      showToast('已接单，可在待发货中查看', 'success');
+      this.closeAcceptDialog();
+
+      this.setData({ page: 1, orders: [], hasMore: true });
+      await Promise.all([
+        this.loadOrders(),
+        this.loadOrderStats()
+      ]);
+    } catch (error) {
+      console.error('操作失败:', error);
+      wx.hideLoading();
+      showToast(error.msg || '操作失败，请重试');
+    }
+  },
+
+  async acceptAndMake() {
+    if (!this.data.selectedOrder) return;
+
+    wx.showLoading({ title: '处理中...', mask: true });
+
+    try {
+      await startMakingOrder(this.data.selectedOrder.id);
+      wx.hideLoading();
+      showToast('已开始制作', 'success');
+      this.closeAcceptDialog();
+
+      this.setData({ page: 1, orders: [], hasMore: true });
+      await Promise.all([
+        this.loadOrders(),
+        this.loadOrderStats()
+      ]);
+    } catch (error) {
+      console.error('操作失败:', error);
+      wx.hideLoading();
+      showToast(error.msg || '操作失败，请重试');
+    }
+  },
+
   showRejectDialog(e) {
     const orderId = e.currentTarget.dataset.id;
     const order = this.data.orders.find(o => o.id === orderId);
@@ -660,5 +734,189 @@ Page({
 
   stopPropagation() {
     return;
+  },
+
+  showStartMakingDialog(e) {
+    const orderId = e.currentTarget.dataset.id;
+    const order = this.data.orders.find(o => o.id === orderId);
+
+    if (order) {
+      this.setData({
+        selectedOrder: order,
+        showStartMakingDialog: true
+      });
+    }
+  },
+
+  closeStartMakingDialog() {
+    this.setData({
+      showStartMakingDialog: false,
+      selectedOrder: null
+    });
+  },
+
+  async startMaking() {
+    if (!this.data.selectedOrder) return;
+
+    wx.showLoading({ title: '操作中...', mask: true });
+
+    try {
+      await startMakingOrder(this.data.selectedOrder.id);
+      wx.hideLoading();
+      showToast('已开始制作', 'success');
+      this.closeStartMakingDialog();
+
+      this.setData({ page: 1, orders: [], hasMore: true });
+      await Promise.all([
+        this.loadOrders(),
+        this.loadOrderStats()
+      ]);
+    } catch (error) {
+      console.error('开始制作失败:', error);
+      wx.hideLoading();
+      showToast(error.msg || '操作失败，请重试');
+    }
+  },
+
+  showCompleteMakingDialog(e) {
+    const orderId = e.currentTarget.dataset.id;
+    const order = this.data.orders.find(o => o.id === orderId);
+
+    if (order) {
+      this.setData({
+        selectedOrder: order,
+        showCompleteMakingDialog: true
+      });
+    }
+  },
+
+  closeCompleteMakingDialog() {
+    this.setData({
+      showCompleteMakingDialog: false,
+      selectedOrder: null
+    });
+  },
+
+  async completeMaking() {
+    if (!this.data.selectedOrder) return;
+
+    wx.showLoading({ title: '操作中...', mask: true });
+
+    try {
+      await completeMakingOrder(this.data.selectedOrder.id);
+      wx.hideLoading();
+      showToast('制作完成', 'success');
+      this.closeCompleteMakingDialog();
+
+      this.setData({ page: 1, orders: [], hasMore: true });
+      await Promise.all([
+        this.loadOrders(),
+        this.loadOrderStats()
+      ]);
+    } catch (error) {
+      console.error('完成制作失败:', error);
+      wx.hideLoading();
+      showToast(error.msg || '操作失败，请重试');
+    }
+  },
+
+  showEditDialog(e) {
+    const orderId = e.currentTarget.dataset.id;
+    const order = this.data.orders.find(o => o.id === orderId);
+
+    if (order) {
+      const isPending = order.status === 'pending';
+      
+      this.setData({
+        selectedOrder: order,
+        showEditDialog: true,
+        editForm: {
+          totalAmount: order.total_amount ? order.total_amount.toString() : '',
+          discountAmount: order.discount_amount ? order.discount_amount.toString() : '',
+          shippingFee: order.shipping_fee ? order.shipping_fee.toString() : '',
+          remark: order.remark || '',
+          address: {
+            name: order.address?.name || '',
+            phone: order.address?.phone || '',
+            province: order.address?.province || '',
+            city: order.address?.city || '',
+            district: order.address?.district || '',
+            detail: order.address?.detail || ''
+          },
+          items: [...(order.items || [])],
+          isPending: isPending
+        }
+      });
+    }
+  },
+
+  closeEditDialog() {
+    this.setData({
+      showEditDialog: false,
+      selectedOrder: null
+    });
+  },
+
+  onEditInput(e) {
+    const field = e.currentTarget.dataset.field;
+    const value = e.detail.value;
+    const editForm = { ...this.data.editForm };
+    
+    if (field.includes('.')) {
+      const [parent, child] = field.split('.');
+      editForm[parent] = { ...editForm[parent], [child]: value };
+    } else {
+      editForm[field] = value;
+    }
+    
+    this.setData({ editForm });
+  },
+
+  async saveEdit() {
+    if (!this.data.selectedOrder) return;
+
+    const { editForm, selectedOrder } = this.data;
+    const isPending = selectedOrder.status === 'pending';
+    
+    const updateData = {
+      address: editForm.address
+    };
+
+    if (isPending) {
+      if (editForm.totalAmount !== '') {
+        updateData.total_amount = parseFloat(editForm.totalAmount) || 0;
+      }
+      if (editForm.discountAmount !== '') {
+        updateData.discount_amount = parseFloat(editForm.discountAmount) || 0;
+      }
+      if (editForm.shippingFee !== '') {
+        updateData.shipping_fee = parseFloat(editForm.shippingFee) || 0;
+      }
+      if (editForm.remark !== '') {
+        updateData.remark = editForm.remark;
+      }
+      if (editForm.items && editForm.items.length > 0) {
+        updateData.items = editForm.items;
+      }
+    }
+
+    wx.showLoading({ title: '保存中...', mask: true });
+
+    try {
+      await editOrder(this.data.selectedOrder.id, updateData);
+      wx.hideLoading();
+      showToast('修改成功', 'success');
+      this.closeEditDialog();
+
+      this.setData({ page: 1, orders: [], hasMore: true });
+      await Promise.all([
+        this.loadOrders(),
+        this.loadOrderStats()
+      ]);
+    } catch (error) {
+      console.error('修改订单失败:', error);
+      wx.hideLoading();
+      showToast(error.msg || '修改失败，请重试');
+    }
   }
 });

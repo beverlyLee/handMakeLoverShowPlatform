@@ -13,6 +13,8 @@ STATUS_NAMES = {
     'pending': '待付款',
     'pending_accept': '待接单',
     'accepted': '已接单',
+    'in_progress': '制作中',
+    'ready_to_ship': '制作完成',
     'paid': '待发货',
     'shipped': '待收货',
     'delivered': '已送达',
@@ -48,6 +50,8 @@ def get_order_stats_from_query(query):
         'pending': 0,
         'pending_accept': 0,
         'accepted': 0,
+        'in_progress': 0,
+        'ready_to_ship': 0,
         'paid': 0,
         'shipped': 0,
         'delivered': 0,
@@ -63,12 +67,12 @@ def get_order_stats_from_query(query):
     
     for order in orders:
         stats[order.status] = stats.get(order.status, 0) + 1
-        if order.status in ['pending_accept', 'accepted', 'paid', 'shipped', 'delivered', 'completed']:
+        if order.status in ['pending_accept', 'accepted', 'in_progress', 'ready_to_ship', 'paid', 'shipped', 'delivered', 'completed']:
             stats['total_amount'] += order.pay_amount
         
         if order.created_at and order.created_at.date() == today:
             stats['today_orders'] += 1
-            if order.status in ['pending_accept', 'accepted', 'paid', 'shipped', 'delivered', 'completed']:
+            if order.status in ['pending_accept', 'accepted', 'in_progress', 'ready_to_ship', 'paid', 'shipped', 'delivered', 'completed']:
                 stats['today_amount'] += order.pay_amount
     
     return stats
@@ -539,8 +543,8 @@ def ship_order(order_id):
     if not order:
         return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='订单不存在')), 404
     
-    if order.status not in ['accepted', 'paid']:
-        return jsonify(error(code=ResponseCode.OPERATION_FAILED, msg=f'只有已接单或待发货状态可以发货，当前状态: {STATUS_NAMES.get(order.status)}')), 400
+    if order.status not in ['accepted', 'in_progress', 'ready_to_ship', 'paid']:
+        return jsonify(error(code=ResponseCode.OPERATION_FAILED, msg=f'只有已接单、制作中、制作完成或待发货状态可以发货，当前状态: {STATUS_NAMES.get(order.status)}')), 400
     
     if order.teacher_id != user_id:
         return jsonify(error(code=ResponseCode.PERMISSION_DENIED, msg='无权操作此订单')), 403
@@ -598,3 +602,118 @@ def get_order_logistics(order_id):
         logistics_info['tracking_items'] = [item.to_dict() for item in order.logistics.items]
     
     return jsonify(success(data=logistics_info))
+
+
+@order_bp.route('/<order_id>/start-making', methods=['POST'])
+@login_required
+def start_making_order(order_id):
+    user_dict, user_id = get_current_user()
+    order = Order.query.get(order_id)
+    
+    if not order:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='订单不存在')), 404
+    
+    if order.status not in ['accepted', 'pending_accept']:
+        return jsonify(error(code=ResponseCode.OPERATION_FAILED, msg=f'只有已接单或待接单状态可以开始制作，当前状态: {STATUS_NAMES.get(order.status)}')), 400
+    
+    if order.teacher_id != user_id:
+        return jsonify(error(code=ResponseCode.PERMISSION_DENIED, msg='无权操作此订单')), 403
+    
+    order.status = 'in_progress'
+    order.updated_at = datetime.utcnow()
+    db.session.commit()
+    
+    return jsonify(success(data=order.to_dict(), msg='已开始制作'))
+
+
+@order_bp.route('/<order_id>/complete-making', methods=['POST'])
+@login_required
+def complete_making_order(order_id):
+    user_dict, user_id = get_current_user()
+    order = Order.query.get(order_id)
+    
+    if not order:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='订单不存在')), 404
+    
+    if order.status != 'in_progress':
+        return jsonify(error(code=ResponseCode.OPERATION_FAILED, msg=f'只有制作中状态可以标记制作完成，当前状态: {STATUS_NAMES.get(order.status)}')), 400
+    
+    if order.teacher_id != user_id:
+        return jsonify(error(code=ResponseCode.PERMISSION_DENIED, msg='无权操作此订单')), 403
+    
+    order.status = 'ready_to_ship'
+    order.updated_at = datetime.utcnow()
+    db.session.commit()
+    
+    return jsonify(success(data=order.to_dict(), msg='制作完成，等待发货'))
+
+
+@order_bp.route('/<order_id>/edit', methods=['PUT'])
+@login_required
+def edit_order(order_id):
+    user_dict, user_id = get_current_user()
+    order = Order.query.get(order_id)
+    
+    if not order:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='订单不存在')), 404
+    
+    if order.teacher_id != user_id:
+        return jsonify(error(code=ResponseCode.PERMISSION_DENIED, msg='无权操作此订单')), 403
+    
+    can_edit_all = order.status == 'pending'
+    can_edit_address = order.status in ['pending_accept', 'accepted', 'in_progress', 'ready_to_ship']
+    
+    if not can_edit_all and not can_edit_address:
+        return jsonify(error(code=ResponseCode.OPERATION_FAILED, msg='当前订单状态不可修改')), 400
+    
+    data = request.get_json() or {}
+    
+    if can_edit_all:
+        if 'total_amount' in data:
+            order.total_amount = data['total_amount']
+        if 'discount_amount' in data:
+            order.discount_amount = data['discount_amount']
+        if 'shipping_fee' in data:
+            order.shipping_fee = data['shipping_fee']
+        if 'pay_amount' in data:
+            order.pay_amount = data['pay_amount']
+        if 'remark' in data:
+            order.remark = data['remark']
+        
+        if 'items' in data:
+            for item in order.items:
+                db.session.delete(item)
+            
+            for item_data in data['items']:
+                order_item = OrderItem(
+                    order_id=order_id,
+                    product_id=item_data.get('product_id'),
+                    product_title=item_data.get('product_title', ''),
+                    product_image=item_data.get('product_image'),
+                    price=item_data.get('price', 0),
+                    original_price=item_data.get('original_price', item_data.get('price', 0)),
+                    quantity=item_data.get('quantity', 1),
+                    total_price=item_data.get('total_price') or (item_data.get('price', 0) * item_data.get('quantity', 1))
+                )
+                db.session.add(order_item)
+    
+    if can_edit_all or can_edit_address:
+        if 'address' in data:
+            address = data['address']
+            if 'name' in address:
+                order.address_name = address['name']
+            if 'phone' in address:
+                order.address_phone = address['phone']
+            if 'province' in address:
+                order.address_province = address['province']
+            if 'city' in address:
+                order.address_city = address['city']
+            if 'district' in address:
+                order.address_district = address['district']
+            if 'detail' in address:
+                order.address_detail = address['detail']
+    
+    order.updated_at = datetime.utcnow()
+    db.session.commit()
+    
+    return jsonify(success(data=order.to_dict(), msg='订单修改成功'))

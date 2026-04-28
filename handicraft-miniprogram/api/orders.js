@@ -125,6 +125,31 @@ function getOrderLogistics(orderId) {
   return get(`/orders/${orderId}/logistics`);
 }
 
+/**
+ * 开始制作（老师端）
+ * @param {string} orderId - 订单ID
+ */
+function startMakingOrder(orderId) {
+  return post(`/orders/${orderId}/start-making`);
+}
+
+/**
+ * 完成制作（老师端）
+ * @param {string} orderId - 订单ID
+ */
+function completeMakingOrder(orderId) {
+  return post(`/orders/${orderId}/complete-making`);
+}
+
+/**
+ * 编辑订单（老师端）
+ * @param {string} orderId - 订单ID
+ * @param {Object} data - 订单修改数据
+ */
+function editOrder(orderId, data) {
+  return put(`/orders/${orderId}/edit`, data);
+}
+
 module.exports = {
   getOrders,
   getOrderDetail,
@@ -140,5 +165,8 @@ module.exports = {
   acceptOrder,
   rejectOrder,
   shipOrder,
-  getOrderLogistics
+  getOrderLogistics,
+  startMakingOrder,
+  completeMakingOrder,
+  editOrder
 };

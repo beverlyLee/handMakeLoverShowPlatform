@@ -164,6 +164,13 @@
           >评价</button>
 
           <button 
+            wx:if="{{currentRole === 'teacher' && (item.status === 'pending' || item.status === 'pending_accept' || item.status === 'accepted' || item.status === 'in_progress' || item.status === 'ready_to_ship' || item.status === 'paid')}}" 
+            class="action-btn secondary"
+            bindtap="showEditDialog"
+            data-id="{{item.id}}"
+          >编辑</button>
+
+          <button 
             wx:if="{{currentRole === 'teacher' && item.status === 'pending_accept'}}" 
             class="action-btn primary"
             bindtap="showAcceptDialog"
@@ -177,7 +184,21 @@
           >拒绝</button>
 
           <button 
-            wx:if="{{currentRole === 'teacher' && (item.status === 'accepted' || item.status === 'paid')}}" 
+            wx:if="{{currentRole === 'teacher' && (item.status === 'accepted' || item.status === 'pending_accept')}}" 
+            class="action-btn primary"
+            bindtap="showStartMakingDialog"
+            data-id="{{item.id}}"
+          >开始制作</button>
+
+          <button 
+            wx:if="{{currentRole === 'teacher' && item.status === 'in_progress'}}" 
+            class="action-btn primary"
+            bindtap="showCompleteMakingDialog"
+            data-id="{{item.id}}"
+          >制作完成</button>
+
+          <button 
+            wx:if="{{currentRole === 'teacher' && (item.status === 'accepted' || item.status === 'in_progress' || item.status === 'ready_to_ship' || item.status === 'paid')}}" 
             class="action-btn primary"
             bindtap="showShipOrderDialog"
             data-id="{{item.id}}"
@@ -366,12 +387,13 @@
         <text class="info-value">{{selectedOrder.address.province}}{{selectedOrder.address.city}}{{selectedOrder.address.district}}{{selectedOrder.address.detail}}</text>
       </view>
       <view class="dialog-tip">
-        <text class="tip-text">✅ 接单后请及时与买家沟通，准备发货事宜</text>
+        <text class="tip-text">✅ 接单后请选择下一步操作</text>
       </view>
     </view>
     <view class="dialog-footer">
       <button class="dialog-btn dialog-btn-cancel" bindtap="closeAcceptDialog">取消</button>
-      <button class="dialog-btn dialog-btn-confirm" bindtap="confirmAccept">确认接单</button>
+      <button class="dialog-btn dialog-btn-secondary" bindtap="acceptAndShip">接单并直接发货</button>
+      <button class="dialog-btn dialog-btn-confirm" bindtap="acceptAndMake">接单并开始制作</button>
     </view>
   </view>
 </view>
@@ -467,6 +489,210 @@
     <view class="dialog-footer">
       <button class="dialog-btn dialog-btn-cancel" bindtap="closeShipDialog">取消</button>
       <button class="dialog-btn dialog-btn-confirm" bindtap="shipOrder">确认发货</button>
+    </view>
+  </view>
+</view>
+
+<view class="dialog-mask" wx:if="{{showStartMakingDialog && selectedOrder}}" catchtouchmove="stopPropagation">
+  <view class="dialog">
+    <view class="dialog-header">
+      <text class="dialog-title">开始制作</text>
+      <view class="dialog-close" bindtap="closeStartMakingDialog">
+        <text class="close-icon">×</text>
+      </view>
+    </view>
+    <view class="dialog-content">
+      <view class="info-item">
+        <text class="info-label">订单编号：</text>
+        <text class="info-value">{{selectedOrder.id}}</text>
+      </view>
+      <view class="info-item">
+        <text class="info-label">商品数量：</text>
+        <text class="info-value">{{selectedOrder.items.length}}件</text>
+      </view>
+      <view class="info-item">
+        <text class="info-label">订单金额：</text>
+        <text class="info-value">¥{{selectedOrder.pay_amount}}</text>
+      </view>
+      <view class="dialog-tip">
+        <text class="tip-text">🎨 开始制作后，订单状态将更新为"制作中"，请及时与买家沟通制作进度</text>
+      </view>
+    </view>
+    <view class="dialog-footer">
+      <button class="dialog-btn dialog-btn-cancel" bindtap="closeStartMakingDialog">取消</button>
+      <button class="dialog-btn dialog-btn-confirm" bindtap="startMaking">确认开始</button>
+    </view>
+  </view>
+</view>
+
+<view class="dialog-mask" wx:if="{{showCompleteMakingDialog && selectedOrder}}" catchtouchmove="stopPropagation">
+  <view class="dialog">
+    <view class="dialog-header">
+      <text class="dialog-title">制作完成</text>
+      <view class="dialog-close" bindtap="closeCompleteMakingDialog">
+        <text class="close-icon">×</text>
+      </view>
+    </view>
+    <view class="dialog-content">
+      <view class="info-item">
+        <text class="info-label">订单编号：</text>
+        <text class="info-value">{{selectedOrder.id}}</text>
+      </view>
+      <view class="info-item">
+        <text class="info-label">商品数量：</text>
+        <text class="info-value">{{selectedOrder.items.length}}件</text>
+      </view>
+      <view class="dialog-tip">
+        <text class="tip-text">✅ 制作完成后，订单状态将更新为"制作完成"，请尽快安排发货</text>
+      </view>
+    </view>
+    <view class="dialog-footer">
+      <button class="dialog-btn dialog-btn-cancel" bindtap="closeCompleteMakingDialog">取消</button>
+      <button class="dialog-btn dialog-btn-confirm" bindtap="completeMaking">确认完成</button>
+    </view>
+  </view>
+</view>
+
+<view class="dialog-mask" wx:if="{{showEditDialog && selectedOrder}}" catchtouchmove="stopPropagation">
+  <view class="dialog edit-dialog">
+    <view class="dialog-header">
+      <text class="dialog-title">编辑订单</text>
+      <view class="dialog-close" bindtap="closeEditDialog">
+        <text class="close-icon">×</text>
+      </view>
+    </view>
+    <view class="dialog-content scroll-content">
+      <view class="info-item" wx:if="{{editForm.isPending}}">
+        <text class="info-label">当前状态：待付款（可修改所有信息）</text>
+      </view>
+      <view class="info-item" wx:else>
+        <text class="info-label">当前状态：已付款（仅可修改地址）</text>
+      </view>
+
+      <view class="form-item" wx:if="{{editForm.isPending}}">
+        <text class="form-label">商品金额</text>
+        <input 
+          class="form-input" 
+          type="digit"
+          placeholder="请输入商品金额"
+          value="{{editForm.totalAmount}}"
+          bindinput="onEditInput"
+          data-field="totalAmount"
+        />
+      </view>
+
+      <view class="form-item" wx:if="{{editForm.isPending}}">
+        <text class="form-label">优惠金额</text>
+        <input 
+          class="form-input" 
+          type="digit"
+          placeholder="请输入优惠金额"
+          value="{{editForm.discountAmount}}"
+          bindinput="onEditInput"
+          data-field="discountAmount"
+        />
+      </view>
+
+      <view class="form-item" wx:if="{{editForm.isPending}}">
+        <text class="form-label">运费</text>
+        <input 
+          class="form-input" 
+          type="digit"
+          placeholder="请输入运费"
+          value="{{editForm.shippingFee}}"
+          bindinput="onEditInput"
+          data-field="shippingFee"
+        />
+      </view>
+
+      <view class="form-item" wx:if="{{editForm.isPending}}">
+        <text class="form-label">备注</text>
+        <textarea 
+          class="form-textarea" 
+          placeholder="请输入备注"
+          value="{{editForm.remark}}"
+          bindinput="onEditInput"
+          data-field="remark"
+          maxlength="200"
+        />
+      </view>
+
+      <view class="section-title">
+        <text class="title-text">收货地址</text>
+      </view>
+
+      <view class="form-item">
+        <text class="form-label">收货人</text>
+        <input 
+          class="form-input" 
+          placeholder="请输入收货人姓名"
+          value="{{editForm.address.name}}"
+          bindinput="onEditInput"
+          data-field="address.name"
+        />
+      </view>
+
+      <view class="form-item">
+        <text class="form-label">联系电话</text>
+        <input 
+          class="form-input" 
+          type="number"
+          placeholder="请输入联系电话"
+          value="{{editForm.address.phone}}"
+          bindinput="onEditInput"
+          data-field="address.phone"
+        />
+      </view>
+
+      <view class="form-item">
+        <text class="form-label">省份</text>
+        <input 
+          class="form-input" 
+          placeholder="请输入省份"
+          value="{{editForm.address.province}}"
+          bindinput="onEditInput"
+          data-field="address.province"
+        />
+      </view>
+
+      <view class="form-item">
+        <text class="form-label">城市</text>
+        <input 
+          class="form-input" 
+          placeholder="请输入城市"
+          value="{{editForm.address.city}}"
+          bindinput="onEditInput"
+          data-field="address.city"
+        />
+      </view>
+
+      <view class="form-item">
+        <text class="form-label">区县</text>
+        <input 
+          class="form-input" 
+          placeholder="请输入区县"
+          value="{{editForm.address.district}}"
+          bindinput="onEditInput"
+          data-field="address.district"
+        />
+      </view>
+
+      <view class="form-item">
+        <text class="form-label">详细地址</text>
+        <textarea 
+          class="form-textarea" 
+          placeholder="请输入详细地址"
+          value="{{editForm.address.detail}}"
+          bindinput="onEditInput"
+          data-field="address.detail"
+          maxlength="200"
+        />
+      </view>
+
+    </view>
+    <view class="dialog-footer">
+      <button class="dialog-btn dialog-btn-cancel" bindtap="closeEditDialog">取消</button>
+      <button class="dialog-btn dialog-btn-confirm" bindtap="saveEdit">保存修改</button>
     </view>
   </view>
 </view>
