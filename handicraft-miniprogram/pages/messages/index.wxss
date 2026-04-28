@@ -101,7 +101,9 @@
 .message-list-wrapper {
   flex: 1;
   padding: 20rpx;
-  padding-bottom: 40rpx;
+  padding-bottom: calc(20rpx + 100rpx + env(safe-area-inset-bottom));
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .message-list {

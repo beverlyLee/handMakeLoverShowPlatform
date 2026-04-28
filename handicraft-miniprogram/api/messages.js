@@ -90,6 +90,51 @@ function createConversation(targetUserId) {
   return post('/messages/conversations', { target_user_id: targetUserId });
 }
 
+/**
+ * 直接发送消息给指定用户（自动创建会话）
+ * @param {number} targetUserId - 目标用户ID
+ * @param {string} content - 消息内容
+ * @param {Object} options - 可选参数 { message_type, related_id, related_type }
+ */
+function sendDirectChat(targetUserId, content, options = {}) {
+  const data = {
+    target_user_id: targetUserId,
+    content: content,
+    ...options
+  };
+  return post('/messages/chat/send', data);
+}
+
+/**
+ * 获取与指定用户的会话
+ * @param {number} targetUserId - 目标用户ID
+ */
+function getConversationWithUser(targetUserId) {
+  return get(`/messages/conversation/with-user/${targetUserId}`);
+}
+
+/**
+ * 获取与指定用户的消息记录
+ * @param {number} targetUserId - 目标用户ID
+ * @param {Object} params - { page, size }
+ */
+function getMessagesWithUser(targetUserId, params = {}) {
+  return get(`/messages/conversation/with-user/${targetUserId}/messages`, params);
+}
+
+/**
+ * 通过订单联系对方（创建会话或发送消息）
+ * @param {string} orderId - 订单ID
+ * @param {string} content - 消息内容（可选，不传则只创建会话）
+ */
+function contactThroughOrder(orderId, content = '') {
+  const data = {};
+  if (content) {
+    data.content = content;
+  }
+  return post(`/messages/order/${orderId}/contact`, data);
+}
+
 module.exports = {
   getMessages,
   getMessageDetail,
@@ -101,5 +146,9 @@ module.exports = {
   getConversations,
   getConversationMessages,
   sendMessage,
-  createConversation
+  createConversation,
+  sendDirectChat,
+  getConversationWithUser,
+  getMessagesWithUser,
+  contactThroughOrder
 };

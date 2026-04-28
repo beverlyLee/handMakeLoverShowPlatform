@@ -13,6 +13,7 @@ const {
   completeMakingOrder,
   editOrder
 } = require('../../api/orders');
+const { contactThroughOrder } = require('../../api/messages');
 const { showToast, getFullImageUrl, DEFAULT_IMAGE } = require('../../utils/util');
 const storage = require('../../utils/storage');
 
@@ -624,6 +625,13 @@ Page({
     const orderId = e.currentTarget.dataset.id;
     wx.navigateTo({
       url: `/pages/order-review/index?id=${orderId}`
+    });
+  },
+
+  async contactThroughOrder(e) {
+    const orderId = e.currentTarget.dataset.id;
+    wx.navigateTo({
+      url: `/pages/chat/index?order_id=${orderId}`
     });
   },
 

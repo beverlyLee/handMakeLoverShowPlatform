@@ -2,9 +2,10 @@ from flask import Blueprint, jsonify, request, g
 from app.utils.response import success, error
 from app.common.auth import login_required
 from app.common.response_code import ResponseCode
-from app.models import Message, Conversation, ChatMessage, User
+from app.models import Message, Conversation, ChatMessage, User, Order
 from app.database import db
 from datetime import datetime
+from app.services.message_service import MessageService
 
 message_bp = Blueprint('messages', __name__)
 
@@ -399,3 +400,162 @@ def send_system_message():
     db.session.commit()
     
     return jsonify(success(data=message.to_dict(), msg='发送成功'))
+
+
+@message_bp.route('/chat/send', methods=['POST'])
+@login_required
+def send_direct_chat():
+    user_id = get_current_user_id()
+    
+    data = request.get_json()
+    if not data:
+        return jsonify(error(code=ResponseCode.PARAM_MISSING, msg='请求数据不能为空')), 400
+    
+    required_fields = ['target_user_id', 'content']
+    for field in required_fields:
+        if field not in data:
+            return jsonify(error(code=ResponseCode.PARAM_MISSING, msg=f'{field} 不能为空')), 400
+    
+    target_user_id = data.get('target_user_id')
+    content = data.get('content', '').strip()
+    
+    if target_user_id == user_id:
+        return jsonify(error(code=ResponseCode.PARAM_INVALID, msg='不能给自己发消息')), 400
+    
+    if not content:
+        return jsonify(error(code=ResponseCode.PARAM_INVALID, msg='消息内容不能为空')), 400
+    
+    if len(content) > 500:
+        return jsonify(error(code=ResponseCode.PARAM_INVALID, msg='消息内容不能超过500字')), 400
+    
+    target_user = User.query.get(target_user_id)
+    if not target_user:
+        return jsonify(error(code=ResponseCode.USER_NOT_FOUND, msg='目标用户不存在')), 404
+    
+    message_type = data.get('message_type', 'text')
+    related_id = data.get('related_id')
+    related_type = data.get('related_type')
+    
+    chat_message, conversation = MessageService.send_chat_message(
+        sender_id=user_id,
+        receiver_id=target_user_id,
+        content=content,
+        message_type=message_type
+    )
+    
+    return jsonify(success(data={
+        'message': chat_message,
+        'conversation': conversation
+    }, msg='发送成功'))
+
+
+@message_bp.route('/conversation/with-user/<int:target_user_id>', methods=['GET'])
+@login_required
+def get_conversation_with_user(target_user_id):
+    user_id = get_current_user_id()
+    
+    conversation = Conversation.query.filter(
+        ((Conversation.user1_id == user_id) & (Conversation.user2_id == target_user_id)) |
+        ((Conversation.user1_id == target_user_id) & (Conversation.user2_id == user_id))
+    ).first()
+    
+    if conversation:
+        return jsonify(success(data=conversation.to_dict(current_user_id=user_id)))
+    else:
+        return jsonify(success(data=None, msg='会话不存在'))
+
+
+@message_bp.route('/conversation/with-user/<int:target_user_id>/messages', methods=['GET'])
+@login_required
+def get_messages_with_user(target_user_id):
+    user_id = get_current_user_id()
+    page = request.args.get('page', 1, type=int)
+    size = request.args.get('size', 30, type=int)
+    
+    conversation = Conversation.query.filter(
+        ((Conversation.user1_id == user_id) & (Conversation.user2_id == target_user_id)) |
+        ((Conversation.user1_id == target_user_id) & (Conversation.user2_id == user_id))
+    ).first()
+    
+    if not conversation:
+        return jsonify(success(data={
+            'list': [],
+            'total': 0,
+            'page': page,
+            'size': size,
+            'has_more': False,
+            'conversation': None
+        }))
+    
+    if conversation.user1_id == user_id and conversation.user1_unread > 0:
+        conversation.user1_unread = 0
+        db.session.commit()
+    elif conversation.user2_id == user_id and conversation.user2_unread > 0:
+        conversation.user2_unread = 0
+        db.session.commit()
+    
+    query = ChatMessage.query.filter_by(conversation_id=conversation.id)
+    total = query.count()
+    
+    messages = query.order_by(ChatMessage.created_at.asc()).paginate(
+        page=page,
+        per_page=size,
+        error_out=False
+    ).items
+    
+    message_list = [msg.to_dict(current_user_id=user_id) for msg in messages]
+    
+    return jsonify(success(data={
+        'list': message_list,
+        'total': total,
+        'page': page,
+        'size': size,
+        'has_more': len(messages) >= size,
+        'conversation': conversation.to_dict(current_user_id=user_id)
+    }))
+
+
+@message_bp.route('/order/<order_id>/contact', methods=['POST'])
+@login_required
+def contact_through_order(order_id):
+    user_id = get_current_user_id()
+    
+    order = Order.query.get(order_id)
+    if not order:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='订单不存在')), 404
+    
+    data = request.get_json() or {}
+    content = data.get('content', '').strip()
+    message_type = data.get('message_type', 'text')
+    
+    if order.user_id == user_id:
+        target_user_id = order.teacher_id
+        if not target_user_id:
+            return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='该订单没有关联的老师')), 404
+    elif order.teacher_id == user_id:
+        target_user_id = order.user_id
+    else:
+        return jsonify(error(code=ResponseCode.PERMISSION_DENIED, msg='无权操作此订单')), 403
+    
+    if content:
+        if len(content) > 500:
+            return jsonify(error(code=ResponseCode.PARAM_INVALID, msg='消息内容不能超过500字')), 400
+        
+        chat_message, conversation = MessageService.send_chat_message(
+            sender_id=user_id,
+            receiver_id=target_user_id,
+            content=content,
+            message_type=message_type
+        )
+        
+        return jsonify(success(data={
+            'message': chat_message,
+            'conversation': conversation,
+            'target_user_id': target_user_id
+        }, msg='发送成功'))
+    else:
+        conversation = MessageService.get_or_create_conversation(user_id, target_user_id)
+        return jsonify(success(data={
+            'conversation': conversation.to_dict(current_user_id=user_id),
+            'target_user_id': target_user_id
+        }, msg='会话已创建'))

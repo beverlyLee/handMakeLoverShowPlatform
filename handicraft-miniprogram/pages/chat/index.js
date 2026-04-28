@@ -1,10 +1,19 @@
-const { getConversationMessages, sendMessage, markAsRead } = require('../../api/messages');
+const { 
+  getConversationMessages, 
+  sendMessage, 
+  getMessagesWithUser,
+  sendDirectChat,
+  contactThroughOrder,
+  getConversationWithUser
+} = require('../../api/messages');
 const { showToast, safeParseDate } = require('../../utils/util');
 const storage = require('../../utils/storage');
 
 Page({
   data: {
     conversationId: null,
+    targetUserId: null,
+    orderId: null,
     targetUser: {
       id: null,
       name: '',
@@ -23,14 +32,35 @@ Page({
   },
 
   onLoad(options) {
+    this.initUserInfo();
+    
     if (options.id) {
       this.setData({ 
         conversationId: parseInt(options.id)
       });
-      this.initUserInfo();
-      this.loadMessages();
+      this.loadMessagesByConversation();
+    } else if (options.target_user_id) {
+      this.setData({ 
+        targetUserId: parseInt(options.target_user_id),
+        targetUser: {
+          id: parseInt(options.target_user_id),
+          name: options.target_user_name || '用户',
+          avatar: options.target_user_avatar || ''
+        }
+      });
+      if (options.target_user_name) {
+        wx.setNavigationBarTitle({
+          title: options.target_user_name
+        });
+      }
+      this.loadMessagesWithUser();
+    } else if (options.order_id) {
+      this.setData({ 
+        orderId: options.order_id
+      });
+      this.initFromOrder();
     } else {
-      showToast('会话ID缺失');
+      showToast('参数错误');
       wx.navigateBack();
     }
   },
@@ -52,7 +82,42 @@ Page({
     }
   },
 
-  async loadMessages() {
+  async initFromOrder() {
+    const { orderId } = this.data;
+    this.setData({ isLoading: true });
+
+    try {
+      const result = await contactThroughOrder(orderId, '');
+      
+      if (result && result.conversation) {
+        this.setData({
+          conversationId: result.conversation.id,
+          targetUserId: result.target_user_id,
+          targetUser: {
+            id: result.target_user_id,
+            name: result.conversation.other_user_name || '用户',
+            avatar: result.conversation.other_user_avatar || ''
+          }
+        });
+        
+        if (result.conversation.other_user_name) {
+          wx.setNavigationBarTitle({
+            title: result.conversation.other_user_name
+          });
+        }
+        
+        this.loadMessagesByConversation();
+      } else {
+        this.setData({ isLoading: false });
+      }
+    } catch (error) {
+      console.log('通过订单初始化聊天失败:', error);
+      this.setData({ isLoading: false });
+      showToast('加载失败，请重试');
+    }
+  },
+
+  async loadMessagesByConversation() {
     const { conversationId, page, pageSize } = this.data;
     this.setData({ isLoading: true });
 
@@ -62,13 +127,60 @@ Page({
       
       const processedMessages = this.processMessages(messages);
       
-      const mockMessages = this.getMockMessages();
-      const allMessages = [...processedMessages, ...mockMessages].sort((a, b) => {
-        return safeParseDate(a.createTime).getTime() - safeParseDate(b.createTime).getTime();
-      });
+      const conversation = result?.conversation;
+      if (conversation && conversation.other_user_name) {
+        this.setData({
+          'targetUser.name': conversation.other_user_name,
+          'targetUser.avatar': conversation.other_user_avatar
+        });
+        wx.setNavigationBarTitle({
+          title: conversation.other_user_name
+        });
+      }
 
       this.setData({
-        messageList: allMessages,
+        messageList: processedMessages,
+        isLoading: false,
+        hasMore: messages.length >= pageSize,
+        scrollToBottom: true
+      });
+
+      this.updateNavigationBar();
+    } catch (error) {
+      console.log('加载聊天记录失败:', error);
+      this.setData({ isLoading: false });
+      this.loadMockMessages();
+    }
+  },
+
+  async loadMessagesWithUser() {
+    const { targetUserId, page, pageSize } = this.data;
+    this.setData({ isLoading: true });
+
+    try {
+      const result = await getMessagesWithUser(targetUserId, { page, size: pageSize });
+      const messages = result?.list || result || [];
+      
+      const processedMessages = this.processMessages(messages);
+      
+      const conversation = result?.conversation;
+      if (conversation) {
+        this.setData({
+          conversationId: conversation.id
+        });
+        if (conversation.other_user_name && !this.data.targetUser.name) {
+          this.setData({
+            'targetUser.name': conversation.other_user_name,
+            'targetUser.avatar': conversation.other_user_avatar
+          });
+          wx.setNavigationBarTitle({
+            title: conversation.other_user_name
+          });
+        }
+      }
+
+      this.setData({
+        messageList: processedMessages,
         isLoading: false,
         hasMore: messages.length >= pageSize,
         scrollToBottom: true
@@ -89,99 +201,12 @@ Page({
       messageList: mockMessages,
       isLoading: false,
       hasMore: false,
-      scrollToBottom: true,
-      targetUser: {
-        id: 1001,
-        name: '手作大师',
-        avatar: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=craft%20master%20avatar%20warm%20friendly%20handmade&image_size=square'
-      }
-    });
-
-    wx.setNavigationBarTitle({
-      title: '手作大师'
+      scrollToBottom: true
     });
   },
 
   getMockMessages() {
-    return [
-      {
-        id: 1,
-        senderId: 1001,
-        senderName: '手作大师',
-        senderAvatar: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=craft%20master%20avatar%20warm%20friendly%20handmade&image_size=square',
-        content: '您好，欢迎咨询~有什么可以帮助您的吗？',
-        createTime: '2024-04-27 14:20:00',
-        isSelf: false,
-        showAvatar: true,
-        showTime: true
-      },
-      {
-        id: 2,
-        senderId: 1002,
-        senderName: '我',
-        senderAvatar: '',
-        content: '您好，我想咨询一下您店里的手工编织羊毛围巾',
-        createTime: '2024-04-27 14:22:00',
-        isSelf: true,
-        showAvatar: false,
-        showTime: true
-      },
-      {
-        id: 3,
-        senderId: 1001,
-        senderName: '手作大师',
-        senderAvatar: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=craft%20master%20avatar%20warm%20friendly%20handmade&image_size=square',
-        content: '好的~那款围巾是我亲手编织的，用的是澳洲美利奴羊毛，非常柔软保暖呢~',
-        createTime: '2024-04-27 14:23:00',
-        isSelf: false,
-        showAvatar: true,
-        showTime: false
-      },
-      {
-        id: 4,
-        senderId: 1001,
-        senderName: '手作大师',
-        senderAvatar: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=craft%20master%20avatar%20warm%20friendly%20handmade&image_size=square',
-        content: '颜色有深灰、酒红、米白三种可选，您喜欢哪种颜色呢？',
-        createTime: '2024-04-27 14:24:00',
-        isSelf: false,
-        showAvatar: false,
-        showTime: true
-      },
-      {
-        id: 5,
-        senderId: 1002,
-        senderName: '我',
-        senderAvatar: '',
-        content: '酒红色看起来不错，适合秋冬季节',
-        createTime: '2024-04-27 14:26:00',
-        isSelf: true,
-        showAvatar: false,
-        showTime: true
-      },
-      {
-        id: 6,
-        senderId: 1001,
-        senderName: '手作大师',
-        senderAvatar: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=craft%20master%20avatar%20warm%20friendly%20handmade&image_size=square',
-        content: '是的~酒红色很显气质，搭配大衣非常好看！',
-        createTime: '2024-04-27 14:27:00',
-        isSelf: false,
-        showAvatar: true,
-        showTime: false
-      },
-      {
-        id: 7,
-        senderId: 1001,
-        senderName: '手作大师',
-        senderAvatar: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=craft%20master%20avatar%20warm%20friendly%20handmade&image_size=square',
-        content: '我店里还有同款的帽子和手套，可以配套购买，有优惠哦~',
-        createTime: '2024-04-28 10:30:00',
-        isSelf: false,
-        showAvatar: false,
-        showTime: true
-      }
-    ];
+    return [];
   },
 
   processMessages(messages) {
@@ -223,12 +248,17 @@ Page({
     if (!this.data.hasMore) return;
     
     this.setData({ page: this.data.page + 1 });
-    await this.loadMessages();
+    
+    if (this.data.conversationId) {
+      await this.loadMessagesByConversation();
+    } else if (this.data.targetUserId) {
+      await this.loadMessagesWithUser();
+    }
   },
 
   updateNavigationBar() {
     const { messageList, targetUser } = this.data;
-    if (messageList.length > 0) {
+    if (messageList.length > 0 && !targetUser.name) {
       const firstMsg = messageList[0];
       if (!firstMsg.isSelf && firstMsg.senderName) {
         wx.setNavigationBarTitle({
@@ -255,15 +285,15 @@ Page({
   },
 
   async sendMessage() {
-    const { inputValue, conversationId, isSending, messageList } = this.data;
+    const { inputValue, conversationId, targetUserId, isSending, messageList, currentUserId } = this.data;
     
     if (!inputValue.trim()) {
       showToast('请输入消息内容');
       return;
     }
 
-    if (inputValue.length > 200) {
-      showToast('消息内容不能超过200字');
+    if (inputValue.length > 500) {
+      showToast('消息内容不能超过500字');
       return;
     }
 
@@ -273,7 +303,7 @@ Page({
 
     const tempMessage = {
       id: Date.now(),
-      senderId: this.data.currentUserId || 1002,
+      senderId: currentUserId || 0,
       senderName: '我',
       senderAvatar: '',
       content: inputValue.trim(),
@@ -292,13 +322,26 @@ Page({
     });
 
     try {
-      const result = await sendMessage(conversationId, inputValue.trim());
+      let result;
+      
+      if (conversationId) {
+        result = await sendMessage(conversationId, inputValue.trim());
+      } else if (targetUserId) {
+        result = await sendDirectChat(targetUserId, inputValue.trim());
+        if (result && result.conversation) {
+          this.setData({
+            conversationId: result.conversation.id
+          });
+        }
+      }
+
+      const sentMessage = result?.message || result;
       
       const updatedList = newList.map(msg => {
         if (msg.id === tempMessage.id) {
           return {
             ...msg,
-            id: result?.id || msg.id,
+            id: sentMessage?.id || msg.id,
             isSending: false
           };
         }
@@ -392,10 +435,10 @@ Page({
   },
 
   onShareAppMessage() {
-    const { targetUser } = this.data;
+    const { targetUser, conversationId } = this.data;
     return {
       title: `与${targetUser.name || '用户'}的聊天`,
-      path: `/pages/chat/index?id=${this.data.conversationId}`
+      path: `/pages/chat/index?id=${conversationId}`
     };
   }
 });

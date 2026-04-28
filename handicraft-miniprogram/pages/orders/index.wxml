@@ -167,6 +167,12 @@
         </view>
         <view class="order-actions" catchtap="stopPropagation">
           <button 
+            wx:if="{{item.status !== 'cancelled' && item.status !== 'rejected' && item.status !== 'deleted'}}"
+            class="action-btn secondary contact-btn"
+            bindtap="contactThroughOrder"
+            data-id="{{item.id}}"
+          >联系对方</button>
+          <button 
             wx:if="{{currentRole !== 'teacher' && item.status === 'pending'}}" 
             class="action-btn primary"
             bindtap="payOrder"

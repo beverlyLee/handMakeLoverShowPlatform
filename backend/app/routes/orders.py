@@ -5,6 +5,7 @@ from app.common.auth import login_required
 from app.models import Order, OrderItem, User, TeacherProfile, UserCoupon, Coupon
 from app.database import db
 from app.services.user_service import UserService
+from app.services.message_service import MessageService
 from datetime import datetime, timedelta
 
 order_bp = Blueprint('orders', __name__)
@@ -416,6 +417,11 @@ def pay_order(order_id):
     
     db.session.commit()
     
+    try:
+        MessageService.send_order_pay_notification(order)
+    except Exception as e:
+        print(f'发送订单支付通知失败: {e}')
+    
     return jsonify(success(data=order.to_dict(), msg='支付成功，等待老师接单'))
 
 @order_bp.route('/<order_id>/cancel', methods=['POST'])
@@ -442,6 +448,11 @@ def cancel_order(order_id):
     order.updated_at = datetime.utcnow()
     db.session.commit()
     
+    try:
+        MessageService.send_order_cancel_notification(order, cancel_reason, is_teacher=False)
+    except Exception as e:
+        print(f'发送订单取消通知失败: {e}')
+    
     return jsonify(success(data=order.to_dict(), msg='订单已取消'))
 
 @order_bp.route('/<order_id>/confirm', methods=['POST'])
@@ -463,6 +474,11 @@ def confirm_order(order_id):
     order.complete_time = datetime.utcnow()
     order.updated_at = datetime.utcnow()
     db.session.commit()
+    
+    try:
+        MessageService.send_order_complete_notification(order)
+    except Exception as e:
+        print(f'发送订单完成通知失败: {e}')
     
     return jsonify(success(data=order.to_dict(), msg='确认收货成功'))
 
@@ -520,6 +536,11 @@ def accept_order(order_id):
     
     db.session.commit()
     
+    try:
+        MessageService.send_order_accept_notification(order, action)
+    except Exception as e:
+        print(f'发送订单接单通知失败: {e}')
+    
     return jsonify(success(data=order.to_dict(), msg=msg))
 
 
@@ -549,6 +570,11 @@ def reject_order(order_id):
     order.reject_reason = reject_reason
     order.updated_at = datetime.utcnow()
     db.session.commit()
+    
+    try:
+        MessageService.send_order_reject_notification(order, reject_reason)
+    except Exception as e:
+        print(f'发送订单拒单通知失败: {e}')
     
     return jsonify(success(data=order.to_dict(), msg='拒单成功'))
 
@@ -589,6 +615,11 @@ def ship_order(order_id):
     
     order.updated_at = datetime.utcnow()
     db.session.commit()
+    
+    try:
+        MessageService.send_ship_notification(order)
+    except Exception as e:
+        print(f'发送订单发货通知失败: {e}')
     
     return jsonify(success(data=order.to_dict(), msg='发货成功'))
 
@@ -645,6 +676,11 @@ def start_making_order(order_id):
     order.updated_at = datetime.utcnow()
     db.session.commit()
     
+    try:
+        MessageService.send_order_accept_notification(order, 'start_making')
+    except Exception as e:
+        print(f'发送订单开始制作通知失败: {e}')
+    
     return jsonify(success(data=order.to_dict(), msg='已开始制作'))
 
 
@@ -667,6 +703,11 @@ def complete_making_order(order_id):
     order.complete_making_time = datetime.utcnow()
     order.updated_at = datetime.utcnow()
     db.session.commit()
+    
+    try:
+        MessageService.send_making_complete_notification(order)
+    except Exception as e:
+        print(f'发送订单制作完成通知失败: {e}')
     
     return jsonify(success(data=order.to_dict(), msg='制作完成，已进入待发货状态'))
 

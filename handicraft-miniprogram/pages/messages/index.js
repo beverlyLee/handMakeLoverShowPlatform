@@ -3,6 +3,7 @@ const {
   getUnreadCount,
   getConversations,
   deleteMessage,
+  batchDeleteMessages,
   markAsRead,
   batchMarkAsRead
 } = require('../../api/messages');
@@ -137,11 +138,11 @@ Page({
       console.error('获取未读数量失败:', error);
       this.setData({
         unreadCounts: {
-          system: 2,
-          order: 1,
+          system: 0,
+          order: 0,
           activity: 0,
-          chat: 2,
-          total: 5
+          chat: 0,
+          total: 0
         }
       });
     }

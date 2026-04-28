@@ -276,7 +276,14 @@ Page({
   },
 
   contactTeacher() {
-    showToast('联系老师功能开发中');
+    const teacher = this.data.teacher;
+    if (teacher && teacher.user_id) {
+      wx.navigateTo({
+        url: `/pages/chat/index?target_user_id=${teacher.user_id}&target_user_name=${encodeURIComponent(teacher.real_name || '老师')}`
+      });
+    } else {
+      showToast('无法获取老师信息');
+    }
   },
 
   goToEditInfo() {

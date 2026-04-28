@@ -61,25 +61,21 @@ function getFullImageUrl(url) {
   if (url.startsWith('/api/images/')) {
     const baseUrl = config.baseUrl.replace('/api', '');
     const fullUrl = baseUrl + url;
-    console.log(`[getFullImageUrl] API 图片路径，转换为: ${fullUrl}`);
     return fullUrl;
   }
   
   if (url.startsWith('/uploads/')) {
     const baseUrl = config.baseUrl.replace('/api', '');
     const fullUrl = baseUrl + '/api/upload' + url;
-    console.log(`[getFullImageUrl] Uploads 路径，转换为: ${fullUrl}`);
     return fullUrl;
   }
   
   if (url.startsWith('/')) {
     const baseUrl = config.baseUrl.replace('/api', '');
     const fullUrl = baseUrl + url;
-    console.log(`[getFullImageUrl] 其他路径，转换为: ${fullUrl}`);
     return fullUrl;
   }
   
-  console.log(`[getFullImageUrl] 未知路径，直接返回: ${url}`);
   return url;
 }
 
