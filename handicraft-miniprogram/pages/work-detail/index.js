@@ -1,37 +1,7 @@
 const { getProductDetail } = require('../../api/products');
 const { getProfile } = require('../../api/auth');
-const { showToast } = require('../../utils/util');
+const { showToast, getFullImageUrl, processProductImages } = require('../../utils/util');
 const { getUserInfo } = require('../../utils/storage');
-const config = require('../../utils/config');
-
-const DEFAULT_IMAGE = 'https://picsum.photos/seed/handmade-craft-default/400/400';
-
-function getFullImageUrl(url) {
-  if (!url) {
-    return DEFAULT_IMAGE;
-  }
-  
-  if (url.startsWith('http://') || url.startsWith('https://')) {
-    return url;
-  }
-  
-  if (url.startsWith('/api/images/')) {
-    const baseUrl = config.baseUrl.replace('/api', '');
-    return baseUrl + url;
-  }
-  
-  if (url.startsWith('/uploads/')) {
-    const baseUrl = config.baseUrl.replace('/api', '');
-    return baseUrl + '/api/upload' + url;
-  }
-  
-  if (url.startsWith('/')) {
-    const baseUrl = config.baseUrl.replace('/api', '');
-    return baseUrl + url;
-  }
-  
-  return url;
-}
 
 Page({
   data: {
@@ -120,26 +90,10 @@ Page({
       const product = await getProductDetail(this.data.productId);
       console.log('加载作品详情成功:', product);
       
-      if (product) {
-        if (!product.images || product.images.length === 0) {
-          if (product.cover_image) {
-            product.images = [product.cover_image];
-          } else {
-            product.images = [DEFAULT_IMAGE];
-          }
-        }
-        
-        if (!product.cover_image && product.images && product.images.length > 0) {
-          product.cover_image = product.images[0];
-        }
-        
-        product.cover_image = getFullImageUrl(product.cover_image);
-        
-        product.images = product.images.map(img => getFullImageUrl(img));
-      }
+      const processedProduct = processProductImages(product);
       
       this.setData({
-        product: product,
+        product: processedProduct,
         isLoading: false
       });
     } catch (error) {

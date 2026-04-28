@@ -1,5 +1,5 @@
 const { getProducts, getCategories } = require('../../api/products');
-const { showToast } = require('../../utils/util');
+const { showToast, processProductImages } = require('../../utils/util');
 
 Page({
   data: {
@@ -83,16 +83,18 @@ Page({
 
       const result = await getProducts(params);
       const newProducts = (result && result.list) || result || [];
+      
+      const processedProducts = newProducts.map(p => processProductImages(p));
 
       if (append) {
         this.setData({
-          products: [...this.data.products, ...newProducts],
+          products: [...this.data.products, ...processedProducts],
           hasMore: newProducts.length >= this.data.pageSize,
           isLoading: false
         });
       } else {
         this.setData({
-          products: newProducts,
+          products: processedProducts,
           hasMore: newProducts.length >= this.data.pageSize,
           isLoading: false
         });

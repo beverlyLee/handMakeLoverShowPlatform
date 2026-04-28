@@ -2,7 +2,8 @@ const { getTeacherPublicInfo, getTeacherPublicOrderStats, getUserInfo, updateTea
 const { getProducts, createProduct: createProductApi, getCategories, updateProduct, deleteProduct } = require('../../api/products');
 const { getSpecialties } = require('../../api/specialties');
 const { uploadImages } = require('../../api/upload');
-const { showToast, processTeacherInfo, processProductImages } = require('../../utils/util');
+const { showToast, processTeacherInfo, processProductImages, getRelativeImageUrl, getFullImageUrl } = require('../../utils/util');
+const config = require('../../utils/config');
 const storage = require('../../utils/storage');
 
 const DEFAULT_SPECIALTIES = [
@@ -615,6 +616,9 @@ Page({
       }
     }
 
+    const processedImages = (product.images || []).map(img => getFullImageUrl(img));
+    const processedCoverImage = product.cover_image ? getFullImageUrl(product.cover_image) : '';
+
     this.setData({
       showProductCreate: true,
       isEditingProduct: true,
@@ -628,8 +632,8 @@ Page({
         original_price: product.original_price ? String(product.original_price) : '',
         stock: product.stock ? String(product.stock) : '999',
         tags: product.tags || [],
-        images: product.images || [],
-        cover_image: product.cover_image || ''
+        images: processedImages,
+        cover_image: processedCoverImage
       }
     });
   },
@@ -712,6 +716,7 @@ Page({
       
       const tempImagePaths = [];
       const serverUrls = [];
+      const baseUrl = config.baseUrl.replace('/api', '');
       
       for (const img of processedImages) {
         if (!img) continue;
@@ -720,22 +725,30 @@ Page({
           serverUrls.push(img);
         } else if (img.startsWith('/uploads/')) {
           serverUrls.push(img);
+        } else if (img.startsWith('/') && !img.startsWith('//')) {
+          serverUrls.push(img);
         } else if (img.startsWith('http://') || img.startsWith('https://')) {
-          if (img.includes('__tmp__') || img.includes('wxfile://')) {
+          if (img.startsWith(baseUrl)) {
+            serverUrls.push(img);
+          } else if (img.includes('__tmp__') || 
+                     img.startsWith('http://tmp/') || 
+                     img.startsWith('http://127.0.0.1:') ||
+                     img.includes('wxfile://')) {
             tempImagePaths.push(img);
           } else {
             serverUrls.push(img);
           }
         } else if (img.startsWith('wxfile://')) {
           tempImagePaths.push(img);
-        } else if (img.startsWith('/') && !img.startsWith('//')) {
-          serverUrls.push(img);
         } else {
           tempImagePaths.push(img);
         }
       }
       
       console.log('图片分类 - 临时路径:', tempImagePaths, '服务器URL:', serverUrls);
+      
+      const relativeServerUrls = serverUrls.map(url => getRelativeImageUrl(url));
+      console.log('转换为相对路径:', relativeServerUrls);
       
       if (tempImagePaths.length > 0) {
         wx.showLoading({ title: '上传图片中...', mask: true });
@@ -751,9 +764,9 @@ Page({
           return;
         }
         
-        processedImages = [...serverUrls, ...uploadResult.urls];
+        processedImages = [...relativeServerUrls, ...uploadResult.urls];
       } else {
-        processedImages = [...serverUrls];
+        processedImages = [...relativeServerUrls];
       }
       
       const productData = {

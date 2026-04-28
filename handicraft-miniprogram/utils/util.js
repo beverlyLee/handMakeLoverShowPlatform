@@ -1,29 +1,107 @@
 const config = require('./config');
 
-const DEFAULT_IMAGE = 'https://picsum.photos/seed/handmade-craft-default/400/400';
+const DEFAULT_IMAGE_DIR = '/assets/images';
+const DEFAULT_IMAGE_NAME = 'default-product';
+const DEFAULT_IMAGE_EXT = '.jpg';
+
+const DEFAULT_IMAGE = `${DEFAULT_IMAGE_DIR}/${DEFAULT_IMAGE_NAME}${DEFAULT_IMAGE_EXT}`;
+
+const PLACEHOLDER_IMAGE_KEYWORDS = [
+  'picsum.photos',
+  'placeholder',
+  'generating',
+  'loremflickr',
+  'placehold',
+  'dummyimage',
+  'unsplash',
+  'lorempixel',
+  'fillmurray',
+  'placecage',
+  'stevensegallery',
+  'seed/',
+  'refresh',
+  'preview',
+  'text_to_image',
+  'text-to-image',
+  'prompt=',
+  'image_size='
+];
+
+console.log(`默认图片路径: ${DEFAULT_IMAGE}`);
+console.log(`提示: 可以修改 DEFAULT_IMAGE_EXT 来使用不同的图片后缀（支持 .jpg, .jpeg, .png, .gif, .webp 等）`);
+console.log(`文件名必须是: ${DEFAULT_IMAGE_NAME}（可以带任意支持的后缀）`);
+
+function isPlaceholderImage(url) {
+  if (!url) return false;
+  
+  const lowerUrl = url.toLowerCase();
+  return PLACEHOLDER_IMAGE_KEYWORDS.some(keyword => lowerUrl.includes(keyword));
+}
 
 function getFullImageUrl(url) {
+  console.log(`[getFullImageUrl] 原始 URL: ${url}`);
+  
   if (!url) {
+    console.log(`[getFullImageUrl] URL 为空，使用默认图片: ${DEFAULT_IMAGE}`);
+    return DEFAULT_IMAGE;
+  }
+  
+  const isPlaceholder = isPlaceholderImage(url);
+  console.log(`[getFullImageUrl] 是否是占位图片: ${isPlaceholder}, URL: ${url}`);
+  
+  if (isPlaceholder) {
+    console.log(`[getFullImageUrl] 识别到占位图片，使用默认图片: ${url} -> ${DEFAULT_IMAGE}`);
     return DEFAULT_IMAGE;
   }
   
   if (url.startsWith('http://') || url.startsWith('https://')) {
+    console.log(`[getFullImageUrl] 完整 URL，直接返回: ${url}`);
+    return url;
+  }
+  
+  if (url.startsWith('/assets/') || url.startsWith('assets/')) {
+    console.log(`[getFullImageUrl] 本地资源路径，直接返回: ${url}`);
     return url;
   }
   
   if (url.startsWith('/api/images/')) {
     const baseUrl = config.baseUrl.replace('/api', '');
-    return baseUrl + url;
+    const fullUrl = baseUrl + url;
+    console.log(`[getFullImageUrl] API 图片路径，转换为: ${fullUrl}`);
+    return fullUrl;
   }
   
   if (url.startsWith('/uploads/')) {
     const baseUrl = config.baseUrl.replace('/api', '');
-    return baseUrl + '/api/upload' + url;
+    const fullUrl = baseUrl + '/api/upload' + url;
+    console.log(`[getFullImageUrl] Uploads 路径，转换为: ${fullUrl}`);
+    return fullUrl;
   }
   
   if (url.startsWith('/')) {
     const baseUrl = config.baseUrl.replace('/api', '');
-    return baseUrl + url;
+    const fullUrl = baseUrl + url;
+    console.log(`[getFullImageUrl] 其他路径，转换为: ${fullUrl}`);
+    return fullUrl;
+  }
+  
+  console.log(`[getFullImageUrl] 未知路径，直接返回: ${url}`);
+  return url;
+}
+
+function getRelativeImageUrl(url) {
+  if (!url) {
+    return url;
+  }
+  
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    return url;
+  }
+  
+  const baseUrl = config.baseUrl.replace('/api', '');
+  
+  if (url.startsWith(baseUrl)) {
+    return url.substring(baseUrl.length);
   }
   
   return url;
@@ -222,6 +300,7 @@ function showToast(title, icon = 'none') {
 
 module.exports = {
   getFullImageUrl,
+  getRelativeImageUrl,
   processProductImages,
   processTeacherInfo,
   processUserInfo,

@@ -14,7 +14,7 @@ function uploadImage(filePath, showLoading = true) {
     const token = storage.getToken();
     
     wx.uploadFile({
-      url: config.baseUrl + '/api/upload/image',
+      url: config.baseUrl + '/upload/image',
       filePath: filePath,
       name: 'file',
       header: {

@@ -178,15 +178,46 @@ def get_image(image_uuid):
         image = Image.query.filter_by(uuid=image_uuid).first()
         
         if not image:
+            current_app.logger.warning(f'图片不存在: {image_uuid}')
             return jsonify(error(msg='图片不存在')), 404
         
-        return send_file(
-            BytesIO(image.data),
+        if_none_match = request.headers.get('If-None-Match')
+        if_modified_since = request.headers.get('If-Modified-Since')
+        
+        etag = f'"{image.uuid}"'
+        
+        if if_none_match == etag:
+            current_app.logger.info(f'图片未修改，返回 304: {image_uuid}')
+            return '', 304
+        
+        if if_modified_since and image.updated_at:
+            try:
+                if_modified_time = datetime.strptime(if_modified_since, '%a, %d %b %Y %H:%M:%S GMT')
+                if image.updated_at <= if_modified_time:
+                    current_app.logger.info(f'图片未修改，返回 304: {image_uuid}')
+                    return '', 304
+            except Exception as e:
+                current_app.logger.warning(f'解析 If-Modified-Since 失败: {e}')
+        
+        current_app.logger.info(f'读取图片: {image_uuid}, 大小: {image.size}, 类型: {image.content_type}')
+        
+        image_data = BytesIO(image.data)
+        
+        response = send_file(
+            image_data,
             mimetype=image.content_type,
-            as_attachment=False,
-            download_name=image.filename
+            as_attachment=False
         )
         
+        response.headers['Cache-Control'] = 'public, max-age=604800'
+        response.headers['ETag'] = etag
+        if image.updated_at:
+            response.headers['Last-Modified'] = image.updated_at.strftime('%a, %d %b %Y %H:%M:%S GMT')
+        
+        return response
+        
     except Exception as e:
-        current_app.logger.error(f'图片读取失败: {str(e)}')
+        current_app.logger.error(f'图片读取失败: {image_uuid}, 错误: {str(e)}')
+        import traceback
+        current_app.logger.error(traceback.format_exc())
         return jsonify(error(msg='图片读取失败')), 500

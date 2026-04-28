@@ -28,7 +28,19 @@ Page({
       const teacher = await getTeacherInfo();
       
       if (teacher) {
-        const selectedSpecialties = teacher.specialties || [];
+        let selectedSpecialties = teacher.specialties;
+        
+        if (typeof selectedSpecialties === 'string') {
+          try {
+            selectedSpecialties = JSON.parse(selectedSpecialties);
+          } catch (e) {
+            selectedSpecialties = selectedSpecialties.split(',').map(s => s.trim()).filter(s => s);
+          }
+        }
+        
+        if (!Array.isArray(selectedSpecialties)) {
+          selectedSpecialties = [];
+        }
         
         this.setData({
           formData: {
@@ -53,7 +65,22 @@ Page({
   async loadTeacherInfo() {
     try {
       const teacher = await getTeacherInfo();
+      
       if (teacher) {
+        let selectedSpecialties = teacher.specialties;
+        
+        if (typeof selectedSpecialties === 'string') {
+          try {
+            selectedSpecialties = JSON.parse(selectedSpecialties);
+          } catch (e) {
+            selectedSpecialties = selectedSpecialties.split(',').map(s => s.trim()).filter(s => s);
+          }
+        }
+        
+        if (!Array.isArray(selectedSpecialties)) {
+          selectedSpecialties = [];
+        }
+        
         this.setData({
           formData: {
             real_name: teacher.real_name || '',
@@ -61,7 +88,7 @@ Page({
             id_card_original: teacher.id_card || '',
             phone: this.maskPhone(teacher.phone || ''),
             phone_original: teacher.phone || '',
-            specialties: teacher.specialties || [],
+            specialties: selectedSpecialties,
             intro: teacher.intro || ''
           }
         });
@@ -76,11 +103,28 @@ Page({
     try {
       const specialties = await getSpecialties();
       if (specialties && Array.isArray(specialties)) {
-        const selected = selectedSpecialties.length > 0 ? selectedSpecialties : this.data.formData.specialties;
+        let selected = selectedSpecialties;
+        
+        if (!Array.isArray(selected)) {
+          if (typeof selected === 'string') {
+            try {
+              selected = JSON.parse(selected);
+            } catch (e) {
+              selected = selected.split(',').map(s => s.trim()).filter(s => s);
+            }
+          } else {
+            selected = [];
+          }
+        }
+        
+        if (selected.length === 0) {
+          selected = this.data.formData.specialties || [];
+        }
+        
         const options = specialties.map(item => ({
           label: item.name,
           value: item.name,
-          checked: selected.indexOf(item.name) > -1
+          checked: Array.isArray(selected) && selected.indexOf(item.name) > -1
         }));
         this.setData({ specialtyOptions: options });
       }

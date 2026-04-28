@@ -1,35 +1,5 @@
 const { getCategoriesWithHotProducts } = require('../../api/products');
-const { showToast } = require('../../utils/util');
-const config = require('../../utils/config');
-
-const DEFAULT_IMAGE = 'https://picsum.photos/seed/handmade-craft-default/400/400';
-
-function getFullImageUrl(url) {
-  if (!url) {
-    return DEFAULT_IMAGE;
-  }
-  
-  if (url.startsWith('http://') || url.startsWith('https://')) {
-    return url;
-  }
-  
-  if (url.startsWith('/api/images/')) {
-    const baseUrl = config.baseUrl.replace('/api', '');
-    return baseUrl + url;
-  }
-  
-  if (url.startsWith('/uploads/')) {
-    const baseUrl = config.baseUrl.replace('/api', '');
-    return baseUrl + '/api/upload' + url;
-  }
-  
-  if (url.startsWith('/')) {
-    const baseUrl = config.baseUrl.replace('/api', '');
-    return baseUrl + url;
-  }
-  
-  return url;
-}
+const { showToast, getFullImageUrl, processProductImages, DEFAULT_IMAGE } = require('../../utils/util');
 
 Page({
   data: {
@@ -37,8 +7,7 @@ Page({
     categories: [],
     currentSwiperIndex: {},
     isLoading: false,
-    isRefreshing: false,
-    defaultImage: DEFAULT_IMAGE
+    isRefreshing: false
   },
 
   onLoad() {

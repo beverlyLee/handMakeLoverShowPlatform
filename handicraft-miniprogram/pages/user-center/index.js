@@ -2,7 +2,7 @@ const { getUserInfo, updateUserInfo, switchRole, getUserRoles } = require('../..
 const { getTeacherOrderStats } = require('../../api/orders');
 const { logout } = require('../../api/auth');
 const { uploadImage } = require('../../api/upload');
-const { showToast, processUserInfo, DEFAULT_IMAGE } = require('../../utils/util');
+const { showToast, processUserInfo, DEFAULT_IMAGE, getFullImageUrl } = require('../../utils/util');
 const storage = require('../../utils/storage');
 
 Page({
@@ -279,6 +279,7 @@ Page({
           console.log('图片上传成功:', uploadResult);
           
           const serverUrl = uploadResult.url;
+          const fullImageUrl = getFullImageUrl(serverUrl);
           
           wx.showLoading({ title: '更新中...', mask: true });
 
@@ -287,7 +288,7 @@ Page({
           });
 
           this.setData({
-            'userInfo.avatar': serverUrl
+            'userInfo.avatar': fullImageUrl
           });
 
           wx.hideLoading();
