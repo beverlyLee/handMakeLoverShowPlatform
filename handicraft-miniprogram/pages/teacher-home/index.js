@@ -96,7 +96,15 @@ Page({
     reviewsLoading: false,
     reviewsPage: 1,
     reviewsPageSize: 3,
-    reviewsHasMore: true
+    reviewsHasMore: true,
+    
+    orderTimeRange: 'total',
+    currentTimeRangeLabel: '全部时间',
+    pendingOrders: null,
+    dailyTrend: [],
+    maxTrendCount: 1,
+    pending_reviews_count: 0,
+    pending_reply_count: 0
   },
 
   onLoad(options) {
@@ -309,8 +317,22 @@ Page({
     
     try {
       const result = await getTeacherPublicOrderStats(this.data.teacherId);
+      
+      const dailyTrend = result.daily_trend || [];
+      let maxTrendCount = 1;
+      dailyTrend.forEach(item => {
+        if (item.count > maxTrendCount) {
+          maxTrendCount = item.count;
+        }
+      });
+      
       this.setData({
         orderStats: result.stats,
+        pendingOrders: result.pending_orders,
+        dailyTrend: dailyTrend,
+        maxTrendCount: maxTrendCount,
+        pending_reviews_count: result.pending_reviews_count || 0,
+        pending_reply_count: result.pending_reply_count || 0,
         recentOrders: result.recent_orders || [],
         statusNames: result.status_names,
         ordersLoading: false
@@ -334,6 +356,55 @@ Page({
     if (tab === 'reviews' && this.data.reviews.length === 0) {
       this.loadTeacherReviewStats();
       this.loadTeacherReviews(false);
+    }
+  },
+
+  switchTimeRange(e) {
+    const range = e.currentTarget.dataset.range;
+    if (range === this.data.orderTimeRange) return;
+    
+    const rangeLabels = {
+      'total': '全部时间',
+      'today': '今日',
+      'week': '本周',
+      'month': '本月'
+    };
+    
+    this.setData({
+      orderTimeRange: range,
+      currentTimeRangeLabel: rangeLabels[range] || '全部时间'
+    });
+    
+    this.updateStatsByTimeRange(range);
+  },
+
+  updateStatsByTimeRange(range) {
+    const orderStats = this.data.orderStats;
+    if (!orderStats) return;
+    
+    if (range === 'today') {
+      const todayStats = {
+        ...orderStats,
+        total: orderStats.today_orders_count || 0,
+        total_amount: orderStats.today_orders_amount || 0
+      };
+      this.setData({ orderStats: todayStats });
+    } else if (range === 'week') {
+      const weekStats = {
+        ...orderStats,
+        total: orderStats.week_orders_count || 0,
+        total_amount: orderStats.week_orders_amount || 0
+      };
+      this.setData({ orderStats: weekStats });
+    } else if (range === 'month') {
+      const monthStats = {
+        ...orderStats,
+        total: orderStats.month_orders_count || 0,
+        total_amount: orderStats.month_orders_amount || 0
+      };
+      this.setData({ orderStats: monthStats });
+    } else {
+      this.loadOrderStats();
     }
   },
 
@@ -424,6 +495,37 @@ Page({
     }
     wx.navigateTo({
       url: `/pages/teacher-reviews/index?teacherId=${teacher.user_id}`
+    });
+  },
+
+  goToReviewManageWithFilter(e) {
+    const teacher = this.data.teacher;
+    if (!teacher || !teacher.user_id) {
+      showToast('老师信息未加载');
+      return;
+    }
+    
+    const filter = e.currentTarget.dataset.filter;
+    let url = `/pages/teacher-reviews/index?teacherId=${teacher.user_id}`;
+    
+    if (filter === 'pending') {
+      url += '&currentReplyStatus=pending';
+    } else if (filter === 'unread') {
+      url += '&showOnlyUnread=true';
+    }
+    
+    wx.navigateTo({ url: url });
+  },
+
+  goToReviewStats() {
+    const teacher = this.data.teacher;
+    if (!teacher || !teacher.user_id) {
+      showToast('老师信息未加载');
+      return;
+    }
+    
+    wx.navigateTo({
+      url: `/pages/teacher-reviews/index?teacherId=${teacher.user_id}&openStats=true`
     });
   },
 

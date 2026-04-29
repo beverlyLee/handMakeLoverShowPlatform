@@ -31,6 +31,7 @@ class Review(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     order_id = db.Column(db.String(50), db.ForeignKey('orders.id'), nullable=False, index=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    reviewer_role = db.Column(db.String(20), default='customer', index=True)
     product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False, index=True)
     teacher_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
     
@@ -185,6 +186,7 @@ class Review(db.Model):
             'id': self.id,
             'order_id': self.order_id,
             'user_id': self.user_id,
+            'reviewer_role': self.reviewer_role,
             'product_id': self.product_id,
             'teacher_id': self.teacher_id,
             
@@ -264,6 +266,7 @@ class AppendReview(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     review_id = db.Column(db.Integer, db.ForeignKey('reviews.id'), nullable=False, index=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    reviewer_role = db.Column(db.String(20), default='customer', index=True)
     
     content = db.Column(db.Text)
     _images = db.Column('images', db.Text)
@@ -294,6 +297,7 @@ class AppendReview(db.Model):
             'id': self.id,
             'review_id': self.review_id,
             'user_id': self.user_id,
+            'reviewer_role': self.reviewer_role,
             'content': self.content,
             'images': self.images,
             'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None,

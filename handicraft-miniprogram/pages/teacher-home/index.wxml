@@ -127,9 +127,25 @@
 
       <view class="tab-content">
         <view class="orders-tab" wx:if="{{currentTab === 'orders'}}">
+          <view class="time-range-tabs" wx:if="{{orderStats}}">
+            <view class="time-tab {{orderTimeRange === 'total' ? 'active' : ''}}" bindtap="switchTimeRange" data-range="total">
+              <text class="time-tab-text">全部</text>
+            </view>
+            <view class="time-tab {{orderTimeRange === 'today' ? 'active' : ''}}" bindtap="switchTimeRange" data-range="today">
+              <text class="time-tab-text">今日</text>
+            </view>
+            <view class="time-tab {{orderTimeRange === 'week' ? 'active' : ''}}" bindtap="switchTimeRange" data-range="week">
+              <text class="time-tab-text">本周</text>
+            </view>
+            <view class="time-tab {{orderTimeRange === 'month' ? 'active' : ''}}" bindtap="switchTimeRange" data-range="month">
+              <text class="time-tab-text">本月</text>
+            </view>
+          </view>
+          
           <view class="order-stats-card" wx:if="{{orderStats}}">
             <view class="order-stats-header">
               <text class="order-stats-title">接单统计</text>
+              <text class="order-stats-subtitle">{{currentTimeRangeLabel}}</text>
             </view>
             <view class="order-stats-grid">
               <view class="order-stat-item">
@@ -141,12 +157,140 @@
                 <text class="order-stat-label">已完成</text>
               </view>
               <view class="order-stat-item">
-                <text class="order-stat-value" style="color: #FF9800;">{{orderStats.paid + orderStats.shipped || 0}}</text>
+                <text class="order-stat-value" style="color: #FF9800;">{{pendingOrders.total_pending || 0}}</text>
                 <text class="order-stat-label">进行中</text>
               </view>
               <view class="order-stat-item">
                 <text class="order-stat-value" style="color: #E64A19;">¥{{orderStats.total_amount || 0}}</text>
                 <text class="order-stat-label">成交额</text>
+              </view>
+            </view>
+          </view>
+          
+          <view class="income-stats-card" wx:if="{{orderStats && orderStats.total > 0}}">
+            <view class="section-header">
+              <text class="section-title">收入统计</text>
+              <view class="title-decoration"></view>
+            </view>
+            <view class="income-stats-grid">
+              <view class="income-stat-item">
+                <text class="income-stat-label">平均客单价</text>
+                <text class="income-stat-value">¥{{orderStats.avg_order_value || 0}}</text>
+              </view>
+              <view class="income-stat-item">
+                <text class="income-stat-label">日均收入(近30天)</text>
+                <text class="income-stat-value">¥{{orderStats.avg_daily_amount_30days || 0}}</text>
+              </view>
+              <view class="income-stat-item">
+                <text class="income-stat-label">完成率</text>
+                <text class="income-stat-value success">{{orderStats.completion_rate || 0}}%</text>
+              </view>
+              <view class="income-stat-item">
+                <text class="income-stat-label">取消率</text>
+                <text class="income-stat-value danger">{{orderStats.cancellation_rate || 0}}%</text>
+              </view>
+            </view>
+            <view class="income-extended-grid" wx:if="{{orderStats.max_order_value > 0}}">
+              <view class="extended-stat-item">
+                <text class="extended-stat-label">最高订单金额</text>
+                <text class="extended-stat-value">¥{{orderStats.max_order_value || 0}}</text>
+              </view>
+              <view class="extended-stat-item">
+                <text class="extended-stat-label">最低订单金额</text>
+                <text class="extended-stat-value">¥{{orderStats.min_order_value || 0}}</text>
+              </view>
+            </view>
+          </view>
+          
+          <view class="pending-stats-card" wx:if="{{pendingOrders && pendingOrders.total_pending > 0}}">
+            <view class="section-header">
+              <text class="section-title">待处理订单</text>
+              <view class="title-decoration"></view>
+            </view>
+            <view class="pending-stats-grid">
+              <view class="pending-stat-item pending-accept" wx:if="{{pendingOrders.pending_accept > 0}}">
+                <text class="pending-stat-icon">⏳</text>
+                <text class="pending-stat-value">{{pendingOrders.pending_accept}}</text>
+                <text class="pending-stat-label">待接单</text>
+              </view>
+              <view class="pending-stat-item accepted" wx:if="{{pendingOrders.accepted > 0}}">
+                <text class="pending-stat-icon">✅</text>
+                <text class="pending-stat-value">{{pendingOrders.accepted}}</text>
+                <text class="pending-stat-label">已接单</text>
+              </view>
+              <view class="pending-stat-item in-progress" wx:if="{{pendingOrders.in_progress > 0}}">
+                <text class="pending-stat-icon">🔨</text>
+                <text class="pending-stat-value">{{pendingOrders.in_progress}}</text>
+                <text class="pending-stat-label">制作中</text>
+              </view>
+              <view class="pending-stat-item paid" wx:if="{{pendingOrders.paid > 0}}">
+                <text class="pending-stat-icon">📦</text>
+                <text class="pending-stat-value">{{pendingOrders.paid}}</text>
+                <text class="pending-stat-label">待发货</text>
+              </view>
+              <view class="pending-stat-item shipped" wx:if="{{pendingOrders.shipped > 0}}">
+                <text class="pending-stat-icon">🚚</text>
+                <text class="pending-stat-value">{{pendingOrders.shipped}}</text>
+                <text class="pending-stat-label">待收货</text>
+              </view>
+            </view>
+          </view>
+          
+          <view class="trend-stats-card" wx:if="{{dailyTrend && dailyTrend.length > 0}}">
+            <view class="section-header">
+              <text class="section-title">近7天订单趋势</text>
+              <view class="title-decoration"></view>
+            </view>
+            <view class="trend-chart">
+              <view class="trend-bars">
+                <view wx:for="{{dailyTrend}}" wx:key="date" class="trend-bar-item">
+                  <view class="trend-bar-wrapper">
+                    <view class="trend-bar trend-bar-count" style="height: {{item.count > 0 ? (item.count / maxTrendCount * 100) : 0}}%;">
+                      <text class="trend-bar-value">{{item.count}}</text>
+                    </view>
+                  </view>
+                  <text class="trend-bar-label">{{item.date.slice(5)}}</text>
+                  <text class="trend-bar-amount">¥{{item.amount}}</text>
+                </view>
+              </view>
+              <view class="trend-legend">
+                <view class="legend-item">
+                  <view class="legend-color legend-count"></view>
+                  <text class="legend-text">订单数</text>
+                </view>
+              </view>
+            </view>
+          </view>
+          
+          <view class="alerts-card" wx:if="{{(pending_reviews_count > 0) || (pending_reply_count > 0)}}">
+            <view class="section-header">
+              <text class="section-title">待处理事项</text>
+              <view class="title-decoration"></view>
+            </view>
+            <view class="alerts-list">
+              <view class="alert-item alert-review" wx:if="{{pending_reviews_count > 0}}" bindtap="goToReviewManage">
+                <view class="alert-icon">
+                  <text class="icon-text">📝</text>
+                </view>
+                <view class="alert-content">
+                  <text class="alert-title">新评价提醒</text>
+                  <text class="alert-desc">有 {{pending_reviews_count}} 条新评价待查看</text>
+                </view>
+                <view class="alert-badge">
+                  <text class="badge-text">{{pending_reviews_count}}</text>
+                </view>
+              </view>
+              <view class="alert-item alert-reply" wx:if="{{pending_reply_count > 0}}" bindtap="goToReviewManage">
+                <view class="alert-icon">
+                  <text class="icon-text">💬</text>
+                </view>
+                <view class="alert-content">
+                  <text class="alert-title">待回复评价</text>
+                  <text class="alert-desc">有 {{pending_reply_count}} 条评价待回复</text>
+                </view>
+                <view class="alert-badge">
+                  <text class="badge-text">{{pending_reply_count}}</text>
+                </view>
               </view>
             </view>
           </view>
@@ -261,6 +405,42 @@
         </view>
 
         <view class="reviews-tab" wx:if="{{currentTab === 'reviews'}}">
+          <view class="quick-actions-card" wx:if="{{isOwner}}">
+            <view class="quick-actions-header">
+              <text class="quick-actions-title">评价管理</text>
+            </view>
+            <view class="quick-actions-grid">
+              <view class="quick-action-item" bindtap="goToReviewManageWithFilter" data-filter="all">
+                <view class="action-icon-wrapper all">
+                  <text class="action-icon">📋</text>
+                </view>
+                <text class="action-label">全部评价</text>
+                <text class="action-badge" wx:if="{{reviewStats && reviewStats.total > 0}}">{{reviewStats.total}}</text>
+              </view>
+              <view class="quick-action-item" bindtap="goToReviewManageWithFilter" data-filter="pending">
+                <view class="action-icon-wrapper pending">
+                  <text class="action-icon">💬</text>
+                </view>
+                <text class="action-label">待回复</text>
+                <text class="action-badge highlight" wx:if="{{reviewStats && reviewStats.pendingReply > 0}}">{{reviewStats.pendingReply}}</text>
+              </view>
+              <view class="quick-action-item" bindtap="goToReviewManageWithFilter" data-filter="unread">
+                <view class="action-icon-wrapper unread">
+                  <text class="action-icon">📖</text>
+                </view>
+                <text class="action-label">未读评价</text>
+                <text class="action-badge highlight" wx:if="{{reviewStats && reviewStats.unread > 0}}">{{reviewStats.unread}}</text>
+              </view>
+              <view class="quick-action-item" bindtap="goToReviewStats">
+                <view class="action-icon-wrapper stats">
+                  <text class="action-icon">📊</text>
+                </view>
+                <text class="action-label">趋势统计</text>
+                <text class="action-arrow">›</text>
+              </view>
+            </view>
+          </view>
+          
           <view class="review-stats-card" wx:if="{{reviewStats && reviewStats.total > 0}}">
             <view class="review-stats-header">
               <text class="review-stats-title">评价统计</text>

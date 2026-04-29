@@ -3,9 +3,9 @@ from app.utils.response import success, error
 from app.common.auth import login_required
 from app.common.response_code import ResponseCode
 from app.services.user_service import UserService
-from app.models import Order, OrderItem
+from app.models import Order, OrderItem, Review
 from app.database import db
-from datetime import datetime
+from datetime import datetime, timedelta
 
 user_bp = Blueprint('users', __name__)
 
@@ -16,11 +16,16 @@ ROLE_NAMES = {
 
 STATUS_NAMES = {
     'pending': '待付款',
+    'pending_accept': '待接单',
+    'accepted': '已接单',
+    'in_progress': '制作中',
     'paid': '待发货',
     'shipped': '待收货',
     'delivered': '已送达',
     'completed': '已完成',
-    'cancelled': '已取消'
+    'cancelled': '已取消',
+    'rejected': '已拒绝',
+    'deleted': '已删除'
 }
 
 def get_current_user():
@@ -374,8 +379,15 @@ def get_teacher_public_order_stats(teacher_id):
     if not teacher:
         return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='老师不存在')), 404
     
-    orders_query = Order.query.filter_by(teacher_id=teacher_id)
+    orders_query = Order.query.filter_by(teacher_id=teacher.user_id)
     all_orders = orders_query.all()
+    
+    now = datetime.utcnow()
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    week_start = today_start - timedelta(days=now.weekday())
+    month_start = today_start.replace(day=1)
+    thirty_days_ago = today_start - timedelta(days=30)
+    seven_days_ago = today_start - timedelta(days=7)
     
     stats = {
         'total': len(all_orders),
@@ -385,13 +397,120 @@ def get_teacher_public_order_stats(teacher_id):
         'delivered': 0,
         'completed': 0,
         'cancelled': 0,
+        'pending_accept': 0,
+        'accepted': 0,
+        'in_progress': 0,
+        'rejected': 0,
         'total_amount': 0
     }
     
+    paid_amounts = []
+    completed_count = 0
+    cancelled_count = 0
+    total_effective_count = 0
+    
+    today_orders_count = 0
+    today_orders_amount = 0
+    week_orders_count = 0
+    week_orders_amount = 0
+    month_orders_count = 0
+    month_orders_amount = 0
+    thirty_days_orders_count = 0
+    thirty_days_orders_amount = 0
+    
+    daily_trend_data = {}
+    for i in range(7):
+        date_key = (today_start - timedelta(days=i)).strftime('%Y-%m-%d')
+        daily_trend_data[date_key] = {'count': 0, 'amount': 0}
+    
     for order in all_orders:
         stats[order.status] = stats.get(order.status, 0) + 1
+        
         if order.status in ['paid', 'shipped', 'delivered', 'completed']:
             stats['total_amount'] += order.pay_amount
+            paid_amounts.append(order.pay_amount)
+            total_effective_count += 1
+        
+        if order.status == 'completed':
+            completed_count += 1
+        elif order.status == 'cancelled':
+            cancelled_count += 1
+        
+        order_date = order.created_at
+        if order_date:
+            order_date_key = order_date.strftime('%Y-%m-%d')
+            
+            if order_date >= today_start:
+                today_orders_count += 1
+                if order.status in ['paid', 'shipped', 'delivered', 'completed']:
+                    today_orders_amount += order.pay_amount
+            
+            if order_date >= week_start:
+                week_orders_count += 1
+                if order.status in ['paid', 'shipped', 'delivered', 'completed']:
+                    week_orders_amount += order.pay_amount
+            
+            if order_date >= month_start:
+                month_orders_count += 1
+                if order.status in ['paid', 'shipped', 'delivered', 'completed']:
+                    month_orders_amount += order.pay_amount
+            
+            if order_date >= thirty_days_ago:
+                thirty_days_orders_count += 1
+                if order.status in ['paid', 'shipped', 'delivered', 'completed']:
+                    thirty_days_orders_amount += order.pay_amount
+            
+            if order_date_key in daily_trend_data:
+                daily_trend_data[order_date_key]['count'] += 1
+                if order.status in ['paid', 'shipped', 'delivered', 'completed']:
+                    daily_trend_data[order_date_key]['amount'] += order.pay_amount
+    
+    stats['today_orders_count'] = today_orders_count
+    stats['today_orders_amount'] = round(today_orders_amount, 2)
+    stats['week_orders_count'] = week_orders_count
+    stats['week_orders_amount'] = round(week_orders_amount, 2)
+    stats['month_orders_count'] = month_orders_count
+    stats['month_orders_amount'] = round(month_orders_amount, 2)
+    stats['thirty_days_orders_count'] = thirty_days_orders_count
+    stats['thirty_days_orders_amount'] = round(thirty_days_orders_amount, 2)
+    
+    stats['completion_rate'] = round(completed_count / total_effective_count * 100, 1) if total_effective_count > 0 else 0
+    stats['cancellation_rate'] = round(cancelled_count / (total_effective_count + cancelled_count) * 100, 1) if (total_effective_count + cancelled_count) > 0 else 0
+    stats['avg_order_value'] = round(stats['total_amount'] / total_effective_count, 2) if total_effective_count > 0 else 0
+    stats['avg_daily_amount_30days'] = round(thirty_days_orders_amount / 30, 2)
+    stats['max_order_value'] = round(max(paid_amounts), 2) if paid_amounts else 0
+    stats['min_order_value'] = round(min(paid_amounts), 2) if paid_amounts else 0
+    
+    pending_orders = {
+        'pending_accept': stats.get('pending_accept', 0),
+        'accepted': stats.get('accepted', 0),
+        'in_progress': stats.get('in_progress', 0),
+        'paid': stats.get('paid', 0),
+        'shipped': stats.get('shipped', 0),
+        'total_pending': stats.get('pending_accept', 0) + stats.get('accepted', 0) + stats.get('in_progress', 0) + stats.get('paid', 0) + stats.get('shipped', 0)
+    }
+    
+    daily_trend = []
+    for i in range(6, -1, -1):
+        date_key = (today_start - timedelta(days=i)).strftime('%Y-%m-%d')
+        daily_data = daily_trend_data.get(date_key, {'count': 0, 'amount': 0})
+        daily_trend.append({
+            'date': date_key,
+            'count': daily_data['count'],
+            'amount': round(daily_data['amount'], 2)
+        })
+    
+    pending_reviews_count = Review.query.filter_by(
+        teacher_id=teacher.user_id,
+        is_hidden=False,
+        is_read=False
+    ).count()
+    
+    pending_reply_count = Review.query.filter(
+        Review.teacher_id == teacher.user_id,
+        Review.is_hidden == False,
+        Review.reply_content.is_(None)
+    ).count()
     
     recent_query = orders_query.order_by(Order.created_at.desc()).limit(10)
     recent_orders = []
@@ -416,6 +535,10 @@ def get_teacher_public_order_stats(teacher_id):
     
     return jsonify(success(data={
         'stats': stats,
+        'pending_orders': pending_orders,
+        'daily_trend': daily_trend,
+        'pending_reviews_count': pending_reviews_count,
+        'pending_reply_count': pending_reply_count,
         'recent_orders': recent_orders,
         'status_names': STATUS_NAMES
     }))

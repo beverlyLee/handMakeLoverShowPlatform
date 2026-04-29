@@ -6,7 +6,7 @@ from app.models import Review, AppendReview, Order, Product, User, TeacherProfil
     PRODUCT_DETAIL_ITEMS, TEACHER_DETAIL_ITEMS, LOGISTICS_DETAIL_ITEMS
 from app.database import db
 from app.services.message_service import MessageService
-from datetime import datetime
+from datetime import datetime, timedelta
 from sqlalchemy import func
 
 review_bp = Blueprint('reviews', __name__)
@@ -163,7 +163,7 @@ def enrich_append_review(append_review, include_user=False):
     if include_user:
         nickname = get_user_nickname(append_review.user_id)
         avatar = get_user_avatar(append_review.user_id)
-        role = get_user_role(append_review.user_id)
+        role = append_review.reviewer_role or get_user_role(append_review.user_id)
         role_label = get_role_label(role)
         append_dict['user_info'] = {
             'nickname': nickname,
@@ -202,7 +202,7 @@ def enrich_review(review, include_user=False, include_product=False, include_ord
         else:
             nickname = get_user_nickname(review.user_id)
             avatar = get_user_avatar(review.user_id)
-            role = get_user_role(review.user_id)
+            role = review.reviewer_role or get_user_role(review.user_id)
             role_label = get_role_label(role)
             review_dict['user_info'] = {
                 'nickname': nickname,
@@ -242,6 +242,17 @@ def get_detail_items():
     }))
 
 
+def parse_date(date_str):
+    if not date_str:
+        return None
+    try:
+        return datetime.strptime(date_str, '%Y-%m-%d')
+    except ValueError:
+        try:
+            return datetime.strptime(date_str, '%Y-%m-%d %H:%M:%S')
+        except ValueError:
+            return None
+
 @review_bp.route('/', methods=['GET'])
 @login_required
 def get_reviews():
@@ -254,11 +265,16 @@ def get_reviews():
     teacher_id = request.args.get('teacher_id', None, type=int)
     order_id = request.args.get('order_id', None)
     user_id_filter = request.args.get('user_id', None, type=int)
+    reviewer_role = request.args.get('reviewer_role', None)
     
     min_rating = request.args.get('min_rating', None, type=float)
     max_rating = request.args.get('max_rating', None, type=float)
     has_image = request.args.get('has_image', None, type=bool)
     has_reply = request.args.get('has_reply', None, type=bool)
+    
+    start_date_str = request.args.get('start_date', None)
+    end_date_str = request.args.get('end_date', None)
+    date_range = request.args.get('date_range', None)
     
     query = Review.query.filter_by(is_hidden=False)
     
@@ -273,6 +289,9 @@ def get_reviews():
     
     if user_id_filter:
         query = query.filter_by(user_id=user_id_filter)
+    
+    if reviewer_role:
+        query = query.filter_by(reviewer_role=reviewer_role)
     
     if min_rating is not None:
         query = query.filter(Review.overall_rating >= min_rating)
@@ -294,6 +313,36 @@ def get_reviews():
             query = query.filter(Review.reply_content.isnot(None))
         else:
             query = query.filter(Review.reply_content.is_(None))
+    
+    if date_range:
+        end_date = datetime.utcnow()
+        if date_range == 'today':
+            start_date = end_date.replace(hour=0, minute=0, second=0, microsecond=0)
+        elif date_range == 'week':
+            start_date = end_date - timedelta(days=7)
+        elif date_range == 'month':
+            start_date = end_date - timedelta(days=30)
+        elif date_range == 'quarter':
+            start_date = end_date - timedelta(days=90)
+        else:
+            start_date = None
+            end_date = None
+        
+        if start_date:
+            query = query.filter(Review.created_at >= start_date)
+        if end_date:
+            query = query.filter(Review.created_at <= end_date)
+    
+    if start_date_str:
+        start_date = parse_date(start_date_str)
+        if start_date:
+            query = query.filter(Review.created_at >= start_date)
+    
+    if end_date_str:
+        end_date = parse_date(end_date_str)
+        if end_date:
+            end_date = end_date.replace(hour=23, minute=59, second=59, microsecond=999999)
+            query = query.filter(Review.created_at <= end_date)
     
     stats = get_review_stats(query)
     
@@ -451,9 +500,12 @@ def create_review():
     if not teacher_user_id:
         return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='老师信息缺失')), 400
     
+    reviewer_role = get_user_role(user_id) or 'customer'
+    
     review = Review(
         order_id=order_id,
         user_id=user_id,
+        reviewer_role=reviewer_role,
         product_id=product_id,
         teacher_id=teacher_user_id,
         overall_rating=overall_rating,
@@ -642,9 +694,12 @@ def append_review(review_id):
     if not review or review.is_hidden:
         return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='评价不存在')), 404
     
+    reviewer_role = get_user_role(user_id) or 'customer'
+    
     append_review = AppendReview(
         review_id=review_id,
         user_id=user_id,
+        reviewer_role=reviewer_role,
         content=data.get('content'),
         images=data.get('images', [])
     )
@@ -720,12 +775,20 @@ def get_product_reviews(product_id):
     min_rating = request.args.get('min_rating', None, type=float)
     max_rating = request.args.get('max_rating', None, type=float)
     has_image = request.args.get('has_image', None, type=bool)
+    reviewer_role = request.args.get('reviewer_role', None)
     sort_by = request.args.get('sort_by', 'newest')
+    
+    start_date_str = request.args.get('start_date', None)
+    end_date_str = request.args.get('end_date', None)
+    date_range = request.args.get('date_range', None)
     
     query = Review.query.filter_by(
         product_id=product_id,
         is_hidden=False
     )
+    
+    if reviewer_role:
+        query = query.filter_by(reviewer_role=reviewer_role)
     
     if min_rating is not None:
         query = query.filter(Review.overall_rating >= min_rating)
@@ -741,6 +804,36 @@ def get_product_reviews(product_id):
                 (Review._images.is_(None)) | 
                 (Review._images == '[]')
             )
+    
+    if date_range:
+        end_date = datetime.utcnow()
+        if date_range == 'today':
+            start_date = end_date.replace(hour=0, minute=0, second=0, microsecond=0)
+        elif date_range == 'week':
+            start_date = end_date - timedelta(days=7)
+        elif date_range == 'month':
+            start_date = end_date - timedelta(days=30)
+        elif date_range == 'quarter':
+            start_date = end_date - timedelta(days=90)
+        else:
+            start_date = None
+            end_date = None
+        
+        if start_date:
+            query = query.filter(Review.created_at >= start_date)
+        if end_date:
+            query = query.filter(Review.created_at <= end_date)
+    
+    if start_date_str:
+        start_date = parse_date(start_date_str)
+        if start_date:
+            query = query.filter(Review.created_at >= start_date)
+    
+    if end_date_str:
+        end_date = parse_date(end_date_str)
+        if end_date:
+            end_date = end_date.replace(hour=23, minute=59, second=59, microsecond=999999)
+            query = query.filter(Review.created_at <= end_date)
     
     stats = get_review_stats(query)
     
@@ -771,12 +864,21 @@ def get_teacher_reviews(teacher_user_id):
     min_rating = request.args.get('min_rating', None, type=float)
     max_rating = request.args.get('max_rating', None, type=float)
     has_image = request.args.get('has_image', None, type=bool)
+    has_reply = request.args.get('has_reply', None, type=bool)
+    reviewer_role = request.args.get('reviewer_role', None)
     sort_by = request.args.get('sort_by', 'newest')
+    
+    start_date_str = request.args.get('start_date', None)
+    end_date_str = request.args.get('end_date', None)
+    date_range = request.args.get('date_range', None)
     
     query = Review.query.filter_by(
         teacher_id=teacher_user_id,
         is_hidden=False
     )
+    
+    if reviewer_role:
+        query = query.filter_by(reviewer_role=reviewer_role)
     
     if min_rating is not None:
         query = query.filter(Review.overall_rating >= min_rating)
@@ -793,11 +895,51 @@ def get_teacher_reviews(teacher_user_id):
                 (Review._images == '[]')
             )
     
+    if has_reply is not None:
+        if has_reply:
+            query = query.filter(Review.reply_content.isnot(None))
+        else:
+            query = query.filter(Review.reply_content.is_(None))
+    
+    if date_range:
+        end_date = datetime.utcnow()
+        if date_range == 'today':
+            start_date = end_date.replace(hour=0, minute=0, second=0, microsecond=0)
+        elif date_range == 'week':
+            start_date = end_date - timedelta(days=7)
+        elif date_range == 'month':
+            start_date = end_date - timedelta(days=30)
+        elif date_range == 'quarter':
+            start_date = end_date - timedelta(days=90)
+        else:
+            start_date = None
+            end_date = None
+        
+        if start_date:
+            query = query.filter(Review.created_at >= start_date)
+        if end_date:
+            query = query.filter(Review.created_at <= end_date)
+    
+    if start_date_str:
+        start_date = parse_date(start_date_str)
+        if start_date:
+            query = query.filter(Review.created_at >= start_date)
+    
+    if end_date_str:
+        end_date = parse_date(end_date_str)
+        if end_date:
+            end_date = end_date.replace(hour=23, minute=59, second=59, microsecond=999999)
+            query = query.filter(Review.created_at <= end_date)
+    
     stats = get_review_stats(query)
     
     total = query.count()
     if sort_by == 'best':
         query = query.order_by(Review.overall_rating.desc(), Review.created_at.desc())
+    elif sort_by == 'oldest':
+        query = query.order_by(Review.created_at.asc())
+    elif sort_by == 'rating_asc':
+        query = query.order_by(Review.overall_rating.asc(), Review.created_at.desc())
     else:
         query = query.order_by(Review.created_at.desc())
     paginated = query.offset((page - 1) * size).limit(size).all()
@@ -1015,18 +1157,22 @@ def get_teacher_trend_stats(teacher_user_id):
     
     days = request.args.get('days', 30, type=int)
     days = min(max(days, 7), 90)
-    
-    from datetime import timedelta
+    reviewer_role = request.args.get('reviewer_role', None)
     
     end_date = datetime.utcnow()
     start_date = end_date - timedelta(days=days)
     
-    reviews = Review.query.filter(
+    query = Review.query.filter(
         Review.teacher_id == teacher_user_id,
         Review.is_hidden == False,
         Review.created_at >= start_date,
         Review.created_at <= end_date
-    ).order_by(Review.created_at.asc()).all()
+    )
+    
+    if reviewer_role:
+        query = query.filter_by(reviewer_role=reviewer_role)
+    
+    reviews = query.order_by(Review.created_at.asc()).all()
     
     daily_stats = {}
     for review in reviews:
@@ -1075,13 +1221,30 @@ def get_teacher_trend_stats(teacher_user_id):
     
     trend_data.reverse()
     
-    overall_stats = get_review_stats(Review.query.filter_by(
+    overall_query = Review.query.filter_by(
         teacher_id=teacher_user_id,
         is_hidden=False
-    ))
+    )
+    
+    if reviewer_role:
+        overall_query = overall_query.filter_by(reviewer_role=reviewer_role)
+    
+    overall_stats = get_review_stats(overall_query)
+    
+    role_stats = {}
+    all_roles = ['customer', 'teacher']
+    for role in all_roles:
+        role_query = Review.query.filter_by(
+            teacher_id=teacher_user_id,
+            is_hidden=False,
+            reviewer_role=role
+        )
+        role_stats[role] = get_review_stats(role_query)
     
     return jsonify(success(data={
         'trend_data': trend_data,
         'overall_stats': overall_stats,
-        'days': days
+        'role_stats': role_stats,
+        'days': days,
+        'reviewer_role': reviewer_role
     }))

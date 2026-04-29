@@ -79,21 +79,43 @@ Page({
     isEditingReply: false,
     
     showStatsDialog: false,
-    currentStatTab: 'overview'
+    currentStatTab: 'overview',
+    
+    showOnlyUnread: false,
+    shouldOpenStatsOnLoad: false
   },
 
   onLoad(options) {
-    const { teacherId } = options;
+    const { 
+      teacherId, 
+      currentReplyStatus, 
+      showOnlyUnread, 
+      openStats 
+    } = options;
     
     if (!teacherId) {
       showToast('参数错误');
       wx.navigateBack();
       return;
     }
-
-    this.setData({ 
+    
+    let updates = {
       teacherId: parseInt(teacherId)
-    });
+    };
+    
+    if (currentReplyStatus) {
+      updates.currentReplyStatus = currentReplyStatus;
+    }
+    
+    if (showOnlyUnread === 'true') {
+      updates.showOnlyUnread = true;
+    }
+    
+    this.setData(updates);
+    
+    if (openStats === 'true') {
+      this.setData({ shouldOpenStatsOnLoad: true });
+    }
     
     this.loadCurrentUser();
   },
@@ -166,10 +188,35 @@ Page({
         this.loadReviewStats(),
         this.loadReviews(true)
       ]);
+      
+      if (this.data.shouldOpenStatsOnLoad) {
+        this.setData({ shouldOpenStatsOnLoad: false });
+        setTimeout(() => {
+          this.openStatsDialog();
+        }, 300);
+      }
+      
+      if (this.data.showOnlyUnread) {
+        this.filterUnreadReviews();
+      }
     } catch (error) {
       console.error('加载数据失败:', error);
     } finally {
       this.setData({ isLoading: false });
+    }
+  },
+
+  filterUnreadReviews() {
+    const { reviews } = this.data;
+    const unreadReviews = reviews.filter(r => !r.is_read);
+    
+    this.setData({
+      reviews: unreadReviews,
+      showOnlyUnread: false
+    });
+    
+    if (unreadReviews.length > 0) {
+      showToast(`显示 ${unreadReviews.length} 条未读评价`);
     }
   },
 
