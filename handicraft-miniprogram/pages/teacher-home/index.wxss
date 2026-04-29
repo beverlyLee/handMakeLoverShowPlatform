@@ -158,6 +158,23 @@
   background-color: rgba(121, 85, 72, 0.2);
 }
 
+.stat-item-highlight {
+  background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+  padding: 12rpx 20rpx;
+  border-radius: 16rpx;
+  transform: scale(1.05);
+}
+
+.stat-value-popularity {
+  color: #fff;
+  text-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.1);
+}
+
+.stat-label-popularity {
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+}
+
 .header-actions {
   display: flex;
   gap: 20rpx;
@@ -556,20 +573,9 @@
   margin-left: 10rpx;
 }
 
-.favorite-section {
+.like-section {
   display: flex;
   align-items: center;
-}
-
-.favorite-icon {
-  font-size: 22rpx;
-  color: #E64A19;
-  margin-right: 4rpx;
-}
-
-.favorite-count {
-  font-size: 20rpx;
-  color: #999;
 }
 
 .product-actions {

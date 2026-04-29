@@ -46,6 +46,16 @@
             <text class="stat-label">收藏</text>
           </view>
         </view>
+        <view class="like-section" catchtap="preventBubble">
+          <like-button 
+            product-id="{{productId}}"
+            is-liked="{{isLiked}}"
+            like-count="{{product.popularity_score || 0}}"
+            size="default"
+            show-count="{{true}}"
+            bind:change="onLikeChange"
+          />
+        </view>
       </view>
 
       <view class="rating-row" wx:if="{{reviewStats && reviewStats.total > 0}}">
@@ -197,10 +207,6 @@
 
   <view class="bottom-bar {{isTeacher ? 'bottom-bar-teacher' : ''}}" wx:if="{{!isLoading}}">
     <view class="bar-actions">
-      <view class="action-icon-wrapper" bindtap="toggleFavorite">
-        <text class="action-icon">❤</text>
-        <text class="action-text">收藏</text>
-      </view>
       <view class="action-icon-wrapper" bindtap="contactTeacher">
         <text class="action-icon">💬</text>
         <text class="action-text">咨询</text>

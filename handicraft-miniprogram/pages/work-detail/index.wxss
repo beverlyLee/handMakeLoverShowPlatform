@@ -52,8 +52,13 @@
 .price-row {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
+  align-items: center;
   margin-bottom: 20rpx;
+}
+
+.like-section {
+  display: flex;
+  align-items: center;
 }
 
 .price-section {

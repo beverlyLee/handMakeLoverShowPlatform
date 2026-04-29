@@ -3,6 +3,7 @@ const { getProducts, createProduct: createProductApi, getCategories, updateProdu
 const { getSpecialties } = require('../../api/specialties');
 const { uploadImages } = require('../../api/upload');
 const { getTeacherReviews, getTeacherReviewStats } = require('../../api/reviews');
+const { batchCheckLikeStatus } = require('../../api/favorites');
 const { showToast, processTeacherInfo, processProductImages, getRelativeImageUrl, getFullImageUrl } = require('../../utils/util');
 const config = require('../../utils/config');
 const storage = require('../../utils/storage');
@@ -286,13 +287,28 @@ Page({
 
       const result = await getProducts(params);
       const newProducts = (result && result.list) || result || [];
-      const processedProducts = newProducts.map(p => processProductImages(p));
+      
+      const processedProducts = newProducts.map(p => {
+        const processed = processProductImages(p);
+        if (processed.is_liked === undefined || processed.is_liked === null) {
+          processed.is_liked = false;
+        }
+        return processed;
+      });
+      
       const total = (result && result.total) || newProducts.length;
+      
+      let totalPopularity = 0;
+      processedProducts.forEach(p => {
+        totalPopularity += p.popularity_score || p.heat_score || 0;
+      });
 
       if (append) {
+        const currentTotalPopularity = this.data.totalPopularity || 0;
         this.setData({
           products: [...this.data.products, ...processedProducts],
           productsTotal: total,
+          totalPopularity: currentTotalPopularity + totalPopularity,
           productsHasMore: processedProducts.length >= this.data.productsPageSize,
           productsLoading: false
         });
@@ -300,15 +316,81 @@ Page({
         this.setData({
           products: processedProducts,
           productsTotal: total,
+          totalPopularity: totalPopularity,
           productsPage: 1,
           productsHasMore: processedProducts.length >= this.data.productsPageSize,
           productsLoading: false
         });
+        
+        this.refreshLikeStatus();
       }
     } catch (error) {
       console.error('加载老师作品失败:', error);
       this.setData({ productsLoading: false });
       showToast('加载作品失败');
+    }
+  },
+
+  async refreshLikeStatus() {
+    const { products } = this.data;
+    if (!products || products.length === 0) return;
+
+    const token = storage.getToken();
+    if (!token) {
+      console.log('用户未登录，不检查点赞状态');
+      return;
+    }
+
+    const productIds = products.map(p => p.id);
+    if (productIds.length === 0) return;
+
+    try {
+      const result = await batchCheckLikeStatus({ product_ids: productIds });
+      if (result && Array.isArray(result)) {
+        const likeStatusMap = {};
+        result.forEach(item => {
+          likeStatusMap[item.product_id] = {
+            is_liked: item.is_liked,
+            like_count: item.like_count
+          };
+        });
+
+        const updatedProducts = products.map(product => {
+          const likeStatus = likeStatusMap[product.id];
+          if (likeStatus) {
+            return {
+              ...product,
+              is_liked: likeStatus.is_liked,
+              like_count: likeStatus.like_count
+            };
+          }
+          return product;
+        });
+
+        this.setData({
+          products: updatedProducts
+        });
+      }
+    } catch (error) {
+      console.error('检查点赞状态失败:', error);
+    }
+  },
+
+  onLikeChange(e) {
+    const { index } = e.currentTarget.dataset;
+    const { isLiked, likeCount, popularityScore } = e.detail;
+    
+    const products = this.data.products;
+    if (products && products[index]) {
+      products[index].is_liked = isLiked;
+      products[index].like_count = likeCount;
+      if (popularityScore !== undefined && popularityScore !== null) {
+        products[index].heat_score = popularityScore;
+        products[index].popularity_score = popularityScore;
+      }
+      this.setData({
+        products: products
+      });
     }
   },
 
@@ -1112,5 +1194,9 @@ Page({
       cancelled: '#F44336'
     };
     return colors[status] || '#999999';
+  },
+
+  preventBubble() {
+    return;
   }
 });

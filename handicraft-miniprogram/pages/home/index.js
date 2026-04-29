@@ -1,5 +1,7 @@
 const { getCategoriesWithHotProducts } = require('../../api/products');
+const { batchCheckLikeStatus } = require('../../api/favorites');
 const { showToast, getFullImageUrl, processProductImages, DEFAULT_IMAGE } = require('../../utils/util');
+const { getToken } = require('../../utils/storage');
 
 Page({
   data: {
@@ -60,6 +62,10 @@ Page({
           processedCategory.hot_products = processedCategory.hot_products.map(product => {
             const processedProduct = { ...product };
             
+            if (processedProduct.is_liked === undefined || processedProduct.is_liked === null) {
+              processedProduct.is_liked = false;
+            }
+            
             if (!processedProduct.cover_image) {
               if (processedProduct.images && processedProduct.images.length > 0) {
                 processedProduct.cover_image = processedProduct.images[0];
@@ -93,10 +99,71 @@ Page({
         currentSwiperIndex: currentSwiperIndex,
         isLoading: false
       });
+
+      this.refreshLikeStatus();
     } catch (error) {
       console.error('加载分类及热门作品失败:', error);
       this.setData({ isLoading: false, isRefreshing: false });
       showToast('加载失败，请重试');
+    }
+  },
+
+  async refreshLikeStatus() {
+    const { categories } = this.data;
+    if (!categories || categories.length === 0) return;
+
+    const token = getToken();
+    if (!token) {
+      console.log('用户未登录，不检查点赞状态');
+      return;
+    }
+
+    const productIds = [];
+    categories.forEach(category => {
+      if (category.hot_products && category.hot_products.length > 0) {
+        category.hot_products.forEach(product => {
+          productIds.push(product.id);
+        });
+      }
+    });
+
+    if (productIds.length === 0) return;
+
+    try {
+      const result = await batchCheckLikeStatus({ product_ids: productIds });
+      if (result && Array.isArray(result)) {
+        const likeStatusMap = {};
+        result.forEach(item => {
+          likeStatusMap[item.product_id] = {
+            is_liked: item.is_liked,
+            like_count: item.like_count
+          };
+        });
+
+        const updatedCategories = categories.map(category => {
+          const updatedCategory = { ...category };
+          if (updatedCategory.hot_products && updatedCategory.hot_products.length > 0) {
+            updatedCategory.hot_products = updatedCategory.hot_products.map(product => {
+              const likeStatus = likeStatusMap[product.id];
+              if (likeStatus) {
+                return {
+                  ...product,
+                  is_liked: likeStatus.is_liked,
+                  like_count: likeStatus.like_count
+                };
+              }
+              return product;
+            });
+          }
+          return updatedCategory;
+        });
+
+        this.setData({
+          categories: updatedCategories
+        });
+      }
+    } catch (error) {
+      console.error('检查点赞状态失败:', error);
     }
   },
 
@@ -127,6 +194,27 @@ Page({
       const category = categories.find(cat => cat.id === categoryId);
       if (category && category.hot_products && category.hot_products[productIndex]) {
         category.hot_products[productIndex].cover_image = DEFAULT_IMAGE;
+        this.setData({
+          categories: categories
+        });
+      }
+    }
+  },
+
+  onLikeChange(e) {
+    const { categoryId, productIndex } = e.currentTarget.dataset;
+    const { isLiked, likeCount, popularityScore } = e.detail;
+    
+    const categories = this.data.categories;
+    if (categories && categories.length > 0) {
+      const category = categories.find(cat => cat.id === categoryId);
+      if (category && category.hot_products && category.hot_products[productIndex]) {
+        category.hot_products[productIndex].is_liked = isLiked;
+        category.hot_products[productIndex].like_count = likeCount;
+        if (popularityScore !== undefined && popularityScore !== null) {
+          category.hot_products[productIndex].heat_score = popularityScore;
+          category.hot_products[productIndex].popularity_score = popularityScore;
+        }
         this.setData({
           categories: categories
         });

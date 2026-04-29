@@ -9,7 +9,7 @@ from app.models import (
     User, Address, TeacherProfile, Order, OrderItem, 
     Category, Product, Specialty, Coupon, UserCoupon,
     Logistics, LogisticsItem, Image,
-    Message, Conversation, ChatMessage
+    Message, Conversation, ChatMessage, Like
 )
 
 app = create_app()
@@ -127,7 +127,7 @@ def migrate():
         print("\n【1/5】创建新表...")
         print("-"*40)
         
-        new_tables = ['coupons', 'user_coupons', 'logistics', 'logistics_items', 'images', 'messages', 'conversations', 'chat_messages']
+        new_tables = ['coupons', 'user_coupons', 'logistics', 'logistics_items', 'images', 'messages', 'conversations', 'chat_messages', 'likes']
         for table in new_tables:
             if not check_table_exists(table):
                 print(f"  创建表: {table}")
@@ -172,6 +172,11 @@ def migrate():
         print("\n正在检查 append_reviews 表:")
         add_column_if_not_exists('append_reviews', 'reviewer_role VARCHAR(20) DEFAULT "customer"')
         
+        print("\n正在检查 products 表:")
+        add_column_if_not_exists('products', 'like_count INTEGER DEFAULT 0')
+        add_column_if_not_exists('products', 'heat_score REAL DEFAULT 0.0')
+        add_column_if_not_exists('products', 'popularity_score REAL DEFAULT 0.0')
+        
         print("\n为已有订单设置默认值...")
         try:
             result1 = db.session.execute(
@@ -184,6 +189,17 @@ def migrate():
             print(f"  ✓ 已更新默认值")
         except Exception as e:
             print(f"  - 更新默认值时跳过: {e}")
+            db.session.rollback()
+        
+        print("\n为已有产品计算热度值...")
+        try:
+            products = Product.query.all()
+            for product in products:
+                product.update_heat_score()
+            db.session.commit()
+            print(f"  ✓ 已为 {len(products)} 个产品计算热度值")
+        except Exception as e:
+            print(f"  - 计算热度值时跳过: {e}")
             db.session.rollback()
         
         print("\n【3/4】导入新表的 Mock 数据...")
@@ -510,6 +526,7 @@ def migrate():
         print(f"消息数: {Message.query.count()}")
         print(f"会话数: {Conversation.query.count()}")
         print(f"聊天消息数: {ChatMessage.query.count()}")
+        print(f"点赞数: {Like.query.count()}")
 
 if __name__ == '__main__':
     migrate()

@@ -90,10 +90,17 @@
                       <text class="product-price">{{product.price}}</text>
                       <text class="original-price" wx:if="{{product.original_price > product.price}}">¥{{product.original_price}}</text>
                     </view>
-                    <view class="popularity-section">
-                      <text class="popularity-icon">🔥</text>
-                      <text class="popularity-text" wx:if="{{product.sales_count > 0}}">热销{{product.sales_count}}件</text>
-                      <text class="popularity-text" wx:elif="{{product.favorite_count > 0}}">{{product.favorite_count}}人收藏</text>
+                    <view class="popularity-section" catchtap="preventBubble">
+                      <like-button 
+                        product-id="{{product.id}}"
+                        is-liked="{{product.is_liked}}"
+                        like-count="{{product.popularity_score || 0}}"
+                        size="small"
+                        show-count="{{true}}"
+                        bind:change="onLikeChange"
+                        data-category-id="{{item.id}}"
+                        data-product-index="{{index}}"
+                      />
                     </view>
                   </view>
                 </view>

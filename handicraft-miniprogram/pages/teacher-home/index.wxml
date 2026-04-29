@@ -49,23 +49,28 @@
         </view>
         
         <view class="teacher-stats-row">
-          <view class="stat-item" wx:if="{{teacher.rating}}">
-            <text class="stat-value">★{{teacher.rating}}</text>
+          <view class="stat-item">
+            <text class="stat-value">★{{teacher.rating || 0}}</text>
             <text class="stat-label">评分</text>
           </view>
-          <view class="stat-divider" wx:if="{{teacher.rating && teacher.follower_count}}"></view>
-          <view class="stat-item" wx:if="{{teacher.follower_count}}">
-            <text class="stat-value">{{teacher.follower_count}}</text>
+          <view class="stat-divider"></view>
+          <view class="stat-item">
+            <text class="stat-value">{{teacher.follower_count || 0}}</text>
             <text class="stat-label">粉丝</text>
           </view>
-          <view class="stat-divider" wx:if="{{(teacher.rating || teacher.follower_count) && productsTotal > 0}}"></view>
-          <view class="stat-item" wx:if="{{productsTotal > 0}}">
-            <text class="stat-value">{{productsTotal}}</text>
+          <view class="stat-divider"></view>
+          <view class="stat-item">
+            <text class="stat-value">{{productsTotal || 0}}</text>
             <text class="stat-label">作品</text>
           </view>
-          <view class="stat-divider" wx:if="{{(teacher.rating || teacher.follower_count || productsTotal > 0) && teacher.order_count}}"></view>
-          <view class="stat-item" wx:if="{{teacher.order_count}}">
-            <text class="stat-value">{{teacher.order_count}}</text>
+          <view class="stat-divider"></view>
+          <view class="stat-item stat-item-highlight">
+            <text class="stat-value stat-value-popularity">{{totalPopularity || 0}}</text>
+            <text class="stat-label stat-label-popularity">人气</text>
+          </view>
+          <view class="stat-divider"></view>
+          <view class="stat-item">
+            <text class="stat-value">{{teacher.order_count || 0}}</text>
             <text class="stat-label">接单</text>
           </view>
         </view>
@@ -369,9 +374,16 @@
                     <text class="product-price">{{item.price}}</text>
                     <text class="original-price" wx:if="{{item.original_price > item.price}}">¥{{item.original_price}}</text>
                   </view>
-                  <view class="favorite-section" wx:if="{{item.favorite_count > 0}}">
-                    <text class="favorite-icon">❤</text>
-                    <text class="favorite-count">{{item.favorite_count}}</text>
+                  <view class="like-section" catchtap="preventBubble">
+                    <like-button 
+                      product-id="{{item.id}}"
+                      is-liked="{{item.is_liked}}"
+                      like-count="{{item.popularity_score || 0}}"
+                      size="small"
+                      show-count="{{true}}"
+                      bind:change="onLikeChange"
+                      data-index="{{index}}"
+                    />
                   </view>
                 </view>
                 <view class="product-actions" wx:if="{{isOwner}}">

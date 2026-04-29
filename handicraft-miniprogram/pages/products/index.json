@@ -1,3 +1,6 @@
 {
-  "navigationBarTitleText": "手作作品"
+  "navigationBarTitleText": "手作作品",
+  "usingComponents": {
+    "like-button": "/components/like-button/index"
+  }
 }

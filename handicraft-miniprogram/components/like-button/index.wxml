@@ -1,0 +1,8 @@
+<view class="like-button {{size}} {{_isLiked ? 'liked' : ''}} {{disabled ? 'disabled' : ''}}" bindtap="onTap">
+  <view class="like-icon {{_isLiked ? 'liked' : ''}} {{isAnimating ? 'animating' : ''}}">
+    <text class="heart-icon">{{_isLiked ? '❤️' : '🤍'}}</text>
+  </view>
+  <view class="like-count" wx:if="{{showCount}}">
+    <text>{{_likeCount > 0 ? _likeCount : ''}}</text>
+  </view>
+</view>

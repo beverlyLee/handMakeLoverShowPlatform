@@ -65,15 +65,23 @@
             <text wx:for="{{item.tags}}" wx:for-item="tag" wx:key="*this" class="product-tag">{{tag}}</text>
           </view>
           <view class="product-price-row">
-            <view class="price-section">
-              <text class="price-symbol">¥</text>
-              <text class="product-price">{{item.price}}</text>
-              <text class="original-price" wx:if="{{item.original_price > item.price}}">¥{{item.original_price}}</text>
-            </view>
-            <view class="sales-section">
-              <text class="sales-count">已售{{item.sales_count}}</text>
-            </view>
-          </view>
+                    <view class="price-section">
+                      <text class="price-symbol">¥</text>
+                      <text class="product-price">{{item.price}}</text>
+                      <text class="original-price" wx:if="{{item.original_price > item.price}}">¥{{item.original_price}}</text>
+                    </view>
+                    <view class="like-section" catchtap="preventBubble">
+                      <like-button 
+                        product-id="{{item.id}}"
+                        is-liked="{{item.is_liked}}"
+                        like-count="{{item.popularity_score || 0}}"
+                        size="small"
+                        show-count="{{true}}"
+                        bind:change="onLikeChange"
+                        data-index="{{index}}"
+                      />
+                    </view>
+                  </view>
         </view>
       </view>
     </view>

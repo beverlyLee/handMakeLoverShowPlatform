@@ -1,8 +1,9 @@
 const { getProductDetail } = require('../../api/products');
 const { getProfile } = require('../../api/auth');
 const { getProductReviews, getProductReviewStats } = require('../../api/reviews');
+const { checkLikeStatus, toggleLike } = require('../../api/favorites');
 const { showToast, getFullImageUrl, processProductImages } = require('../../utils/util');
-const { getUserInfo } = require('../../utils/storage');
+const { getUserInfo, getToken } = require('../../utils/storage');
 
 Page({
   data: {
@@ -18,7 +19,10 @@ Page({
     reviewsLoading: false,
     reviewsPage: 1,
     reviewsPageSize: 3,
-    reviewsHasMore: true
+    reviewsHasMore: true,
+    isLiked: false,
+    likeCount: 0,
+    heatScore: 0
   },
 
   onLoad(options) {
@@ -101,11 +105,14 @@ Page({
       
       this.setData({
         product: processedProduct,
+        likeCount: product.like_count || 0,
+        heatScore: product.heat_score || 0,
         isLoading: false
       });
 
       this.loadReviewStats();
       this.loadReviews(true);
+      this.refreshLikeStatus();
     } catch (error) {
       console.error('加载作品详情失败:', error);
       this.setData({ isLoading: false });
@@ -311,12 +318,65 @@ Page({
     
     if (diff < 60000) return '刚刚';
     if (diff < 3600000) return `${Math.floor(diff / 60000)}分钟前`;
-    if (diff < 86400000) return `${Math.floor(diff / 3600000)}小时前`;
-    if (diff < 604800000) return `${Math.floor(diff / 86400000)}天前`;
+    if (diff < 86400000) return `${Math.floor(diff / 86400000)}天前`;
+    if (diff < 604800000) return `${Math.floor(diff / 604800000)}天前`;
     
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+  },
+
+  async refreshLikeStatus() {
+    const { productId } = this.data;
+    if (!productId) return;
+
+    const token = getToken();
+    if (!token) {
+      console.log('用户未登录，不检查点赞状态');
+      return;
+    }
+
+    try {
+      const result = await checkLikeStatus(productId);
+      if (result) {
+        this.setData({
+          isLiked: result.is_liked || false,
+          likeCount: result.like_count || 0
+        });
+
+        const product = this.data.product;
+        if (product) {
+          product.is_liked = result.is_liked || false;
+          product.like_count = result.like_count || 0;
+          this.setData({ product: product });
+        }
+      }
+    } catch (error) {
+      console.error('检查点赞状态失败:', error);
+    }
+  },
+
+  onLikeChange(e) {
+    const { isLiked, likeCount, popularityScore } = e.detail;
+    
+    this.setData({
+      isLiked: isLiked,
+      likeCount: likeCount,
+      heatScore: popularityScore
+    });
+
+    const product = this.data.product;
+    if (product) {
+      product.is_liked = isLiked;
+      product.like_count = likeCount;
+      product.heat_score = popularityScore;
+      product.popularity_score = popularityScore;
+      this.setData({ product: product });
+    }
+  },
+
+  preventBubble() {
+    return;
   }
 });

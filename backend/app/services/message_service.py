@@ -17,7 +17,8 @@ ANNOUNCEMENT_SUBTYPES = {
     'order_accept': '订单接单',
     'order_reject': '订单拒单',
     'order_cancel': '订单取消',
-    'order_complete': '订单完成'
+    'order_complete': '订单完成',
+    'like': '点赞通知'
 }
 
 CHAT_SUBTYPES = {
@@ -638,12 +639,31 @@ class MessageService:
         return conversation
     
     @staticmethod
+    def send_like_notification(liker_user, product, teacher_user):
+        title = '作品获得新点赞'
+        content = f'您的作品「{product.title}」获得了新的点赞！\n\n'
+        content += f'点赞用户：{liker_user.nickname or liker_user.username}\n'
+        content += f'作品当前点赞数：{product.like_count or 0}'
+        
+        MessageService.send_announcement(
+            user_id=teacher_user.id,
+            subtype='like',
+            title=title,
+            content=content,
+            related_id=product.id,
+            related_type='product',
+            sender=liker_user.nickname or liker_user.username,
+            sender_avatar=liker_user.avatar,
+            recipient_role='teacher'
+        )
+    
+    @staticmethod
     def _get_message_type_by_subtype(subtype):
         if subtype in ['activity_publish', 'system']:
             return MESSAGE_TYPE_ACTIVITY if subtype == 'activity_publish' else MESSAGE_TYPE_SYSTEM
         elif subtype in ['ship', 'making_complete', 'refund', 'review', 
                          'order_pay', 'order_accept', 'order_reject', 
-                         'order_cancel', 'order_complete']:
+                         'order_cancel', 'order_complete', 'like']:
             return MESSAGE_TYPE_ORDER
         else:
             return MESSAGE_TYPE_SYSTEM

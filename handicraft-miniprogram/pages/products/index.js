@@ -1,5 +1,7 @@
 const { getProducts, getCategories } = require('../../api/products');
+const { batchCheckLikeStatus } = require('../../api/favorites');
 const { showToast, processProductImages } = require('../../utils/util');
+const { getToken } = require('../../utils/storage');
 
 Page({
   data: {
@@ -85,7 +87,13 @@ Page({
       const result = await getProducts(params);
       const newProducts = (result && result.list) || result || [];
       
-      const processedProducts = newProducts.map(p => processProductImages(p));
+      const processedProducts = newProducts.map(p => {
+        const processed = processProductImages(p);
+        if (processed.is_liked === undefined || processed.is_liked === null) {
+          processed.is_liked = false;
+        }
+        return processed;
+      });
 
       if (append) {
         this.setData({
@@ -100,10 +108,77 @@ Page({
           isLoading: false
         });
       }
+
+      if (!append) {
+        this.refreshLikeStatus();
+      }
     } catch (error) {
       console.error('加载作品列表失败:', error);
       this.setData({ isLoading: false });
       showToast('加载失败，请重试');
+    }
+  },
+
+  async refreshLikeStatus() {
+    const { products } = this.data;
+    if (!products || products.length === 0) return;
+
+    const token = getToken();
+    if (!token) {
+      console.log('用户未登录，不检查点赞状态');
+      return;
+    }
+
+    const productIds = products.map(p => p.id);
+    if (productIds.length === 0) return;
+
+    try {
+      const result = await batchCheckLikeStatus({ product_ids: productIds });
+      if (result && Array.isArray(result)) {
+        const likeStatusMap = {};
+        result.forEach(item => {
+          likeStatusMap[item.product_id] = {
+            is_liked: item.is_liked,
+            like_count: item.like_count
+          };
+        });
+
+        const updatedProducts = products.map(product => {
+          const likeStatus = likeStatusMap[product.id];
+          if (likeStatus) {
+            return {
+              ...product,
+              is_liked: likeStatus.is_liked,
+              like_count: likeStatus.like_count
+            };
+          }
+          return product;
+        });
+
+        this.setData({
+          products: updatedProducts
+        });
+      }
+    } catch (error) {
+      console.error('检查点赞状态失败:', error);
+    }
+  },
+
+  onLikeChange(e) {
+    const { index } = e.currentTarget.dataset;
+    const { isLiked, likeCount, popularityScore } = e.detail;
+    
+    const products = this.data.products;
+    if (products && products[index]) {
+      products[index].is_liked = isLiked;
+      products[index].like_count = likeCount;
+      if (popularityScore !== undefined && popularityScore !== null) {
+        products[index].heat_score = popularityScore;
+        products[index].popularity_score = popularityScore;
+      }
+      this.setData({
+        products: products
+      });
     }
   },
 

@@ -14,7 +14,10 @@ SORT_OPTIONS = {
     'sales': Product.sales_count.desc(),
     'popular': Product.favorite_count.desc(),
     'newest': Product.created_at.desc(),
-    'rating': Product.rating.desc()
+    'rating': Product.rating.desc(),
+    'like': Product.like_count.desc(),
+    'heat': Product.heat_score.desc(),
+    'popularity': Product.popularity_score.desc()
 }
 
 def get_current_teacher_profile():
@@ -137,13 +140,24 @@ def get_categories_with_hot_products():
             status='active', 
             category_id=category.id
         ).order_by(
-            Product.sales_count.desc(),
-            Product.favorite_count.desc()
+            Product.heat_score.desc(),
+            Product.like_count.desc(),
+            Product.sales_count.desc()
         ).limit(limit).all()
         
         product_list = []
         for product in products:
             product_dict = product.to_dict()
+            if product.teacher_profile:
+                product_dict['teacher'] = {
+                    'id': product.teacher_profile.id,
+                    'teacher_id': product.teacher_profile.teacher_id,
+                    'user_id': product.teacher_profile.user_id,
+                    'real_name': product.teacher_profile.real_name,
+                    'nickname': product.teacher_profile.user.nickname if product.teacher_profile.user else None,
+                    'avatar': product.teacher_profile.user.avatar if product.teacher_profile.user else None,
+                    'rating': product.teacher_profile.rating
+                }
             product_list.append(product_dict)
         
         category_dict['hot_products'] = product_list

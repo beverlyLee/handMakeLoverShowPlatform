@@ -57,7 +57,11 @@ class Product(db.Model):
     sales_count = db.Column(db.Integer, default=0)
     favorite_count = db.Column(db.Integer, default=0)
     view_count = db.Column(db.Integer, default=0)
+    like_count = db.Column(db.Integer, default=0)
     rating = db.Column(db.Float, default=5.0)
+    
+    heat_score = db.Column(db.Float, default=0.0)
+    popularity_score = db.Column(db.Float, default=0.0)
     
     _tags = db.Column('tags', db.Text)
     
@@ -99,6 +103,15 @@ class Product(db.Model):
         else:
             self._tags = value
 
+    def update_heat_score(self):
+        self.heat_score = (
+            (self.like_count or 0) * 10 +
+            (self.sales_count or 0) * 5 +
+            (self.favorite_count or 0) * 3 +
+            (self.view_count or 0) * 1
+        )
+        self.popularity_score = self.heat_score
+
     def to_dict(self, include_teacher=False):
         result = {
             'id': self.id,
@@ -117,7 +130,10 @@ class Product(db.Model):
             'sales_count': self.sales_count,
             'favorite_count': self.favorite_count,
             'view_count': self.view_count,
+            'like_count': self.like_count,
             'rating': self.rating,
+            'heat_score': self.heat_score,
+            'popularity_score': self.popularity_score,
             'tags': self.tags,
             'create_time': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None,
             'update_time': self.updated_at.strftime('%Y-%m-%d %H:%M:%S') if self.updated_at else None

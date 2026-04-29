@@ -251,14 +251,9 @@
   margin-left: 8rpx;
 }
 
-.sales-section {
+.like-section {
   display: flex;
   align-items: center;
-}
-
-.sales-count {
-  font-size: 22rpx;
-  color: #999;
 }
 
 .empty-state {
