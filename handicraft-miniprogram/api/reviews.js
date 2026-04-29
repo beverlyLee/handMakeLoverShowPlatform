@@ -24,6 +24,10 @@ function replyReview(reviewId, content) {
   return post(`/reviews/${reviewId}/reply`, { content });
 }
 
+function appendReview(reviewId, content, images) {
+  return post(`/reviews/${reviewId}/append`, { content, images });
+}
+
 function updateReview(reviewId, data) {
   return put(`/reviews/${reviewId}`, data);
 }
@@ -65,6 +69,7 @@ module.exports = {
   updateReview,
   deleteReview,
   replyReview,
+  appendReview,
   likeReview,
   getProductReviews,
   getProductReviewStats,

@@ -41,30 +41,35 @@
     </view>
 
     <view class="filter-section">
-      <scroll-view class="type-scroll" scroll-x>
-        <view class="type-list">
-          <view 
-            wx:for="{{filterTypes}}" 
-            wx:key="key"
-            class="type-item {{currentType === item.key ? 'active' : ''}}"
-            bindtap="onTypeChange"
-            data-type="{{item.key}}"
-          >
-            <text class="type-text">{{item.label}}</text>
-          </view>
-        </view>
-      </scroll-view>
-      
       <scroll-view class="rating-scroll" scroll-x>
         <view class="rating-list">
           <view 
-            wx:for="{{ratingFilters}}" 
-            wx:key="key"
-            class="rating-item {{currentRating === item.key ? 'active' : ''}}"
+            class="rating-item {{currentRating === 'all' ? 'active' : ''}}"
             bindtap="onRatingChange"
-            data-rating="{{item.key}}"
+            data-rating="all"
           >
-            <text class="rating-text">{{item.label}}</text>
+            <text class="rating-text">全部评分</text>
+          </view>
+          <view 
+            class="rating-item {{currentRating === 'good' ? 'active' : ''}}"
+            bindtap="onRatingChange"
+            data-rating="good"
+          >
+            <text class="rating-text">好评({{stats.goodCount}})</text>
+          </view>
+          <view 
+            class="rating-item {{currentRating === 'medium' ? 'active' : ''}}"
+            bindtap="onRatingChange"
+            data-rating="medium"
+          >
+            <text class="rating-text">中评({{stats.mediumCount}})</text>
+          </view>
+          <view 
+            class="rating-item {{currentRating === 'bad' ? 'active' : ''}}"
+            bindtap="onRatingChange"
+            data-rating="bad"
+          >
+            <text class="rating-text">差评({{stats.badCount}})</text>
           </view>
         </view>
       </scroll-view>

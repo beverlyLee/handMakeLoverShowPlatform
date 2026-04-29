@@ -94,6 +94,9 @@ def get_review_stats(query):
             '5': 0, '4.5': 0, '4': 0, '3.5': 0, '3': 0,
             '2.5': 0, '2': 0, '1.5': 0, '1': 0, '0.5': 0
         },
+        'good_count': 0,
+        'medium_count': 0,
+        'bad_count': 0,
         'has_image': 0,
         'has_reply': 0
     }
@@ -117,6 +120,13 @@ def get_review_stats(query):
         rating_key = str(review.overall_rating)
         if rating_key in stats['rating_distribution']:
             stats['rating_distribution'][rating_key] += 1
+        
+        if review.overall_rating >= 4.0:
+            stats['good_count'] += 1
+        elif review.overall_rating >= 2.0:
+            stats['medium_count'] += 1
+        else:
+            stats['bad_count'] += 1
         
         if review.images and len(review.images) > 0:
             stats['has_image'] += 1
@@ -515,10 +525,9 @@ def delete_review(review_id):
     
     product_id = review.product_id
     teacher_id = review.teacher_id
+    order_id = review.order_id
     
-    review.is_hidden = True
-    review.updated_at = datetime.utcnow()
-    
+    db.session.delete(review)
     db.session.commit()
     
     try:
@@ -560,6 +569,33 @@ def reply_review(review_id):
         print(f'发送回复通知失败: {e}')
     
     return jsonify(success(data=enrich_review(review, include_user=True), msg='回复成功'))
+
+
+@review_bp.route('/<int:review_id>/append', methods=['POST'])
+@login_required
+def append_review(review_id):
+    user_id = get_current_user()
+    data = request.get_json()
+    
+    if not data or not data.get('content'):
+        return jsonify(error(code=ResponseCode.PARAM_MISSING, msg='追加评论内容不能为空')), 400
+    
+    review = Review.query.get(review_id)
+    
+    if not review or review.is_hidden:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='评价不存在')), 404
+    
+    if review.user_id != user_id:
+        return jsonify(error(code=ResponseCode.PERMISSION_DENIED, msg='只能追加自己的评价')), 403
+    
+    review.append_content = data.get('content')
+    review.append_images = data.get('images', [])
+    review.append_time = datetime.utcnow()
+    review.updated_at = datetime.utcnow()
+    
+    db.session.commit()
+    
+    return jsonify(success(data=enrich_review(review, include_user=True), msg='追加评论成功'))
 
 
 @review_bp.route('/product/<int:product_id>/stats', methods=['GET'])

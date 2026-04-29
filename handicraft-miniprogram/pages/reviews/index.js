@@ -1,27 +1,19 @@
 const { getReviews, likeReview, getProductReviews, getTeacherReviews } = require('../../api/reviews');
-
-const FILTER_TYPES = [
-  { key: 'all', label: '全部' },
-  { key: 'product', label: '商品评价' },
-  { key: 'teacher', label: '老师评价' },
-  { key: 'logistics', label: '物流评价' }
-];
+const { getFullImageUrl } = require('../../utils/util');
 
 const RATING_FILTERS = [
   { key: 'all', label: '全部评分' },
-  { key: 'good', label: '好评 (≥4分)' },
-  { key: 'medium', label: '中评 (2-3.9分)' },
-  { key: 'bad', label: '差评 (<2分)' }
+  { key: 'good', label: '好评' },
+  { key: 'medium', label: '中评' },
+  { key: 'bad', label: '差评' }
 ];
 
 Page({
   data: {
-    filterTypes: FILTER_TYPES,
     ratingFilters: RATING_FILTERS,
-    currentType: 'all',
     currentRating: 'all',
     reviews: [],
-    isLoading: true,
+    isLoading: false,
     isRefreshing: false,
     isLoadMore: false,
     hasMore: true,
@@ -40,21 +32,15 @@ Page({
   },
 
   onLoad(options) {
-    const { source, productId, teacherUserId, type } = options;
-    
-    let currentType = 'all';
-    if (type === 'product') currentType = 'product';
-    else if (type === 'teacher') currentType = 'teacher';
-    else if (type === 'logistics') currentType = 'logistics';
+    const { source, productId, teacherUserId } = options;
 
     this.setData({
       source: source || 'user',
       productId: productId || null,
-      teacherUserId: teacherUserId || null,
-      currentType
+      teacherUserId: teacherUserId || null
     });
 
-    this.loadReviews();
+    this.loadReviews(true);
   },
 
   onShow() {
@@ -63,11 +49,33 @@ Page({
     }
   },
 
+  processReviews(reviews) {
+    if (!reviews || !Array.isArray(reviews)) return [];
+    
+    return reviews.map(review => {
+      const processed = { ...review };
+      
+      if (processed.user_avatar && !processed.is_anonymous) {
+        processed.user_avatar = getFullImageUrl(processed.user_avatar);
+      }
+      
+      if (processed.images && Array.isArray(processed.images)) {
+        processed.images = processed.images.map(img => getFullImageUrl(img));
+      }
+      
+      return processed;
+    });
+  },
+
   async loadReviews(isRefresh = false) {
-    const { page, pageSize, currentType, currentRating, source, productId, teacherUserId } = this.data;
+    const { page, pageSize, currentRating, source, productId, teacherUserId, isLoading } = this.data;
+    
+    if (isLoading) return;
     
     if (isRefresh) {
-      this.setData({ page: 1, reviews: [], hasMore: true });
+      this.setData({ page: 1, reviews: [], hasMore: true, isLoading: true });
+    } else {
+      this.setData({ isLoading: true });
     }
 
     let params = {
@@ -96,8 +104,7 @@ Page({
       }
 
       if (result) {
-        const newReviews = result.list || [];
-        const total = result.total || 0;
+        const newReviews = this.processReviews(result.list || []);
         
         this.setData({
           reviews: isRefresh ? newReviews : [...this.data.reviews, ...newReviews],
@@ -109,7 +116,15 @@ Page({
         });
 
         if (result.stats) {
-          this.setData({ stats: result.stats });
+          const stats = result.stats;
+          const mappedStats = {
+            total: stats.total || 0,
+            avgRating: stats.avg_overall_rating || 0,
+            goodCount: stats.good_count || 0,
+            mediumCount: stats.medium_count || 0,
+            badCount: stats.bad_count || 0
+          };
+          this.setData({ stats: mappedStats });
         }
       }
     } catch (error) {
@@ -143,20 +158,6 @@ Page({
     }
   },
 
-  onTypeChange(e) {
-    const type = e.currentTarget.dataset.type;
-    if (type === this.data.currentType) return;
-    
-    this.setData({
-      currentType: type,
-      page: 1,
-      reviews: [],
-      hasMore: true,
-      isLoading: true
-    });
-    this.loadReviews(true);
-  },
-
   onRatingChange(e) {
     const rating = e.currentTarget.dataset.rating;
     if (rating === this.data.currentRating) return;
@@ -165,8 +166,7 @@ Page({
       currentRating: rating,
       page: 1,
       reviews: [],
-      hasMore: true,
-      isLoading: true
+      hasMore: true
     });
     this.loadReviews(true);
   },

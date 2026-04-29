@@ -50,19 +50,21 @@
           <text class="review-time">{{formatTime(review.created_at)}}</text>
         </view>
       </view>
-      <view class="owner-actions" wx:if="{{isOwner}}">
-        <view class="action-btn edit-btn" bindtap="handleEdit">
-          <text class="btn-icon">✏️</text>
-          <text class="btn-text">编辑</text>
-        </view>
-        <view class="action-btn delete-btn" bindtap="handleDelete">
-          <text class="btn-icon">🗑️</text>
-          <text class="btn-text">删除</text>
-        </view>
-      </view>
       <view class="order-info" wx:if="{{review.order_id}}">
-        <text class="order-label">订单号</text>
-        <text class="order-value">{{review.order_id}}</text>
+        <view class="order-left">
+          <text class="order-label">订单号</text>
+          <text class="order-value">{{review.order_id}}</text>
+        </view>
+        <view class="order-actions" wx:if="{{isOwner}}">
+          <view class="action-btn delete-btn" catchtap="handleDelete">
+            <text class="btn-icon">🗑️</text>
+            <text class="btn-text">删除</text>
+          </view>
+          <view class="action-btn append-btn" catchtap="handleAppendReview">
+            <text class="btn-icon">📝</text>
+            <text class="btn-text">追加评论</text>
+          </view>
+        </view>
       </view>
     </view>
 
@@ -82,6 +84,37 @@
         >
           <image class="review-image" src="{{item}}" mode="aspectFill" />
         </view>
+      </view>
+    </view>
+
+    <view class="append-section" wx:if="{{review && review.append_content}}">
+      <view class="append-header">
+        <text class="append-label">我的追加评论</text>
+        <text class="append-time">{{formatTime(review.append_time)}}</text>
+      </view>
+      <view class="append-content">
+        <text class="append-text">{{review.append_content}}</text>
+      </view>
+      <view class="append-images" wx:if="{{review.append_images && review.append_images.length > 0}}">
+        <view 
+          wx:for="{{review.append_images}}" 
+          wx:key="*this" 
+          class="image-item"
+          bindtap="previewAppendImage"
+          data-url="{{item}}"
+        >
+          <image class="review-image" src="{{item}}" mode="aspectFill" />
+        </view>
+      </view>
+    </view>
+
+    <view class="reply-section" wx:if="{{review && review.reply}}">
+      <view class="reply-header">
+        <text class="reply-label">老师追加评论</text>
+        <text class="reply-time">{{formatTime(review.reply_time)}}</text>
+      </view>
+      <view class="reply-content">
+        <text class="reply-text">{{review.reply}}</text>
       </view>
     </view>
 
@@ -187,16 +220,6 @@
       </view>
     </view>
 
-    <view class="reply-section" wx:if="{{review && review.reply}}">
-      <view class="reply-header">
-        <text class="reply-label">老师回复</text>
-        <text class="reply-time">{{formatTime(review.reply_time)}}</text>
-      </view>
-      <view class="reply-content">
-        <text class="reply-text">{{review.reply}}</text>
-      </view>
-    </view>
-
     <view class="action-section" wx:if="{{review}}">
       <view class="action-item {{review.is_liked ? 'liked' : ''}}" bindtap="handleLike">
         <text class="action-icon">{{review.is_liked ? '❤️' : '🤍'}}</text>
@@ -205,7 +228,7 @@
       </view>
       <view class="action-item" bindtap="toggleReplyInput" wx:if="{{isTeacher}}">
         <text class="action-icon">💬</text>
-        <text class="action-text">回复</text>
+        <text class="action-text">追加评论</text>
       </view>
     </view>
 
@@ -213,15 +236,63 @@
       <view class="reply-input-wrapper">
         <textarea 
           class="reply-input" 
-          placeholder="写下您的回复..."
+          placeholder="写下您的追加评论..."
           value="{{replyContent}}"
           bindinput="onReplyInput"
-          maxlength="200"
+          maxlength="500"
         />
       </view>
       <view class="reply-actions">
         <button class="btn-cancel" bindtap="toggleReplyInput">取消</button>
         <button class="btn-send" bindtap="submitReply">发送</button>
+      </view>
+    </view>
+
+    <view class="append-input-section" wx:if="{{showAppendInput}}">
+      <view class="append-header">
+        <text class="append-title">追加评论</text>
+        <text class="append-close" catchtap="toggleAppendInput">✕</text>
+      </view>
+      <view class="append-content-wrapper">
+        <textarea 
+          class="append-input" 
+          placeholder="写下您的追加评论内容..."
+          value="{{appendContent}}"
+          bindinput="onAppendContentInput"
+          maxlength="500"
+        />
+      </view>
+      <view class="append-images">
+        <view 
+          wx:for="{{appendImages}}" 
+          wx:key="*this" 
+          class="append-image-item"
+        >
+          <image 
+            class="append-image" 
+            src="{{item}}" 
+            mode="aspectFill"
+            catchtap="previewAppendInputImage"
+            data-url="{{item}}"
+          />
+          <view class="append-image-remove" catchtap="removeAppendImage" data-index="{{index}}">
+            <text class="remove-icon">✕</text>
+          </view>
+        </view>
+        <view 
+          class="append-image-item add-image" 
+          wx:if="{{appendImages.length < 9}}"
+          catchtap="chooseAppendImages"
+        >
+          <text class="add-icon">+</text>
+          <text class="add-text">添加图片</text>
+        </view>
+      </view>
+      <view class="append-actions">
+        <button class="btn-cancel" catchtap="toggleAppendInput">取消</button>
+        <button class="btn-submit-append {{isSubmitting ? 'disabled' : ''}}" catchtap="submitAppendReview" disabled="{{isSubmitting}}">
+          {{isSubmitting ? '提交中...' : '提交'}}
+        </button>
       </view>
     </view>
 

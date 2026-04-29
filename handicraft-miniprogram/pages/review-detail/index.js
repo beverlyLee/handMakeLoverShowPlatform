@@ -1,4 +1,5 @@
-const { getReviewById, likeReview, replyReview, getOrderReview, deleteReview } = require('../../api/reviews');
+const { getReviewById, likeReview, replyReview, getOrderReview, deleteReview, appendReview } = require('../../api/reviews');
+const { getFullImageUrl } = require('../../utils/util');
 const storage = require('../../utils/storage');
 
 Page({
@@ -14,7 +15,32 @@ Page({
     replyContent: '',
     currentUserId: null,
     isOwner: false,
-    isTeacher: false
+    isTeacher: false,
+    showAppendInput: false,
+    appendContent: '',
+    appendImages: [],
+    isSubmitting: false,
+    processedAppendImages: []
+  },
+
+  processReviewData(review) {
+    if (!review) return review;
+    
+    const processed = { ...review };
+    
+    if (processed.user_avatar && !processed.is_anonymous) {
+      processed.user_avatar = getFullImageUrl(processed.user_avatar);
+    }
+    
+    if (processed.images && Array.isArray(processed.images)) {
+      processed.images = processed.images.map(img => getFullImageUrl(img));
+    }
+    
+    if (processed.append_images && Array.isArray(processed.append_images)) {
+      processed.append_images = processed.append_images.map(img => getFullImageUrl(img));
+    }
+    
+    return processed;
   },
 
   onLoad(options) {
@@ -40,13 +66,22 @@ Page({
     }
   },
 
+  onShow() {
+    const pages = getCurrentPages();
+    const currentPage = pages[pages.length - 1];
+    this.setData({
+      currentPageIndex: pages.length - 1
+    });
+  },
+
   async loadReviewDetail(reviewId) {
     this.setData({ isLoading: true });
     try {
       const review = await getReviewById(reviewId);
       if (review) {
+        const processedReview = this.processReviewData(review);
         this.setData({
-          review: review,
+          review: processedReview,
           productDetailItems: review.product_detail_items || [],
           teacherDetailItems: review.teacher_detail_items || [],
           logisticsDetailItems: review.logistics_detail_items || [],
@@ -72,8 +107,9 @@ Page({
       const result = await getOrderReview(orderId);
       if (result.has_review && result.review) {
         const review = result.review;
+        const processedReview = this.processReviewData(review);
         this.setData({
-          review: review,
+          review: processedReview,
           reviewId: review.id,
           productDetailItems: review.product_detail_items || [],
           teacherDetailItems: review.teacher_detail_items || [],
@@ -97,8 +133,8 @@ Page({
   checkIsOwner(review) {
     const currentUserId = this.data.currentUserId;
     if (review && currentUserId) {
-      const isOwner = review.user_id === currentUserId;
-      const isTeacher = review.teacher_id === currentUserId;
+      const isOwner = String(review.user_id) === String(currentUserId);
+      const isTeacher = String(review.teacher_id) === String(currentUserId);
       this.setData({ 
         isOwner: isOwner,
         isTeacher: isTeacher
@@ -124,6 +160,17 @@ Page({
     const { url } = e.currentTarget.dataset;
     const { review } = this.data;
     const images = review.images || [];
+    
+    wx.previewImage({
+      current: url,
+      urls: images
+    });
+  },
+
+  previewAppendImage(e) {
+    const { url } = e.currentTarget.dataset;
+    const { review } = this.data;
+    const images = review.append_images || [];
     
     wx.previewImage({
       current: url,
@@ -185,7 +232,7 @@ Page({
       const result = await replyReview(review.id, replyContent.trim());
       wx.hideLoading();
       wx.showToast({
-        title: '回复成功',
+        title: '追加评论成功',
         icon: 'success'
       });
       
@@ -200,25 +247,138 @@ Page({
       });
     } catch (error) {
       wx.hideLoading();
-      console.error('回复失败:', error);
+      console.error('追加评论失败:', error);
       wx.showToast({
-        title: error.msg || error.message || '回复失败',
+        title: error.msg || error.message || '提交失败',
         icon: 'none'
       });
     }
   },
 
-  handleEdit() {
+  handleAppendReview() {
     const { review } = this.data;
     if (!review) return;
     
-    wx.navigateTo({
-      url: `/pages/order-review/index?orderId=${review.order_id}&mode=edit`
+    let initialContent = '';
+    let initialImages = [];
+    
+    if (review.append_content) {
+      initialContent = review.append_content;
+      initialImages = [...(review.append_images || [])];
+    }
+    
+    this.setData({
+      showAppendInput: true,
+      appendContent: initialContent,
+      appendImages: initialImages,
+      processedAppendImages: initialImages
     });
   },
 
+  toggleAppendInput() {
+    this.setData({
+      showAppendInput: !this.data.showAppendInput
+    });
+  },
+
+  onAppendContentInput(e) {
+    this.setData({
+      appendContent: e.detail.value
+    });
+  },
+
+  chooseAppendImages() {
+    const { appendImages } = this.data;
+    const remaining = 9 - appendImages.length;
+    
+    if (remaining <= 0) {
+      wx.showToast({
+        title: '最多上传9张图片',
+        icon: 'none'
+      });
+      return;
+    }
+    
+    wx.chooseImage({
+      count: remaining,
+      sizeType: ['compressed'],
+      sourceType: ['album', 'camera'],
+      success: (res) => {
+        const newImages = [...appendImages, ...res.tempFilePaths];
+        this.setData({
+          appendImages: newImages.slice(0, 9)
+        });
+      }
+    });
+  },
+
+  removeAppendImage(e) {
+    const index = e.currentTarget.dataset.index;
+    const { appendImages } = this.data;
+    appendImages.splice(index, 1);
+    this.setData({ appendImages });
+  },
+
+  previewAppendInputImage(e) {
+    const { url } = e.currentTarget.dataset;
+    const { appendImages } = this.data;
+    
+    wx.previewImage({
+      current: url,
+      urls: appendImages
+    });
+  },
+
+  async submitAppendReview() {
+    const { review, appendContent, appendImages, isSubmitting } = this.data;
+    
+    if (isSubmitting) return;
+    
+    if (!appendContent.trim()) {
+      wx.showToast({
+        title: '请输入追加评论内容',
+        icon: 'none'
+      });
+      return;
+    }
+    
+    wx.showLoading({ title: '提交中...' });
+    this.setData({ isSubmitting: true });
+    
+    try {
+      const result = await appendReview(review.id, appendContent.trim(), appendImages);
+      wx.hideLoading();
+      
+      wx.showToast({
+        title: '追加评论成功',
+        icon: 'success'
+      });
+      
+      const processedResult = this.processReviewData(result);
+      
+      this.setData({
+        showAppendInput: false,
+        isSubmitting: false,
+        appendContent: '',
+        appendImages: [],
+        'review.append_content': processedResult.append_content,
+        'review.append_images': processedResult.append_images,
+        'review.append_time': processedResult.append_time
+      });
+      
+    } catch (error) {
+      wx.hideLoading();
+      this.setData({ isSubmitting: false });
+      console.error('追加评论失败:', error);
+      wx.showToast({
+        title: error.msg || error.message || '提交失败',
+        icon: 'none'
+      });
+    }
+  },
+
   handleDelete() {
-    const { review } = this.data;
+    const { review, currentPageIndex } = this.data;
     if (!review) return;
     
     wx.showModal({
@@ -231,6 +391,21 @@ Page({
           try {
             await deleteReview(review.id);
             wx.hideLoading();
+            
+            const pages = getCurrentPages();
+            for (let i = pages.length - 2; i >= 0; i--) {
+              const prevPage = pages[i];
+              
+              if (prevPage.loadReviewStats && prevPage.loadReviews) {
+                prevPage.loadReviewStats();
+                prevPage.loadReviews(true);
+              }
+              
+              if (prevPage.loadReviews) {
+                prevPage.loadReviews(true);
+              }
+            }
+            
             wx.showToast({
               title: '删除成功',
               icon: 'success'

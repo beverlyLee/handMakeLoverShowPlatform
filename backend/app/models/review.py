@@ -54,6 +54,10 @@ class Review(db.Model):
     reply_content = db.Column(db.Text)
     reply_time = db.Column(db.DateTime)
     
+    append_content = db.Column(db.Text)
+    _append_images = db.Column('append_images', db.Text)
+    append_time = db.Column(db.DateTime)
+    
     is_reported = db.Column(db.Boolean, default=False)
     report_reason = db.Column(db.String(500))
     
@@ -129,6 +133,22 @@ class Review(db.Model):
         else:
             self._images = value
 
+    @property
+    def append_images(self):
+        if self._append_images:
+            try:
+                return json.loads(self._append_images)
+            except:
+                return []
+        return []
+
+    @append_images.setter
+    def append_images(self, value):
+        if isinstance(value, list):
+            self._append_images = json.dumps(value, ensure_ascii=False)
+        else:
+            self._append_images = value
+
     @staticmethod
     def calculate_average_rating(detail_ratings, detail_items):
         if not detail_ratings:
@@ -187,6 +207,10 @@ class Review(db.Model):
             'reply_content': self.reply_content,
             'reply': self.reply_content,
             'reply_time': self.reply_time.strftime('%Y-%m-%d %H:%M:%S') if self.reply_time else None,
+            
+            'append_content': self.append_content,
+            'append_images': self.append_images,
+            'append_time': self.append_time.strftime('%Y-%m-%d %H:%M:%S') if self.append_time else None,
             
             'is_reported': self.is_reported,
             'is_hidden': self.is_hidden,

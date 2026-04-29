@@ -122,10 +122,16 @@
 
 .order-info {
   display: flex;
+  justify-content: space-between;
   align-items: center;
   margin-top: 20rpx;
   padding-top: 20rpx;
   border-top: 1rpx solid #f0f0f0;
+}
+
+.order-left {
+  display: flex;
+  align-items: center;
 }
 
 .order-label {
@@ -140,33 +146,30 @@
   font-family: monospace;
 }
 
-.owner-actions {
+.order-actions {
   display: flex;
-  justify-content: flex-end;
-  margin-top: 20rpx;
-  padding-top: 20rpx;
-  border-top: 1rpx solid #f0f0f0;
+  align-items: center;
 }
 
 .action-btn {
   display: flex;
   align-items: center;
-  padding: 12rpx 24rpx;
+  padding: 12rpx 20rpx;
   border-radius: 24rpx;
-  margin-left: 20rpx;
-}
-
-.edit-btn {
-  background-color: rgba(121, 85, 72, 0.1);
+  margin-left: 16rpx;
 }
 
 .delete-btn {
   background-color: rgba(244, 67, 54, 0.1);
 }
 
+.append-btn {
+  background-color: rgba(121, 85, 72, 0.1);
+}
+
 .btn-icon {
   font-size: 24rpx;
-  margin-right: 8rpx;
+  margin-right: 6rpx;
 }
 
 .btn-text {
@@ -174,7 +177,7 @@
   color: #666;
 }
 
-.edit-btn .btn-text {
+.append-btn .btn-text {
   color: #795548;
 }
 
@@ -330,6 +333,48 @@
   margin-bottom: 20rpx;
 }
 
+.append-section {
+  background-color: #fff;
+  padding: 30rpx;
+  margin-bottom: 20rpx;
+}
+
+.append-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.append-label {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #795548;
+}
+
+.append-time {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.append-content {
+  padding: 20rpx;
+  background-color: #F5F0ED;
+  border-radius: 12rpx;
+}
+
+.append-text {
+  font-size: 28rpx;
+  color: #666;
+  line-height: 1.6;
+}
+
+.append-images {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 16rpx;
+}
+
 .reply-header {
   display: flex;
   justify-content: space-between;
@@ -465,4 +510,134 @@
 
 .bottom-spacer {
   height: 40rpx;
+}
+
+.append-input-section {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: #fff;
+  padding: 20rpx 30rpx;
+  padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
+  box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.08);
+  z-index: 100;
+}
+
+.append-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.append-title {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.append-close {
+  font-size: 32rpx;
+  color: #999;
+  padding: 8rpx;
+}
+
+.append-content-wrapper {
+  margin-bottom: 16rpx;
+}
+
+.append-input {
+  width: 100%;
+  height: 160rpx;
+  padding: 16rpx 20rpx;
+  background-color: #f9f9f9;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  color: #333;
+  box-sizing: border-box;
+}
+
+.append-images {
+  display: flex;
+  flex-wrap: wrap;
+  margin-bottom: 20rpx;
+}
+
+.append-image-item {
+  position: relative;
+  width: 140rpx;
+  height: 140rpx;
+  margin-right: 16rpx;
+  margin-bottom: 16rpx;
+  border-radius: 8rpx;
+  overflow: hidden;
+}
+
+.append-image {
+  width: 100%;
+  height: 100%;
+}
+
+.append-image-remove {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 36rpx;
+  height: 36rpx;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-bottom-left-radius: 8rpx;
+}
+
+.remove-icon {
+  font-size: 24rpx;
+  color: #fff;
+}
+
+.append-image-item.add-image {
+  background-color: #f9f9f9;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  border: 2rpx dashed #ddd;
+}
+
+.add-icon {
+  font-size: 48rpx;
+  color: #ccc;
+  line-height: 1;
+}
+
+.add-text {
+  font-size: 22rpx;
+  color: #999;
+  margin-top: 8rpx;
+}
+
+.append-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-submit-append {
+  width: 160rpx;
+  height: 72rpx;
+  line-height: 72rpx;
+  background-color: #795548;
+  color: #fff;
+  font-size: 28rpx;
+  border-radius: 36rpx;
+  border: none;
+}
+
+.btn-submit-append::after {
+  border: none;
+}
+
+.btn-submit-append.disabled {
+  background-color: #ccc;
 }

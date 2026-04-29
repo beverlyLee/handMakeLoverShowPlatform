@@ -117,11 +117,37 @@ Page({
     try {
       const result = await getProductReviewStats(this.data.productId);
       if (result && result.stats) {
-        this.setData({ reviewStats: result.stats });
+        const stats = result.stats;
+        const mappedStats = {
+          total: stats.total || 0,
+          avg_rating: stats.avg_overall_rating || 0,
+          goodCount: stats.good_count || 0,
+          mediumCount: stats.medium_count || 0,
+          badCount: stats.bad_count || 0
+        };
+        this.setData({ reviewStats: mappedStats });
       }
     } catch (error) {
       console.error('加载评价统计失败:', error);
     }
+  },
+
+  processReviews(reviews) {
+    if (!reviews || !Array.isArray(reviews)) return [];
+    
+    return reviews.map(review => {
+      const processed = { ...review };
+      
+      if (processed.user_avatar && !processed.is_anonymous) {
+        processed.user_avatar = getFullImageUrl(processed.user_avatar);
+      }
+      
+      if (processed.images && Array.isArray(processed.images)) {
+        processed.images = processed.images.map(img => getFullImageUrl(img));
+      }
+      
+      return processed;
+    });
   },
 
   async loadReviews(append = false) {
@@ -138,7 +164,7 @@ Page({
       });
 
       if (result) {
-        const newReviews = result.list || [];
+        const newReviews = this.processReviews(result.list || []);
         const total = result.total || 0;
 
         if (append) {
