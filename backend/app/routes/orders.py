@@ -166,6 +166,7 @@ def get_teacher_orders():
     size = request.args.get('size', 10, type=int)
     status = request.args.get('status', None)
     teacher_id = request.args.get('teacher_id', user_id, type=int)
+    is_reviewed = request.args.get('is_reviewed', None, type=int)
     
     query = Order.query.filter_by(teacher_id=teacher_id).filter(Order.status != 'deleted')
     
@@ -175,6 +176,13 @@ def get_teacher_orders():
             query = query.filter(Order.status.in_(status_list))
         else:
             query = query.filter_by(status=status)
+    
+    if is_reviewed is not None:
+        is_reviewed = bool(is_reviewed)
+        if is_reviewed:
+            query = query.filter(Order.reviews.any())
+        else:
+            query = query.filter(~Order.reviews.any())
     
     stats = get_order_stats_from_query(query)
     

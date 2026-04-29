@@ -164,6 +164,10 @@ def migrate():
         print("\n正在检查 messages 表:")
         add_column_if_not_exists('messages', 'recipient_role VARCHAR(20) DEFAULT "customer"')
         
+        print("\n正在检查 reviews 表:")
+        add_column_if_not_exists('reviews', 'is_read BOOLEAN DEFAULT 0')
+        add_column_if_not_exists('reviews', 'read_at DATETIME')
+        
         print("\n为已有订单设置默认值...")
         try:
             result1 = db.session.execute(

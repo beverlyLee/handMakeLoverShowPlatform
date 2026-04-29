@@ -64,6 +64,26 @@ function calculateRating(data) {
   return post('/reviews/calculate-rating', data);
 }
 
+function markReviewRead(reviewId) {
+  return post(`/reviews/${reviewId}/read`);
+}
+
+function markReviewsBatchRead(reviewIds) {
+  return post('/reviews/batch-read', { review_ids: reviewIds });
+}
+
+function getTeacherUnreadStats(teacherUserId) {
+  return get(`/reviews/teacher/${teacherUserId}/unread-stats`);
+}
+
+function updateReviewReply(reviewId, content) {
+  return put(`/reviews/${reviewId}/reply`, { content });
+}
+
+function getTeacherTrendStats(teacherUserId, params = {}) {
+  return get(`/reviews/teacher/${teacherUserId}/trend-stats`, params);
+}
+
 module.exports = {
   getReviewDetailItems,
   getReviews,
@@ -80,5 +100,10 @@ module.exports = {
   getProductReviewStats,
   getTeacherReviews,
   getTeacherReviewStats,
-  calculateRating
+  calculateRating,
+  markReviewRead,
+  markReviewsBatchRead,
+  getTeacherUnreadStats,
+  updateReviewReply,
+  getTeacherTrendStats
 };

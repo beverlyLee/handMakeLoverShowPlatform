@@ -162,6 +162,11 @@ Page({
       if (this.data.currentTab === 'orders' && this.data.recentOrders.length === 0 && !this.data.orderStats) {
         await this.loadOrderStats();
       }
+      
+      if (this.data.currentTab === 'reviews' && this.data.reviews.length === 0) {
+        await this.loadTeacherReviewStats();
+        await this.loadTeacherReviews(false);
+      }
     } catch (error) {
       console.error('加载数据失败:', error);
     } finally {
@@ -328,15 +333,28 @@ Page({
     }
     if (tab === 'reviews' && this.data.reviews.length === 0) {
       this.loadTeacherReviewStats();
-      this.loadTeacherReviews(true);
+      this.loadTeacherReviews(false);
     }
   },
 
   async loadTeacherReviewStats() {
     try {
-      const result = await getTeacherReviewStats(this.data.teacherId);
+      const teacher = this.data.teacher;
+      if (!teacher || !teacher.user_id) {
+        console.log('老师信息未加载，暂不获取评价统计');
+        return;
+      }
+      
+      const result = await getTeacherReviewStats(teacher.user_id);
       if (result && result.stats) {
-        this.setData({ reviewStats: result.stats });
+        const stats = {
+          ...result.stats,
+          avg_rating: result.stats.avg_overall_rating || 0,
+          goodCount: result.stats.good_count || 0,
+          mediumCount: result.stats.medium_count || 0,
+          badCount: result.stats.bad_count || 0
+        };
+        this.setData({ reviewStats: stats });
       }
     } catch (error) {
       console.error('加载老师评价统计失败:', error);
@@ -344,16 +362,21 @@ Page({
   },
 
   async loadTeacherReviews(append = false) {
-    const { reviewsPage, reviewsPageSize, reviewsHasMore, reviewsLoading, teacherId } = this.data;
+    const { reviewsPage, reviewsPageSize, reviewsHasMore, reviewsLoading } = this.data;
+    const teacher = this.data.teacher;
     
     if (reviewsLoading || !reviewsHasMore) return;
+    if (!teacher || !teacher.user_id) {
+      console.log('老师信息未加载，暂不获取评价列表');
+      return;
+    }
 
     this.setData({ reviewsLoading: true });
 
     try {
-      const result = await getTeacherReviews(teacherId, {
+      const result = await getTeacherReviews(teacher.user_id, {
         page: append ? reviewsPage : 1,
-        page_size: reviewsPageSize
+        size: reviewsPageSize
       });
 
       if (result) {
@@ -383,8 +406,24 @@ Page({
   },
 
   goToAllReviews() {
+    const teacher = this.data.teacher;
+    if (!teacher || !teacher.user_id) {
+      showToast('老师信息未加载');
+      return;
+    }
     wx.navigateTo({
-      url: `/pages/reviews/index?source=teacher&teacherUserId=${this.data.teacherId}`
+      url: `/pages/reviews/index?source=teacher&teacherUserId=${teacher.user_id}`
+    });
+  },
+
+  goToReviewManage() {
+    const teacher = this.data.teacher;
+    if (!teacher || !teacher.user_id) {
+      showToast('老师信息未加载');
+      return;
+    }
+    wx.navigateTo({
+      url: `/pages/teacher-reviews/index?teacherId=${teacher.user_id}`
     });
   },
 

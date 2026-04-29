@@ -46,7 +46,10 @@
           mode="aspectFill"
         />
         <view class="user-detail">
-          <text class="user-name">{{review.is_anonymous ? '匿名用户' : (review.user_name || '用户')}}</text>
+          <view class="user-name-row">
+            <text class="user-name">{{review.is_anonymous ? '匿名用户' : (review.user_name || '用户')}}</text>
+            <text class="user-role-tag" wx:if="{{!review.is_anonymous && review.user_role_label}}">{{review.user_role_label}}</text>
+          </view>
           <text class="review-time">{{formatTime(review.created_at)}}</text>
         </view>
       </view>
@@ -105,7 +108,10 @@
                 mode="aspectFill"
               />
               <view class="append-user-detail">
-                <text class="append-user-name">{{item.user_name || '用户'}}</text>
+                <view class="append-user-name-row">
+                  <text class="append-user-name">{{item.user_name || '用户'}}</text>
+                  <text class="append-role-tag" wx:if="{{item.user_role_label}}">{{item.user_role_label}}</text>
+                </view>
                 <text class="append-time">{{formatTime(item.created_at)}}</text>
               </view>
             </view>

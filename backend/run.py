@@ -70,6 +70,8 @@ def migrate_database():
         add_column_if_not_exists('reviews', 'append_time DATETIME')
         add_column_if_not_exists('reviews', 'is_reported BOOLEAN DEFAULT 0')
         add_column_if_not_exists('reviews', 'report_reason VARCHAR(500)')
+        add_column_if_not_exists('reviews', 'is_read BOOLEAN DEFAULT 0')
+        add_column_if_not_exists('reviews', 'read_at DATETIME')
         
         print("\n数据库迁移检查完成！")
         print("="*60)

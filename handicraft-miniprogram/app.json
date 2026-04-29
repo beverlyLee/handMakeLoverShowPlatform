@@ -17,7 +17,8 @@
     "pages/teacher-info-edit/index",
     "pages/order-review/index",
     "pages/review-detail/index",
-    "pages/reviews/index"
+    "pages/reviews/index",
+    "pages/teacher-reviews/index"
   ],
   "window": {
     "navigationBarBackgroundColor": "#795548",

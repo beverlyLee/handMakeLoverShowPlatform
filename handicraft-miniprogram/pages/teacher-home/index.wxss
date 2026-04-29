@@ -1501,12 +1501,25 @@
   flex: 1;
 }
 
+.user-name-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8rpx;
+}
+
 .user-name {
   font-size: 28rpx;
   font-weight: 500;
   color: #333;
-  margin-bottom: 8rpx;
-  display: block;
+  margin-right: 12rpx;
+}
+
+.user-role-tag {
+  font-size: 20rpx;
+  padding: 2rpx 12rpx;
+  border-radius: 8rpx;
+  background-color: #E8F4FD;
+  color: #1A73E8;
 }
 
 .user-meta {

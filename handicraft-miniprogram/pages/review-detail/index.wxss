@@ -108,11 +108,25 @@
   flex-direction: column;
 }
 
+.user-name-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8rpx;
+}
+
 .user-name {
   font-size: 28rpx;
   font-weight: 500;
   color: #333;
-  margin-bottom: 8rpx;
+  margin-right: 12rpx;
+}
+
+.user-role-tag {
+  font-size: 20rpx;
+  padding: 2rpx 12rpx;
+  border-radius: 8rpx;
+  background-color: #E8F4FD;
+  color: #1A73E8;
 }
 
 .review-time {
@@ -385,11 +399,25 @@
   flex-direction: column;
 }
 
+.append-user-name-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4rpx;
+}
+
 .append-user-name {
   font-size: 26rpx;
   font-weight: 500;
   color: #333;
-  margin-bottom: 4rpx;
+  margin-right: 12rpx;
+}
+
+.append-role-tag {
+  font-size: 18rpx;
+  padding: 1rpx 10rpx;
+  border-radius: 6rpx;
+  background-color: #E8F4FD;
+  color: #1A73E8;
 }
 
 .append-header {

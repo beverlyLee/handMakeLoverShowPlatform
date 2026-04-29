@@ -31,6 +31,20 @@ def get_user_avatar(user_id):
     return None
 
 
+def get_user_role(user_id):
+    user = User.query.get(user_id)
+    if user:
+        return user.current_role
+    return None
+
+
+def get_role_label(role):
+    if role == 'teacher':
+        return '老师'
+    else:
+        return '用户'
+
+
 def get_teacher_profile(teacher_user_id):
     teacher_profile = TeacherProfile.query.filter_by(user_id=teacher_user_id).first()
     return teacher_profile
@@ -149,12 +163,18 @@ def enrich_append_review(append_review, include_user=False):
     if include_user:
         nickname = get_user_nickname(append_review.user_id)
         avatar = get_user_avatar(append_review.user_id)
+        role = get_user_role(append_review.user_id)
+        role_label = get_role_label(role)
         append_dict['user_info'] = {
             'nickname': nickname,
-            'avatar': avatar
+            'avatar': avatar,
+            'role': role,
+            'role_label': role_label
         }
         append_dict['user_name'] = nickname
         append_dict['user_avatar'] = avatar
+        append_dict['user_role'] = role
+        append_dict['user_role_label'] = role_label
     
     return append_dict
 
@@ -171,19 +191,29 @@ def enrich_review(review, include_user=False, include_product=False, include_ord
         if review.is_anonymous:
             review_dict['user_info'] = {
                 'nickname': '匿名用户',
-                'avatar': None
+                'avatar': None,
+                'role': 'customer',
+                'role_label': '用户'
             }
             review_dict['user_name'] = '匿名用户'
             review_dict['user_avatar'] = None
+            review_dict['user_role'] = 'customer'
+            review_dict['user_role_label'] = '用户'
         else:
             nickname = get_user_nickname(review.user_id)
             avatar = get_user_avatar(review.user_id)
+            role = get_user_role(review.user_id)
+            role_label = get_role_label(role)
             review_dict['user_info'] = {
                 'nickname': nickname,
-                'avatar': avatar
+                'avatar': avatar,
+                'role': role,
+                'role_label': role_label
             }
             review_dict['user_name'] = nickname
             review_dict['user_avatar'] = avatar
+            review_dict['user_role'] = role
+            review_dict['user_role_label'] = role_label
     
     if include_teacher:
         review_dict['teacher_info'] = {
@@ -856,4 +886,202 @@ def calculate_rating():
         'teacher_rating': teacher_rating,
         'logistics_rating': logistics_rating,
         'overall_rating': overall_rating
+    }))
+
+
+@review_bp.route('/<int:review_id>/read', methods=['POST'])
+@login_required
+def mark_review_read(review_id):
+    user_id = get_current_user()
+    
+    review = Review.query.get(review_id)
+    
+    if not review or review.is_hidden:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='评价不存在')), 404
+    
+    if review.teacher_id != user_id:
+        return jsonify(error(code=ResponseCode.PERMISSION_DENIED, msg='无权操作此评价')), 403
+    
+    review.is_read = True
+    review.read_at = datetime.utcnow()
+    db.session.commit()
+    
+    return jsonify(success(data=enrich_review(review, include_user=True, include_product=True), msg='已标记为已读'))
+
+
+@review_bp.route('/batch-read', methods=['POST'])
+@login_required
+def mark_reviews_batch_read():
+    user_id = get_current_user()
+    data = request.get_json()
+    
+    if not data or not data.get('review_ids'):
+        return jsonify(error(code=ResponseCode.PARAM_MISSING, msg='评价ID列表不能为空')), 400
+    
+    review_ids = data.get('review_ids')
+    
+    if not isinstance(review_ids, list) or len(review_ids) == 0:
+        return jsonify(error(code=ResponseCode.PARAM_MISSING, msg='评价ID列表不能为空')), 400
+    
+    count = Review.query.filter(
+        Review.id.in_(review_ids),
+        Review.teacher_id == user_id,
+        Review.is_hidden == False
+    ).update({
+        'is_read': True,
+        'read_at': datetime.utcnow()
+    }, synchronize_session=False)
+    
+    db.session.commit()
+    
+    return jsonify(success(data={'marked_count': count}, msg=f'已标记 {count} 条评价为已读'))
+
+
+@review_bp.route('/teacher/<int:teacher_user_id>/unread-stats', methods=['GET'])
+@login_required
+def get_teacher_unread_stats(teacher_user_id):
+    user_id = get_current_user()
+    
+    if user_id != teacher_user_id:
+        return jsonify(error(code=ResponseCode.PERMISSION_DENIED, msg='无权查看此统计')), 403
+    
+    query = Review.query.filter_by(
+        teacher_id=teacher_user_id,
+        is_hidden=False
+    )
+    
+    total = query.count()
+    unread = query.filter_by(is_read=False).count()
+    pending_reply = query.filter(Review.reply_content.is_(None)).count()
+    
+    return jsonify(success(data={
+        'total': total,
+        'unread': unread,
+        'pending_reply': pending_reply
+    }))
+
+
+@review_bp.route('/<int:review_id>/reply', methods=['PUT'])
+@login_required
+def update_review_reply(review_id):
+    user_id = get_current_user()
+    data = request.get_json()
+    
+    if not data:
+        return jsonify(error(code=ResponseCode.PARAM_MISSING, msg='请求数据不能为空')), 400
+    
+    review = Review.query.get(review_id)
+    
+    if not review or review.is_hidden:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='评价不存在')), 404
+    
+    if review.teacher_id != user_id:
+        return jsonify(error(code=ResponseCode.PERMISSION_DENIED, msg='只有老师可以回复评价')), 403
+    
+    content = data.get('content')
+    
+    if content is None:
+        return jsonify(error(code=ResponseCode.PARAM_MISSING, msg='回复内容不能为空')), 400
+    
+    if content == '':
+        review.reply_content = None
+        review.reply_time = None
+        review.reply_count = max(0, (review.reply_count or 1) - 1)
+    else:
+        review.reply_content = content
+        review.reply_time = datetime.utcnow()
+        if not review.reply_content:
+            review.reply_count = (review.reply_count or 0) + 1
+    
+    review.updated_at = datetime.utcnow()
+    db.session.commit()
+    
+    if content and review.reply_content:
+        try:
+            MessageService.send_review_notification(review, is_reply=True)
+        except Exception as e:
+            print(f'发送回复通知失败: {e}')
+    
+    return jsonify(success(data=enrich_review(review, include_user=True), msg='回复已更新'))
+
+
+@review_bp.route('/teacher/<int:teacher_user_id>/trend-stats', methods=['GET'])
+@login_required
+def get_teacher_trend_stats(teacher_user_id):
+    user_id = get_current_user()
+    
+    if user_id != teacher_user_id:
+        return jsonify(error(code=ResponseCode.PERMISSION_DENIED, msg='无权查看此统计')), 403
+    
+    days = request.args.get('days', 30, type=int)
+    days = min(max(days, 7), 90)
+    
+    from datetime import timedelta
+    
+    end_date = datetime.utcnow()
+    start_date = end_date - timedelta(days=days)
+    
+    reviews = Review.query.filter(
+        Review.teacher_id == teacher_user_id,
+        Review.is_hidden == False,
+        Review.created_at >= start_date,
+        Review.created_at <= end_date
+    ).order_by(Review.created_at.asc()).all()
+    
+    daily_stats = {}
+    for review in reviews:
+        date_key = review.created_at.strftime('%Y-%m-%d')
+        if date_key not in daily_stats:
+            daily_stats[date_key] = {
+                'date': date_key,
+                'count': 0,
+                'total_rating': 0.0,
+                'avg_rating': 0.0,
+                'good_count': 0,
+                'medium_count': 0,
+                'bad_count': 0
+            }
+        
+        stat = daily_stats[date_key]
+        stat['count'] += 1
+        stat['total_rating'] += review.overall_rating
+        
+        if review.overall_rating >= 4.0:
+            stat['good_count'] += 1
+        elif review.overall_rating >= 2.0:
+            stat['medium_count'] += 1
+        else:
+            stat['bad_count'] += 1
+    
+    trend_data = []
+    for i in range(days):
+        current_date = end_date - timedelta(days=i)
+        date_key = current_date.strftime('%Y-%m-%d')
+        
+        if date_key in daily_stats:
+            stat = daily_stats[date_key]
+            stat['avg_rating'] = round(stat['total_rating'] / stat['count'], 1) if stat['count'] > 0 else 0.0
+            trend_data.append(stat)
+        else:
+            trend_data.append({
+                'date': date_key,
+                'count': 0,
+                'total_rating': 0.0,
+                'avg_rating': 0.0,
+                'good_count': 0,
+                'medium_count': 0,
+                'bad_count': 0
+            })
+    
+    trend_data.reverse()
+    
+    overall_stats = get_review_stats(Review.query.filter_by(
+        teacher_id=teacher_user_id,
+        is_hidden=False
+    ))
+    
+    return jsonify(success(data={
+        'trend_data': trend_data,
+        'overall_stats': overall_stats,
+        'days': days
     }))

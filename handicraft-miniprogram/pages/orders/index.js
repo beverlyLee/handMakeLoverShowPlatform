@@ -634,15 +634,22 @@ Page({
   goToReview(e) {
     const orderId = e.currentTarget.dataset.id;
     const mode = e.currentTarget.dataset.mode;
+    const currentRole = this.data.currentRole;
     
-    if (mode === 'view') {
+    if (currentRole === 'teacher') {
       wx.navigateTo({
-        url: `/pages/order-review/index?id=${orderId}&mode=edit`
+        url: `/pages/review-detail/index?orderId=${orderId}`
       });
     } else {
-      wx.navigateTo({
-        url: `/pages/order-review/index?id=${orderId}`
-      });
+      if (mode === 'view') {
+        wx.navigateTo({
+          url: `/pages/order-review/index?id=${orderId}&mode=edit`
+        });
+      } else {
+        wx.navigateTo({
+          url: `/pages/order-review/index?id=${orderId}`
+        });
+      }
     }
   },
 
@@ -730,7 +737,7 @@ Page({
     
     if (isExpanding) {
       const order = this.data.orders.find(o => o.id === orderId);
-      if (order && order.is_reviewed && order.status === 'completed') {
+      if (order && order.is_reviewed) {
         this.loadOrderReview(orderId);
       }
     }
