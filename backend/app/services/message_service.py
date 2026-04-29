@@ -479,22 +479,57 @@ class MessageService:
             title = '评价有新回复'
             content = f'您的评价收到了新的回复。\n\n'
             content += f'回复内容：{review.reply_content or ""}'
+            
+            MessageService.send_announcement(
+                user_id=review.user_id,
+                subtype='review',
+                title=title,
+                content=content,
+                related_id=review.id,
+                related_type='review',
+                sender='评价中心',
+                recipient_role='customer'
+            )
         else:
-            title = '新评价通知'
-            content = f'您收到了一条新的评价。\n\n'
-            content += f'评分：{review.rating or 5}星\n'
-            content += f'评价内容：{review.content or ""}'
-        
-        MessageService.send_announcement(
-            user_id=review.teacher_id,
-            subtype='review',
-            title=title,
-            content=content,
-            related_id=review.id,
-            related_type='review',
-            sender='评价中心',
-            recipient_role='teacher'
-        )
+            teacher_title = '新评价通知'
+            teacher_content = f'您收到了一条新的评价。\n\n'
+            teacher_content += f'综合评分：{review.overall_rating or 5.0}星\n'
+            teacher_content += f'商品评分：{review.product_rating or 5.0}星\n'
+            teacher_content += f'老师评分：{review.teacher_rating or 5.0}星\n'
+            teacher_content += f'物流评分：{review.logistics_rating or 5.0}星\n\n'
+            teacher_content += f'评价内容：{review.content or ""}'
+            
+            MessageService.send_announcement(
+                user_id=review.teacher_id,
+                subtype='review',
+                title=teacher_title,
+                content=teacher_content,
+                related_id=review.id,
+                related_type='review',
+                sender='评价中心',
+                recipient_role='teacher'
+            )
+            
+            customer_title = '评价完成通知'
+            customer_content = f'您的评价已提交成功！\n\n'
+            customer_content += f'综合评分：{review.overall_rating or 5.0}星\n'
+            customer_content += f'商品评分：{review.product_rating or 5.0}星\n'
+            customer_content += f'老师评分：{review.teacher_rating or 5.0}星\n'
+            customer_content += f'物流评分：{review.logistics_rating or 5.0}星\n\n'
+            if review.content:
+                customer_content += f'评价内容：{review.content}\n'
+            customer_content += f'\n感谢您的评价！'
+            
+            MessageService.send_announcement(
+                user_id=review.user_id,
+                subtype='review',
+                title=customer_title,
+                content=customer_content,
+                related_id=review.id,
+                related_type='review',
+                sender='评价中心',
+                recipient_role='customer'
+            )
     
     @staticmethod
     def send_activity_publish_notification(activity, target_users=None):

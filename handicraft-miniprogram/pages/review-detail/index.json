@@ -1,5 +1,5 @@
 {
-  "navigationBarTitleText": "我的订单",
+  "navigationBarTitleText": "评价详情",
   "usingComponents": {
     "star-rating": "/components/star-rating/index"
   }

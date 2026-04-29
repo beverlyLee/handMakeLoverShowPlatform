@@ -2,6 +2,7 @@ const { getTeacherPublicInfo, getTeacherPublicOrderStats, getUserInfo, updateTea
 const { getProducts, createProduct: createProductApi, getCategories, updateProduct, deleteProduct } = require('../../api/products');
 const { getSpecialties } = require('../../api/specialties');
 const { uploadImages } = require('../../api/upload');
+const { getTeacherReviews, getTeacherReviewStats } = require('../../api/reviews');
 const { showToast, processTeacherInfo, processProductImages, getRelativeImageUrl, getFullImageUrl } = require('../../utils/util');
 const config = require('../../utils/config');
 const storage = require('../../utils/storage');
@@ -88,7 +89,14 @@ Page({
     },
     creatingProduct: false,
     isEditingProduct: false,
-    editingProductId: null
+    editingProductId: null,
+
+    reviewStats: null,
+    reviews: [],
+    reviewsLoading: false,
+    reviewsPage: 1,
+    reviewsPageSize: 3,
+    reviewsHasMore: true
   },
 
   onLoad(options) {
@@ -318,6 +326,104 @@ Page({
     if (tab === 'orders' && this.data.recentOrders.length === 0 && !this.data.orderStats) {
       this.loadOrderStats();
     }
+    if (tab === 'reviews' && this.data.reviews.length === 0) {
+      this.loadTeacherReviewStats();
+      this.loadTeacherReviews(true);
+    }
+  },
+
+  async loadTeacherReviewStats() {
+    try {
+      const result = await getTeacherReviewStats(this.data.teacherId);
+      if (result && result.stats) {
+        this.setData({ reviewStats: result.stats });
+      }
+    } catch (error) {
+      console.error('加载老师评价统计失败:', error);
+    }
+  },
+
+  async loadTeacherReviews(append = false) {
+    const { reviewsPage, reviewsPageSize, reviewsHasMore, reviewsLoading, teacherId } = this.data;
+    
+    if (reviewsLoading || !reviewsHasMore) return;
+
+    this.setData({ reviewsLoading: true });
+
+    try {
+      const result = await getTeacherReviews(teacherId, {
+        page: append ? reviewsPage : 1,
+        page_size: reviewsPageSize
+      });
+
+      if (result) {
+        const newReviews = result.list || [];
+        const total = result.total || 0;
+
+        if (append) {
+          this.setData({
+            reviews: [...this.data.reviews, ...newReviews],
+            reviewsHasMore: newReviews.length >= reviewsPageSize,
+            reviewsPage: reviewsPage + 1,
+            reviewsLoading: false
+          });
+        } else {
+          this.setData({
+            reviews: newReviews,
+            reviewsHasMore: newReviews.length >= reviewsPageSize,
+            reviewsPage: 2,
+            reviewsLoading: false
+          });
+        }
+      }
+    } catch (error) {
+      console.error('加载老师评价列表失败:', error);
+      this.setData({ reviewsLoading: false });
+    }
+  },
+
+  goToAllReviews() {
+    wx.navigateTo({
+      url: `/pages/reviews/index?source=teacher&teacherUserId=${this.data.teacherId}`
+    });
+  },
+
+  goToReviewDetail(e) {
+    const { id } = e.currentTarget.dataset;
+    if (id) {
+      wx.navigateTo({
+        url: `/pages/review-detail/index?id=${id}`
+      });
+    }
+  },
+
+  previewReviewImage(e) {
+    const { url, index } = e.currentTarget.dataset;
+    const { reviews } = this.data;
+    const review = reviews[index];
+    const images = review.images || [];
+    
+    wx.previewImage({
+      current: url,
+      urls: images
+    });
+  },
+
+  formatReviewTime(timestamp) {
+    if (!timestamp) return '';
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = now - date;
+    
+    if (diff < 60000) return '刚刚';
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}分钟前`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}小时前`;
+    if (diff < 604800000) return `${Math.floor(diff / 86400000)}天前`;
+    
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   },
 
   goToProductDetail(e) {

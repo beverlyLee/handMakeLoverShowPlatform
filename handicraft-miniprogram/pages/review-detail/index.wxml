@@ -1,0 +1,230 @@
+<view class="review-detail-container">
+  <view class="loading-container" wx:if="{{isLoading}}">
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <scroll-view wx:else class="detail-content" scroll-y>
+    <view class="header-section" wx:if="{{review}}">
+      <view class="overall-rating">
+        <text class="overall-label">综合评分</text>
+        <view class="overall-value">
+          <text class="rating-number">{{review.overall_rating}}</text>
+          <text class="rating-unit">分</text>
+        </view>
+        <star-rating 
+          value="{{review.overall_rating}}" 
+          disabled="{{true}}"
+          size="large"
+          showValue="{{false}}"
+        />
+      </view>
+      
+      <view class="rating-breakdown">
+        <view class="breakdown-item">
+          <text class="breakdown-icon">🎨</text>
+          <text class="breakdown-label">商品</text>
+          <text class="breakdown-value">{{review.product_rating}}分</text>
+        </view>
+        <view class="breakdown-item">
+          <text class="breakdown-icon">👩‍🏫</text>
+          <text class="breakdown-label">老师</text>
+          <text class="breakdown-value">{{review.teacher_rating}}分</text>
+        </view>
+        <view class="breakdown-item">
+          <text class="breakdown-icon">🚚</text>
+          <text class="breakdown-label">物流</text>
+          <text class="breakdown-value">{{review.logistics_rating}}分</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="user-section" wx:if="{{review}}">
+      <view class="user-info">
+        <image 
+          class="user-avatar" 
+          src="{{review.is_anonymous ? '/images/default-avatar.png' : (review.user_avatar || '/images/default-avatar.png')}}"
+          mode="aspectFill"
+        />
+        <view class="user-detail">
+          <text class="user-name">{{review.is_anonymous ? '匿名用户' : (review.user_name || '用户')}}</text>
+          <text class="review-time">{{formatTime(review.created_at)}}</text>
+        </view>
+      </view>
+      <view class="owner-actions" wx:if="{{isOwner}}">
+        <view class="action-btn edit-btn" bindtap="handleEdit">
+          <text class="btn-icon">✏️</text>
+          <text class="btn-text">编辑</text>
+        </view>
+        <view class="action-btn delete-btn" bindtap="handleDelete">
+          <text class="btn-icon">🗑️</text>
+          <text class="btn-text">删除</text>
+        </view>
+      </view>
+      <view class="order-info" wx:if="{{review.order_id}}">
+        <text class="order-label">订单号</text>
+        <text class="order-value">{{review.order_id}}</text>
+      </view>
+    </view>
+
+    <view class="content-section" wx:if="{{review && review.content}}">
+      <view class="section-header">
+        <text class="section-title">评价内容</text>
+      </view>
+      <text class="review-content">{{review.content}}</text>
+      
+      <view class="review-images" wx:if="{{review.images && review.images.length > 0}}">
+        <view 
+          wx:for="{{review.images}}" 
+          wx:key="*this" 
+          class="image-item"
+          bindtap="previewImage"
+          data-url="{{item}}"
+        >
+          <image class="review-image" src="{{item}}" mode="aspectFill" />
+        </view>
+      </view>
+    </view>
+
+    <view class="detail-rating-section product-section" wx:if="{{review}}">
+      <view class="section-header" bindtap="toggleSection" data-section="product">
+        <view class="header-left">
+          <text class="section-icon">🎨</text>
+          <text class="section-title">商品详细评分</text>
+        </view>
+        <text class="arrow-icon {{expandedSection === 'product' ? 'arrow-down' : ''}}">›</text>
+      </view>
+      
+      <view class="section-content" wx:if="{{expandedSection === 'product'}}">
+        <view class="detail-list">
+          <view wx:for="{{productDetailItems}}" wx:key="key" class="detail-item">
+            <view class="item-info">
+              <text class="item-label">{{item.label}}</text>
+              <text class="item-desc">{{item.description}}</text>
+            </view>
+            <view class="item-rating">
+              <star-rating 
+                value="{{review.product_detail_ratings ? review.product_detail_ratings[item.key] || 0 : 0}}" 
+                disabled="{{true}}"
+                size="default"
+                showValue="{{true}}"
+              />
+            </view>
+          </view>
+        </view>
+        
+        <view class="section-summary">
+          <text class="summary-label">商品平均评分</text>
+          <text class="summary-value">{{review.product_rating}}分</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="detail-rating-section teacher-section" wx:if="{{review}}">
+      <view class="section-header" bindtap="toggleSection" data-section="teacher">
+        <view class="header-left">
+          <text class="section-icon">👩‍🏫</text>
+          <text class="section-title">老师详细评分</text>
+        </view>
+        <text class="arrow-icon {{expandedSection === 'teacher' ? 'arrow-down' : ''}}">›</text>
+      </view>
+      
+      <view class="section-content" wx:if="{{expandedSection === 'teacher'}}">
+        <view class="detail-list">
+          <view wx:for="{{teacherDetailItems}}" wx:key="key" class="detail-item">
+            <view class="item-info">
+              <text class="item-label">{{item.label}}</text>
+              <text class="item-desc">{{item.description}}</text>
+            </view>
+            <view class="item-rating">
+              <star-rating 
+                value="{{review.teacher_detail_ratings ? review.teacher_detail_ratings[item.key] || 0 : 0}}" 
+                disabled="{{true}}"
+                size="default"
+                showValue="{{true}}"
+              />
+            </view>
+          </view>
+        </view>
+        
+        <view class="section-summary">
+          <text class="summary-label">老师平均评分</text>
+          <text class="summary-value">{{review.teacher_rating}}分</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="detail-rating-section logistics-section" wx:if="{{review}}">
+      <view class="section-header" bindtap="toggleSection" data-section="logistics">
+        <view class="header-left">
+          <text class="section-icon">🚚</text>
+          <text class="section-title">物流详细评分</text>
+        </view>
+        <text class="arrow-icon {{expandedSection === 'logistics' ? 'arrow-down' : ''}}">›</text>
+      </view>
+      
+      <view class="section-content" wx:if="{{expandedSection === 'logistics'}}">
+        <view class="detail-list">
+          <view wx:for="{{logisticsDetailItems}}" wx:key="key" class="detail-item">
+            <view class="item-info">
+              <text class="item-label">{{item.label}}</text>
+              <text class="item-desc">{{item.description}}</text>
+            </view>
+            <view class="item-rating">
+              <star-rating 
+                value="{{review.logistics_detail_ratings ? review.logistics_detail_ratings[item.key] || 0 : 0}}" 
+                disabled="{{true}}"
+                size="default"
+                showValue="{{true}}"
+              />
+            </view>
+          </view>
+        </view>
+        
+        <view class="section-summary">
+          <text class="summary-label">物流平均评分</text>
+          <text class="summary-value">{{review.logistics_rating}}分</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="reply-section" wx:if="{{review && review.reply}}">
+      <view class="reply-header">
+        <text class="reply-label">老师回复</text>
+        <text class="reply-time">{{formatTime(review.reply_time)}}</text>
+      </view>
+      <view class="reply-content">
+        <text class="reply-text">{{review.reply}}</text>
+      </view>
+    </view>
+
+    <view class="action-section" wx:if="{{review}}">
+      <view class="action-item {{review.is_liked ? 'liked' : ''}}" bindtap="handleLike">
+        <text class="action-icon">{{review.is_liked ? '❤️' : '🤍'}}</text>
+        <text class="action-text">{{review.is_liked ? '已点赞' : '点赞'}}</text>
+        <text class="action-count" wx:if="{{review.like_count > 0}}">({{review.like_count}})</text>
+      </view>
+      <view class="action-item" bindtap="toggleReplyInput" wx:if="{{isTeacher}}">
+        <text class="action-icon">💬</text>
+        <text class="action-text">回复</text>
+      </view>
+    </view>
+
+    <view class="reply-input-section" wx:if="{{showReplyInput}}">
+      <view class="reply-input-wrapper">
+        <textarea 
+          class="reply-input" 
+          placeholder="写下您的回复..."
+          value="{{replyContent}}"
+          bindinput="onReplyInput"
+          maxlength="200"
+        />
+      </view>
+      <view class="reply-actions">
+        <button class="btn-cancel" bindtap="toggleReplyInput">取消</button>
+        <button class="btn-send" bindtap="submitReply">发送</button>
+      </view>
+    </view>
+
+    <view class="bottom-spacer"></view>
+  </scroll-view>
+</view>

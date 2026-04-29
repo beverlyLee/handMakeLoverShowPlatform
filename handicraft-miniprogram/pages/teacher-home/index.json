@@ -1,5 +1,8 @@
 {
   "navigationBarTitleText": "老师主页",
   "navigationBarBackgroundColor": "#795548",
-  "navigationBarTextStyle": "white"
+  "navigationBarTextStyle": "white",
+  "usingComponents": {
+    "star-rating": "/components/star-rating/index"
+  }
 }

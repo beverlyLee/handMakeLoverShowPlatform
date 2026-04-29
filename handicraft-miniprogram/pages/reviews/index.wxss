@@ -1,0 +1,422 @@
+.reviews-container {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+}
+
+.loading-text {
+  font-size: 28rpx;
+  color: #999;
+}
+
+.reviews-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.stats-section {
+  background-color: #fff;
+  padding: 30rpx;
+  margin-bottom: 20rpx;
+}
+
+.stats-overview {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 30rpx;
+}
+
+.overview-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.overview-value {
+  font-size: 48rpx;
+  font-weight: bold;
+  color: #795548;
+  margin-bottom: 8rpx;
+}
+
+.overview-label {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.stats-breakdown {
+  padding-top: 24rpx;
+  border-top: 1rpx solid #f0f0f0;
+}
+
+.breakdown-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.breakdown-item:last-child {
+  margin-bottom: 0;
+}
+
+.breakdown-label {
+  width: 80rpx;
+  font-size: 24rpx;
+  color: #666;
+  flex-shrink: 0;
+}
+
+.breakdown-bar {
+  flex: 1;
+  height: 12rpx;
+  background-color: #f0f0f0;
+  border-radius: 6rpx;
+  margin: 0 16rpx;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  border-radius: 6rpx;
+  transition: width 0.3s;
+}
+
+.bar-fill.good {
+  background: linear-gradient(90deg, #4CAF50, #8BC34A);
+}
+
+.bar-fill.medium {
+  background: linear-gradient(90deg, #FF9800, #FFC107);
+}
+
+.bar-fill.bad {
+  background: linear-gradient(90deg, #F44336, #FF5722);
+}
+
+.breakdown-value {
+  width: 60rpx;
+  font-size: 24rpx;
+  color: #999;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.filter-section {
+  background-color: #fff;
+  margin-bottom: 20rpx;
+}
+
+.type-scroll,
+.rating-scroll {
+  white-space: nowrap;
+}
+
+.type-list,
+.rating-list {
+  display: flex;
+  padding: 0 10rpx;
+}
+
+.type-list {
+  padding-bottom: 10rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.type-item,
+.rating-item {
+  display: inline-block;
+  padding: 16rpx 24rpx;
+  margin: 0 10rpx;
+  border-radius: 32rpx;
+  transition: all 0.3s;
+}
+
+.type-item {
+  margin: 10rpx;
+}
+
+.type-text,
+.rating-text {
+  font-size: 26rpx;
+  color: #666;
+}
+
+.type-item.active,
+.rating-item.active {
+  background-color: #FFF8E7;
+}
+
+.type-item.active .type-text,
+.rating-item.active .rating-text {
+  color: #795548;
+  font-weight: 500;
+}
+
+.reviews-list {
+  flex: 1;
+  padding-bottom: 20rpx;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 100rpx 0;
+}
+
+.empty-icon {
+  font-size: 80rpx;
+  margin-bottom: 20rpx;
+}
+
+.empty-text {
+  font-size: 28rpx;
+  color: #999;
+}
+
+.review-card {
+  background-color: #fff;
+  margin-bottom: 20rpx;
+  padding: 30rpx;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.user-avatar {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 50%;
+  margin-right: 16rpx;
+}
+
+.user-detail {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.user-name {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 6rpx;
+}
+
+.user-meta {
+  display: flex;
+  align-items: center;
+}
+
+.review-time {
+  font-size: 24rpx;
+  color: #999;
+  margin-right: 12rpx;
+}
+
+.rating-tag {
+  font-size: 20rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+}
+
+.tag-good {
+  background-color: rgba(76, 175, 80, 0.1);
+  color: #4CAF50;
+}
+
+.tag-medium {
+  background-color: rgba(255, 152, 0, 0.1);
+  color: #FF9800;
+}
+
+.tag-bad {
+  background-color: rgba(244, 67, 54, 0.1);
+  color: #F44336;
+}
+
+.card-rating {
+  display: flex;
+  justify-content: space-around;
+  padding: 20rpx 0;
+  margin-bottom: 20rpx;
+  background-color: #FFF8E7;
+  border-radius: 12rpx;
+}
+
+.rating-item-mini {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.rating-icon {
+  font-size: 28rpx;
+  margin-bottom: 6rpx;
+}
+
+.rating-label-mini {
+  font-size: 22rpx;
+  color: #999;
+  margin-bottom: 4rpx;
+}
+
+.rating-value-mini {
+  font-size: 26rpx;
+  font-weight: bold;
+  color: #FFB300;
+}
+
+.card-content {
+  margin-bottom: 20rpx;
+}
+
+.review-content {
+  font-size: 28rpx;
+  color: #666;
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+
+.card-images {
+  display: flex;
+  margin-bottom: 20rpx;
+}
+
+.image-item {
+  width: 160rpx;
+  height: 160rpx;
+  margin-right: 12rpx;
+  border-radius: 8rpx;
+  overflow: hidden;
+  position: relative;
+}
+
+.review-image {
+  width: 100%;
+  height: 100%;
+}
+
+.image-more {
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 8rpx;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.more-text {
+  font-size: 32rpx;
+  color: #fff;
+  font-weight: bold;
+}
+
+.card-reply {
+  background-color: #FFF8E7;
+  border-radius: 12rpx;
+  padding: 20rpx;
+  margin-bottom: 20rpx;
+}
+
+.reply-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+
+.reply-label {
+  font-size: 24rpx;
+  font-weight: 500;
+  color: #795548;
+}
+
+.reply-time {
+  font-size: 22rpx;
+  color: #999;
+}
+
+.reply-content {
+  font-size: 26rpx;
+  color: #666;
+  line-height: 1.6;
+}
+
+.card-actions {
+  display: flex;
+  justify-content: flex-start;
+  padding-top: 20rpx;
+  border-top: 1rpx solid #f0f0f0;
+}
+
+.action-item {
+  display: flex;
+  align-items: center;
+  padding: 8rpx 20rpx;
+  border-radius: 20rpx;
+  background-color: #f5f5f5;
+}
+
+.action-item.liked {
+  background-color: rgba(255, 179, 0, 0.1);
+}
+
+.action-icon {
+  font-size: 26rpx;
+  margin-right: 6rpx;
+}
+
+.action-text {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.action-item.liked .action-text {
+  color: #FFB300;
+}
+
+.load-more {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 30rpx 0;
+}
+
+.load-text {
+  font-size: 26rpx;
+  color: #999;
+}
+
+.no-more {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 30rpx 0;
+}
+
+.no-more-text {
+  font-size: 24rpx;
+  color: #ccc;
+}

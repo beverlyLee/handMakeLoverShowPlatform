@@ -48,6 +48,27 @@
         </view>
       </view>
 
+      <view class="rating-row" wx:if="{{reviewStats && reviewStats.total > 0}}">
+        <view class="rating-info" bindtap="goToAllReviews">
+          <view class="rating-main">
+            <text class="rating-score">{{reviewStats.avg_rating || 0}}</text>
+            <star-rating 
+              value="{{reviewStats.avg_rating || 0}}" 
+              disabled="{{true}}"
+              size="small"
+              showValue="{{false}}"
+            />
+          </view>
+          <text class="rating-count">{{reviewStats.total}}条评价</text>
+          <text class="arrow-icon">›</text>
+        </view>
+        <view class="rating-tags" wx:if="{{reviewStats.goodCount > 0 || reviewStats.mediumCount > 0 || reviewStats.badCount > 0}}">
+          <text class="rating-tag good" wx:if="{{reviewStats.goodCount > 0}}">好评{{reviewStats.goodCount}}</text>
+          <text class="rating-tag medium" wx:if="{{reviewStats.mediumCount > 0}}">中评{{reviewStats.mediumCount}}</text>
+          <text class="rating-tag bad" wx:if="{{reviewStats.badCount > 0}}">差评{{reviewStats.badCount}}</text>
+        </view>
+      </view>
+
       <view class="title-section">
         <text class="work-title">{{product.title}}</text>
         <view class="work-tags">
@@ -112,6 +133,67 @@
         <view class="spec-item" wx:if="{{product.view_count > 0}}">
           <text class="spec-label">浏览</text>
           <text class="spec-value">{{product.view_count}}次</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="reviews-section" wx:if="{{reviews.length > 0}}">
+      <view class="section-header">
+        <text class="section-title">用户评价</text>
+        <text class="view-all" bindtap="goToAllReviews">查看全部 ›</text>
+      </view>
+      
+      <view class="reviews-list">
+        <view 
+          wx:for="{{reviews}}" 
+          wx:key="id"
+          class="review-card"
+          bindtap="goToReviewDetail"
+          data-id="{{item.id}}"
+        >
+          <view class="review-header">
+            <view class="user-info">
+              <image 
+                class="user-avatar" 
+                src="{{item.is_anonymous ? '/images/default-avatar.png' : (item.user_avatar || '/images/default-avatar.png')}}"
+                mode="aspectFill"
+              />
+              <view class="user-detail">
+                <text class="user-name">{{item.is_anonymous ? '匿名用户' : (item.user_name || '用户')}}</text>
+                <view class="user-meta">
+                  <star-rating 
+                    value="{{item.overall_rating}}" 
+                    disabled="{{true}}"
+                    size="small"
+                    showValue="{{false}}"
+                  />
+                  <text class="review-time">{{formatReviewTime(item.created_at)}}</text>
+                </view>
+              </view>
+            </view>
+          </view>
+
+          <view class="review-content" wx:if="{{item.content}}">
+            <text class="content-text">{{item.content}}</text>
+          </view>
+
+          <view class="review-images" wx:if="{{item.images && item.images.length > 0}}">
+            <view 
+              wx:for="{{item.images.slice(0, 3)}}" 
+              wx:key="*this"
+              class="image-item"
+              catchtap="previewReviewImage"
+              data-url="{{item}}"
+              data-index="{{index}}"
+            >
+              <image class="review-image" src="{{item}}" mode="aspectFill" />
+            </view>
+          </view>
+
+          <view class="review-reply" wx:if="{{item.reply}}">
+            <text class="reply-label">老师回复：</text>
+            <text class="reply-text">{{item.reply}}</text>
+          </view>
         </view>
       </view>
     </view>

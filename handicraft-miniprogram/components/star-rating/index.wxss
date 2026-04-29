@@ -1,0 +1,89 @@
+.star-rating {
+  display: flex;
+  align-items: center;
+}
+
+.star-list {
+  display: flex;
+  align-items: center;
+}
+
+.star-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.star-icon {
+  position: relative;
+  display: inline-block;
+  color: #E0E0E0;
+}
+
+.star-full .star-icon {
+  color: #FFB300;
+}
+
+.star-half .star-icon {
+  color: #E0E0E0;
+}
+
+.star-half .star-icon::before {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 50%;
+  overflow: hidden;
+  color: #FFB300;
+  content: '★';
+}
+
+.rating-value {
+  display: flex;
+  align-items: baseline;
+  margin-left: 12rpx;
+}
+
+.rating-value text {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #FFB300;
+}
+
+.rating-value .rating-unit {
+  font-size: 24rpx;
+  font-weight: normal;
+  color: #999;
+  margin-left: 4rpx;
+}
+
+.default .star-item {
+  width: 48rpx;
+  height: 48rpx;
+  margin-right: 8rpx;
+}
+
+.default .star-icon {
+  font-size: 44rpx;
+}
+
+.small .star-item {
+  width: 36rpx;
+  height: 36rpx;
+  margin-right: 6rpx;
+}
+
+.small .star-icon {
+  font-size: 32rpx;
+}
+
+.large .star-item {
+  width: 64rpx;
+  height: 64rpx;
+  margin-right: 12rpx;
+}
+
+.large .star-icon {
+  font-size: 60rpx;
+}

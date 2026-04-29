@@ -1,0 +1,17 @@
+<view class="star-rating {{size}}">
+  <view class="star-list">
+    <view 
+      wx:for="{{stars}}" 
+      wx:key="index"
+      class="star-item star-item-{{item.index}} star-{{item.type}}"
+      data-index="{{item.index}}"
+      bindtap="onStarTap"
+    >
+      <text class="star-icon">★</text>
+    </view>
+  </view>
+  <view wx:if="{{showValue}}" class="rating-value">
+    <text>{{displayValue}}</text>
+    <text class="rating-unit">分</text>
+  </view>
+</view>

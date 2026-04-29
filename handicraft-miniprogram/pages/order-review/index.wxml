@@ -1,0 +1,288 @@
+<view class="review-container">
+  <view class="loading-container" wx:if="{{isLoading}}">
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <view wx:elif="{{hasReview}}" class="already-reviewed">
+    <view class="reviewed-header">
+      <text class="reviewed-icon">✓</text>
+      <text class="reviewed-title">您已评价过此订单</text>
+    </view>
+    <view class="reviewed-info">
+      <view class="reviewed-rating">
+        <text class="rating-label">综合评分</text>
+        <star-rating 
+          value="{{existingReview.overall_rating}}" 
+          disabled="{{true}}"
+          size="large"
+          showValue="{{true}}"
+        />
+      </view>
+      <view class="reviewed-content" wx:if="{{existingReview.content}}">
+        <text class="reviewed-text">{{existingReview.content}}</text>
+      </view>
+      <view class="reviewed-images" wx:if="{{existingReview.images && existingReview.images.length > 0}}">
+        <view 
+          wx:for="{{existingReview.images}}" 
+          wx:key="*this" 
+          class="reviewed-image-item"
+          bindtap="previewImage"
+          data-url="{{item}}"
+        >
+          <image class="reviewed-image" src="{{item}}" mode="aspectFill" />
+        </view>
+      </view>
+    </view>
+    <view class="reviewed-actions">
+      <button class="btn-view-detail" bindtap="goToReviewDetail">查看评价详情</button>
+    </view>
+  </view>
+
+  <scroll-view wx:else class="review-form" scroll-y>
+    <view class="order-info-section">
+      <view class="section-header">
+        <text class="section-title">订单信息</text>
+      </view>
+      <view class="product-card" wx:if="{{productInfo}}">
+        <image class="product-image" src="{{productInfo.image}}" mode="aspectFill" />
+        <view class="product-info">
+          <text class="product-title">{{productInfo.title}}</text>
+          <text class="order-no">订单号: {{orderId}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="rating-section product-section">
+      <view class="section-header" bindtap="toggleSection" data-section="product">
+        <view class="header-left">
+          <text class="section-icon">🎨</text>
+          <text class="section-title">商品评价</text>
+          <view class="section-rating" wx:if="{{allProductRated}}">
+            <text class="rating-text">{{productRating}}分</text>
+            <text class="rating-badge">已完成</text>
+          </view>
+          <view class="section-progress" wx:else>
+            <text class="progress-text">待完成</text>
+          </view>
+        </view>
+        <text class="arrow-icon {{expandedSection === 'product' ? 'arrow-down' : ''}}">›</text>
+      </view>
+      
+      <view class="section-content" wx:if="{{expandedSection === 'product'}}">
+        <view class="rating-intro">
+          <text class="intro-text">请对以下5个维度进行评分，点击星星左侧为半星（0.5分），右侧为全星（1分）</text>
+        </view>
+        
+        <view class="detail-items">
+          <view wx:for="{{productDetailItems}}" wx:key="key" class="detail-item">
+            <view class="item-header">
+              <text class="item-label">{{item.label}}</text>
+              <text class="item-desc">{{item.description}}</text>
+            </view>
+            <view class="item-rating">
+              <star-rating 
+                value="{{productDetailRatings[item.key] || 0}}" 
+                bind:change="onProductRatingChange"
+                data-key="{{item.key}}"
+                size="large"
+                showValue="{{true}}"
+              />
+            </view>
+          </view>
+        </view>
+        
+        <view class="section-summary" wx:if="{{productRating > 0}}">
+          <text class="summary-label">商品平均评分</text>
+          <text class="summary-value">{{productRating}}分</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="rating-section teacher-section">
+      <view class="section-header" bindtap="toggleSection" data-section="teacher">
+        <view class="header-left">
+          <text class="section-icon">👩‍🏫</text>
+          <text class="section-title">老师评价</text>
+          <view class="section-rating" wx:if="{{allTeacherRated}}">
+            <text class="rating-text">{{teacherRating}}分</text>
+            <text class="rating-badge">已完成</text>
+          </view>
+          <view class="section-progress" wx:else>
+            <text class="progress-text">待完成</text>
+          </view>
+        </view>
+        <text class="arrow-icon {{expandedSection === 'teacher' ? 'arrow-down' : ''}}">›</text>
+      </view>
+      
+      <view class="section-content" wx:if="{{expandedSection === 'teacher'}}">
+        <view class="rating-intro">
+          <text class="intro-text">请对以下5个维度进行评分，点击星星左侧为半星（0.5分），右侧为全星（1分）</text>
+        </view>
+        
+        <view class="detail-items">
+          <view wx:for="{{teacherDetailItems}}" wx:key="key" class="detail-item">
+            <view class="item-header">
+              <text class="item-label">{{item.label}}</text>
+              <text class="item-desc">{{item.description}}</text>
+            </view>
+            <view class="item-rating">
+              <star-rating 
+                value="{{teacherDetailRatings[item.key] || 0}}" 
+                bind:change="onTeacherRatingChange"
+                data-key="{{item.key}}"
+                size="large"
+                showValue="{{true}}"
+              />
+            </view>
+          </view>
+        </view>
+        
+        <view class="section-summary" wx:if="{{teacherRating > 0}}">
+          <text class="summary-label">老师平均评分</text>
+          <text class="summary-value">{{teacherRating}}分</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="rating-section logistics-section">
+      <view class="section-header" bindtap="toggleSection" data-section="logistics">
+        <view class="header-left">
+          <text class="section-icon">🚚</text>
+          <text class="section-title">物流评价</text>
+          <view class="section-rating" wx:if="{{allLogisticsRated}}">
+            <text class="rating-text">{{logisticsRating}}分</text>
+            <text class="rating-badge">已完成</text>
+          </view>
+          <view class="section-progress" wx:else>
+            <text class="progress-text">待完成</text>
+          </view>
+        </view>
+        <text class="arrow-icon {{expandedSection === 'logistics' ? 'arrow-down' : ''}}">›</text>
+      </view>
+      
+      <view class="section-content" wx:if="{{expandedSection === 'logistics'}}">
+        <view class="rating-intro">
+          <text class="intro-text">请对以下3个维度进行评分，点击星星左侧为半星（0.5分），右侧为全星（1分）</text>
+        </view>
+        
+        <view class="detail-items">
+          <view wx:for="{{logisticsDetailItems}}" wx:key="key" class="detail-item">
+            <view class="item-header">
+              <text class="item-label">{{item.label}}</text>
+              <text class="item-desc">{{item.description}}</text>
+            </view>
+            <view class="item-rating">
+              <star-rating 
+                value="{{logisticsDetailRatings[item.key] || 0}}" 
+                bind:change="onLogisticsRatingChange"
+                data-key="{{item.key}}"
+                size="large"
+                showValue="{{true}}"
+              />
+            </view>
+          </view>
+        </view>
+        
+        <view class="section-summary" wx:if="{{logisticsRating > 0}}">
+          <text class="summary-label">物流平均评分</text>
+          <text class="summary-value">{{logisticsRating}}分</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="rating-summary-section" wx:if="{{overallRating > 0}}">
+      <view class="summary-header">
+        <text class="summary-title">综合评分</text>
+        <text class="summary-overall">{{overallRating}}分</text>
+      </view>
+      <view class="summary-breakdown">
+        <view class="breakdown-item">
+          <text class="breakdown-label">商品</text>
+          <text class="breakdown-value">{{productRating}}分</text>
+        </view>
+        <view class="breakdown-item">
+          <text class="breakdown-label">老师</text>
+          <text class="breakdown-value">{{teacherRating}}分</text>
+        </view>
+        <view class="breakdown-item">
+          <text class="breakdown-label">物流</text>
+          <text class="breakdown-value">{{logisticsRating}}分</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="content-section">
+      <view class="section-header">
+        <text class="section-title">评价内容</text>
+        <text class="section-hint">（选填）</text>
+      </view>
+      <view class="content-input-wrapper">
+        <textarea 
+          class="content-input" 
+          placeholder="写下您的真实评价，帮助其他用户做出更好的选择..."
+          value="{{content}}"
+          bindinput="onContentInput"
+          maxlength="500"
+        />
+        <text class="char-count">{{content.length}}/500</text>
+      </view>
+    </view>
+
+    <view class="images-section">
+      <view class="section-header">
+        <text class="section-title">上传图片</text>
+        <text class="section-hint">（选填，最多9张）</text>
+      </view>
+      <view class="images-grid">
+        <view 
+          wx:for="{{images}}" 
+          wx:key="*this" 
+          class="image-item"
+          bindtap="previewImage"
+          data-url="{{item}}"
+        >
+          <image class="image-preview" src="{{item}}" mode="aspectFill" />
+          <view class="image-remove" catchtap="removeImage" data-index="{{index}}">
+            <text class="remove-icon">×</text>
+          </view>
+        </view>
+        <view 
+          wx:if="{{images.length < 9}}" 
+          class="image-item add-image"
+          bindtap="chooseImages"
+        >
+          <text class="add-icon">+</text>
+          <text class="add-text">上传图片</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="anonymous-section">
+      <view class="anonymous-content">
+        <text class="anonymous-label">匿名评价</text>
+        <switch 
+          checked="{{isAnonymous}}" 
+          bindchange="onAnonymousChange"
+          color="#795548"
+        />
+      </view>
+      <text class="anonymous-hint">开启后，您的昵称和头像将被隐藏</text>
+    </view>
+
+    <view class="bottom-spacer"></view>
+  </scroll-view>
+
+  <view class="bottom-bar" wx:if="{{!isLoading && !hasReview}}">
+    <view class="bar-summary" wx:if="{{overallRating > 0}}">
+      <text class="bar-label">综合评分</text>
+      <text class="bar-value">{{overallRating}}分</text>
+    </view>
+    <button 
+      class="btn-submit {{submitting ? 'disabled' : ''}}"
+      bindtap="submitReview"
+      disabled="{{submitting}}"
+    >
+      {{submitting ? '提交中...' : '提交评价'}}
+    </button>
+  </view>
+</view>

@@ -1,4 +1,6 @@
 {
   "navigationBarTitleText": "作品详情",
-  "usingComponents": {}
+  "usingComponents": {
+    "star-rating": "/components/star-rating/index"
+  }
 }

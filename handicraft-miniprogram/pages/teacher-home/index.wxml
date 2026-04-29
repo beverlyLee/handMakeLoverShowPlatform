@@ -116,6 +116,13 @@
         >
           <text class="tab-text">作品 ({{productsTotal || 0}})</text>
         </view>
+        <view 
+          class="tab-item {{currentTab === 'reviews' ? 'active' : ''}}" 
+          bindtap="switchTab" 
+          data-tab="reviews"
+        >
+          <text class="tab-text">评价 ({{reviewStats ? reviewStats.total : 0}})</text>
+        </view>
       </view>
 
       <view class="tab-content">
@@ -249,6 +256,140 @@
           </view>
 
           <view class="no-more" wx:if="{{!productsHasMore && products.length > 0 && !productsLoading}}">
+            <text class="no-more-text">没有更多了</text>
+          </view>
+        </view>
+
+        <view class="reviews-tab" wx:if="{{currentTab === 'reviews'}}">
+          <view class="review-stats-card" wx:if="{{reviewStats && reviewStats.total > 0}}">
+            <view class="review-stats-header">
+              <text class="review-stats-title">评价统计</text>
+              <text class="view-all-btn" bindtap="goToAllReviews">查看全部 ›</text>
+            </view>
+            <view class="review-stats-main">
+              <view class="stats-rating">
+                <text class="rating-number">{{reviewStats.avg_rating || 0}}</text>
+                <star-rating 
+                  value="{{reviewStats.avg_rating || 0}}" 
+                  disabled="{{true}}"
+                  size="small"
+                  showValue="{{false}}"
+                />
+              </view>
+              <view class="stats-breakdown">
+                <view class="breakdown-item">
+                  <text class="breakdown-label">好评</text>
+                  <view class="breakdown-bar">
+                    <view class="bar-fill good" style="width: {{reviewStats.total > 0 ? (reviewStats.goodCount / reviewStats.total * 100) : 0}}%"></view>
+                  </view>
+                  <text class="breakdown-value">{{reviewStats.goodCount || 0}}</text>
+                </view>
+                <view class="breakdown-item">
+                  <text class="breakdown-label">中评</text>
+                  <view class="breakdown-bar">
+                    <view class="bar-fill medium" style="width: {{reviewStats.total > 0 ? (reviewStats.mediumCount / reviewStats.total * 100) : 0}}%"></view>
+                  </view>
+                  <text class="breakdown-value">{{reviewStats.mediumCount || 0}}</text>
+                </view>
+                <view class="breakdown-item">
+                  <text class="breakdown-label">差评</text>
+                  <view class="breakdown-bar">
+                    <view class="bar-fill bad" style="width: {{reviewStats.total > 0 ? (reviewStats.badCount / reviewStats.total * 100) : 0}}%"></view>
+                  </view>
+                  <text class="breakdown-value">{{reviewStats.badCount || 0}}</text>
+                </view>
+              </view>
+            </view>
+          </view>
+
+          <view class="reviews-list" wx:if="{{reviews.length > 0}}">
+            <view 
+              wx:for="{{reviews}}" 
+              wx:key="id"
+              class="review-card"
+              bindtap="goToReviewDetail"
+              data-id="{{item.id}}"
+            >
+              <view class="review-header">
+                <view class="user-info">
+                  <image 
+                    class="user-avatar" 
+                    src="{{item.is_anonymous ? '/images/default-avatar.png' : (item.user_avatar || '/images/default-avatar.png')}}"
+                    mode="aspectFill"
+                  />
+                  <view class="user-detail">
+                    <text class="user-name">{{item.is_anonymous ? '匿名用户' : (item.user_name || '用户')}}</text>
+                    <view class="user-meta">
+                      <star-rating 
+                        value="{{item.overall_rating}}" 
+                        disabled="{{true}}"
+                        size="small"
+                        showValue="{{false}}"
+                      />
+                      <text class="review-time">{{formatReviewTime(item.created_at)}}</text>
+                    </view>
+                  </view>
+                </view>
+              </view>
+
+              <view class="review-rating-mini">
+                <view class="rating-item">
+                  <text class="rating-icon">🎨</text>
+                  <text class="rating-text">商品 {{item.product_rating}}分</text>
+                </view>
+                <view class="rating-item">
+                  <text class="rating-icon">👩‍🏫</text>
+                  <text class="rating-text">老师 {{item.teacher_rating}}分</text>
+                </view>
+                <view class="rating-item">
+                  <text class="rating-icon">🚚</text>
+                  <text class="rating-text">物流 {{item.logistics_rating}}分</text>
+                </view>
+              </view>
+
+              <view class="review-content" wx:if="{{item.content}}">
+                <text class="content-text">{{item.content}}</text>
+              </view>
+
+              <view class="review-images" wx:if="{{item.images && item.images.length > 0}}">
+                <view 
+                  wx:for="{{item.images.slice(0, 3)}}" 
+                  wx:key="*this"
+                  class="image-item"
+                  catchtap="previewReviewImage"
+                  data-url="{{item}}"
+                  data-index="{{index}}"
+                >
+                  <image class="review-image" src="{{item}}" mode="aspectFill" />
+                </view>
+                <view 
+                  wx:if="{{item.images.length > 3}}"
+                  class="image-more"
+                  catchtap="previewReviewImage"
+                  data-url="{{item.images[0]}}"
+                  data-index="{{0}}"
+                >
+                  <text class="more-text">+{{item.images.length - 3}}</text>
+                </view>
+              </view>
+
+              <view class="review-reply" wx:if="{{item.reply}}">
+                <text class="reply-label">老师回复：</text>
+                <text class="reply-text">{{item.reply}}</text>
+              </view>
+            </view>
+          </view>
+
+          <view class="empty-state" wx:elif="{{!reviewsLoading && reviews.length === 0}}">
+            <text class="empty-icon">📝</text>
+            <text class="empty-text">暂无评价</text>
+          </view>
+
+          <view class="load-more" wx:if="{{reviewsLoading}}">
+            <text class="load-more-text">加载中...</text>
+          </view>
+
+          <view class="no-more" wx:if="{{!reviewsHasMore && reviews.length > 0 && !reviewsLoading}}">
             <text class="no-more-text">没有更多了</text>
           </view>
         </view>

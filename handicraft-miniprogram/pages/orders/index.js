@@ -14,6 +14,7 @@ const {
   editOrder
 } = require('../../api/orders');
 const { contactThroughOrder } = require('../../api/messages');
+const { getOrderReview } = require('../../api/reviews');
 const { showToast, getFullImageUrl, DEFAULT_IMAGE } = require('../../utils/util');
 const storage = require('../../utils/storage');
 
@@ -113,7 +114,10 @@ Page({
 
     expandedOrders: {},
     formattedOrders: [],
-    defaultImage: DEFAULT_IMAGE
+    defaultImage: DEFAULT_IMAGE,
+    
+    orderReviews: {},
+    loadingReviews: {}
   },
 
   onLoad(options) {
@@ -623,9 +627,17 @@ Page({
 
   goToReview(e) {
     const orderId = e.currentTarget.dataset.id;
-    wx.navigateTo({
-      url: `/pages/order-review/index?id=${orderId}`
-    });
+    const mode = e.currentTarget.dataset.mode;
+    
+    if (mode === 'view') {
+      wx.navigateTo({
+        url: `/pages/order-review/index?id=${orderId}&mode=edit`
+      });
+    } else {
+      wx.navigateTo({
+        url: `/pages/order-review/index?id=${orderId}`
+      });
+    }
   },
 
   async contactThroughOrder(e) {
@@ -702,11 +714,81 @@ Page({
   toggleOrderDetail(e) {
     const orderId = e.currentTarget.dataset.id;
     const expandedOrders = { ...this.data.expandedOrders };
-    expandedOrders[orderId] = !expandedOrders[orderId];
+    const isExpanding = !expandedOrders[orderId];
+    
+    expandedOrders[orderId] = isExpanding;
     
     this.setData({
       expandedOrders: expandedOrders
     });
+    
+    if (isExpanding) {
+      const order = this.data.orders.find(o => o.id === orderId);
+      if (order && order.is_reviewed && order.status === 'completed') {
+        this.loadOrderReview(orderId);
+      }
+    }
+  },
+
+  async loadOrderReview(orderId) {
+    const { orderReviews, loadingReviews } = this.data;
+    
+    if (orderReviews[orderId] || loadingReviews[orderId]) {
+      return;
+    }
+    
+    this.setData({
+      [`loadingReviews.${orderId}`]: true
+    });
+    
+    try {
+      const result = await getOrderReview(orderId);
+      if (result && result.data) {
+        const review = result.data;
+        
+        const formattedReview = {
+          ...review,
+          formattedTime: this.formatReviewTime(review.created_at)
+        };
+        
+        this.setData({
+          [`orderReviews.${orderId}`]: formattedReview
+        });
+      }
+    } catch (error) {
+      console.error('加载订单评价失败:', error);
+    } finally {
+      this.setData({
+        [`loadingReviews.${orderId}`]: false
+      });
+    }
+  },
+
+  formatReviewTime(timestamp) {
+    if (!timestamp) return '';
+    
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) {
+      const hours = date.getHours().toString().padStart(2, '0');
+      const minutes = date.getMinutes().toString().padStart(2, '0');
+      return `今天 ${hours}:${minutes}`;
+    } else if (diffDays === 1) {
+      const hours = date.getHours().toString().padStart(2, '0');
+      const minutes = date.getMinutes().toString().padStart(2, '0');
+      return `昨天 ${hours}:${minutes}`;
+    } else if (diffDays < 7) {
+      return `${diffDays}天前`;
+    } else {
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const day = date.getDate().toString().padStart(2, '0');
+      const hours = date.getHours().toString().padStart(2, '0');
+      const minutes = date.getMinutes().toString().padStart(2, '0');
+      return `${month}-${day} ${hours}:${minutes}`;
+    }
   },
 
   copyTrackingNumber(e) {

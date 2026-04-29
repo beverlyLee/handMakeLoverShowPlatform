@@ -195,7 +195,15 @@
             class="action-btn primary"
             bindtap="goToReview"
             data-id="{{item.id}}"
+            data-mode="create"
           >评价</button>
+          <button 
+            wx:if="{{currentRole !== 'teacher' && item.status === 'completed' && item.is_reviewed}}" 
+            class="action-btn secondary"
+            bindtap="goToReview"
+            data-id="{{item.id}}"
+            data-mode="view"
+          >查看评价</button>
 
           <button 
             wx:if="{{currentRole === 'teacher' && (item.status === 'pending' || item.status === 'pending_accept' || item.status === 'in_progress' || item.status === 'paid')}}" 
@@ -337,6 +345,99 @@
               <text class="price-label">实付金额：</text>
               <text class="price-value total">¥{{item.formattedPayAmount}}</text>
             </view>
+          </view>
+        </view>
+
+        <view class="expand-section" wx:if="{{item.is_reviewed && item.status === 'completed'}}">
+          <view class="expand-title">
+            <text class="title-text">⭐ 评价详情</text>
+          </view>
+          <view class="expand-content review-section" wx:if="{{orderReviews[item.id]}}">
+            <view class="review-main">
+              <view class="review-rating-total">
+                <text class="rating-label">综合评分：</text>
+                <star-rating 
+                  value="{{orderReviews[item.id].overall_rating || 0}}" 
+                  disabled="{{true}}"
+                  size="default"
+                  showValue="{{true}}"
+                />
+              </view>
+              <text class="review-time">{{orderReviews[item.id].formattedTime}}</text>
+            </view>
+
+            <view class="rating-breakdown">
+              <view class="breakdown-header">
+                <text class="breakdown-title">分项评分</text>
+              </view>
+              <view class="breakdown-list">
+                <view class="breakdown-row product-row">
+                  <view class="row-icon">🎨</view>
+                  <text class="row-label">商品评分</text>
+                  <view class="row-rating">
+                    <star-rating 
+                      value="{{orderReviews[item.id].product_rating || 0}}" 
+                      disabled="{{true}}"
+                      size="small"
+                      showValue="{{false}}"
+                    />
+                    <text class="row-score">{{orderReviews[item.id].product_rating || 0}}分</text>
+                  </view>
+                </view>
+                <view class="breakdown-row teacher-row">
+                  <view class="row-icon">👩‍🏫</view>
+                  <text class="row-label">老师评分</text>
+                  <view class="row-rating">
+                    <star-rating 
+                      value="{{orderReviews[item.id].teacher_rating || 0}}" 
+                      disabled="{{true}}"
+                      size="small"
+                      showValue="{{false}}"
+                    />
+                    <text class="row-score">{{orderReviews[item.id].teacher_rating || 0}}分</text>
+                  </view>
+                </view>
+                <view class="breakdown-row logistics-row highlight-row">
+                  <view class="row-icon">🚚</view>
+                  <text class="row-label">物流评分</text>
+                  <view class="row-rating">
+                    <star-rating 
+                      value="{{orderReviews[item.id].logistics_rating || 0}}" 
+                      disabled="{{true}}"
+                      size="small"
+                      showValue="{{false}}"
+                    />
+                    <text class="row-score logistics-score">{{orderReviews[item.id].logistics_rating || 0}}分</text>
+                  </view>
+                </view>
+              </view>
+            </view>
+
+            <view class="review-content-section" wx:if="{{orderReviews[item.id].content}}">
+              <text class="review-text">{{orderReviews[item.id].content}}</text>
+            </view>
+
+            <view class="review-images-section" wx:if="{{orderReviews[item.id].images && orderReviews[item.id].images.length > 0}}">
+              <view class="images-grid">
+                <view 
+                  wx:for="{{orderReviews[item.id].images}}" 
+                  wx:key="*this"
+                  class="image-item"
+                >
+                  <image class="review-img" src="{{item}}" mode="aspectFill" />
+                </view>
+              </view>
+            </view>
+
+            <view class="review-reply-section" wx:if="{{orderReviews[item.id].reply}}">
+              <view class="reply-header">
+                <text class="reply-label">老师回复</text>
+              </view>
+              <text class="reply-text">{{orderReviews[item.id].reply}}</text>
+            </view>
+          </view>
+          <view class="expand-content" wx:elif="{{loadingReviews[item.id]}}">
+            <text class="loading-text">加载评价中...</text>
           </view>
         </view>
 
