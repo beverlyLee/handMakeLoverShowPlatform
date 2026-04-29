@@ -1,4 +1,4 @@
-const { getReviewById, likeReview, replyReview, getOrderReview, deleteReview, appendReview } = require('../../api/reviews');
+const { getReviewById, likeReview, replyReview, getOrderReview, deleteReview, appendReview, deleteAppendReview } = require('../../api/reviews');
 const { getFullImageUrl } = require('../../utils/util');
 const storage = require('../../utils/storage');
 
@@ -23,10 +23,31 @@ Page({
     processedAppendImages: []
   },
 
+  processAppendReview(appendReview, currentUserId) {
+    if (!appendReview) return appendReview;
+    
+    const processed = { ...appendReview };
+    
+    if (processed.user_avatar) {
+      processed.user_avatar = getFullImageUrl(processed.user_avatar);
+    }
+    
+    if (processed.images && Array.isArray(processed.images)) {
+      processed.images = processed.images.map(img => getFullImageUrl(img));
+    }
+    
+    if (currentUserId) {
+      processed.is_owner = String(processed.user_id) === String(currentUserId);
+    }
+    
+    return processed;
+  },
+
   processReviewData(review) {
     if (!review) return review;
     
     const processed = { ...review };
+    const currentUserId = this.data.currentUserId;
     
     if (processed.user_avatar && !processed.is_anonymous) {
       processed.user_avatar = getFullImageUrl(processed.user_avatar);
@@ -38,6 +59,12 @@ Page({
     
     if (processed.append_images && Array.isArray(processed.append_images)) {
       processed.append_images = processed.append_images.map(img => getFullImageUrl(img));
+    }
+    
+    if (processed.append_reviews && Array.isArray(processed.append_reviews)) {
+      processed.append_reviews = processed.append_reviews.map(ar => 
+        this.processAppendReview(ar, currentUserId)
+      );
     }
     
     return processed;
@@ -259,19 +286,11 @@ Page({
     const { review } = this.data;
     if (!review) return;
     
-    let initialContent = '';
-    let initialImages = [];
-    
-    if (review.append_content) {
-      initialContent = review.append_content;
-      initialImages = [...(review.append_images || [])];
-    }
-    
     this.setData({
       showAppendInput: true,
-      appendContent: initialContent,
-      appendImages: initialImages,
-      processedAppendImages: initialImages
+      appendContent: '',
+      appendImages: [],
+      processedAppendImages: []
     });
   },
 
@@ -361,9 +380,7 @@ Page({
         isSubmitting: false,
         appendContent: '',
         appendImages: [],
-        'review.append_content': processedResult.append_content,
-        'review.append_images': processedResult.append_images,
-        'review.append_time': processedResult.append_time
+        'review.append_reviews': processedResult.append_reviews
       });
       
     } catch (error) {
@@ -383,7 +400,7 @@ Page({
     
     wx.showModal({
       title: '确认删除',
-      content: '确定要删除这条评价吗？删除后无法恢复。',
+      content: '确定要删除这条评价吗？删除后无法恢复，相关的追加评论也会被删除。',
       confirmColor: '#795548',
       success: async (res) => {
         if (res.confirm) {
@@ -416,6 +433,60 @@ Page({
           } catch (error) {
             wx.hideLoading();
             console.error('删除评价失败:', error);
+            wx.showToast({
+              title: error.msg || error.message || '删除失败',
+              icon: 'none'
+            });
+          }
+        }
+      }
+    });
+  },
+
+  handleDeleteAppend(e) {
+    const { review, currentUserId } = this.data;
+    const { appendReviewId, userId } = e.currentTarget.dataset;
+    
+    if (!review) return;
+    
+    if (String(userId) !== String(currentUserId)) {
+      wx.showToast({
+        title: '只能删除自己的追加评论',
+        icon: 'none'
+      });
+      return;
+    }
+    
+    wx.showModal({
+      title: '确认删除',
+      content: '确定要删除这条追加评论吗？删除后无法恢复。',
+      confirmColor: '#795548',
+      success: async (res) => {
+        if (res.confirm) {
+          wx.showLoading({ title: '删除中...' });
+          try {
+            const result = await deleteAppendReview(appendReviewId);
+            wx.hideLoading();
+            
+            if (result) {
+              const processedResult = this.processReviewData(result);
+              this.setData({
+                'review.append_reviews': processedResult.append_reviews
+              });
+            } else {
+              const appendReviews = (review.append_reviews || []).filter(ar => ar.id !== appendReviewId);
+              this.setData({
+                'review.append_reviews': appendReviews
+              });
+            }
+            
+            wx.showToast({
+              title: '追加评论删除成功',
+              icon: 'success'
+            });
+          } catch (error) {
+            wx.hideLoading();
+            console.error('删除追加评论失败:', error);
             wx.showToast({
               title: error.msg || error.message || '删除失败',
               icon: 'none'

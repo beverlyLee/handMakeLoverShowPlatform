@@ -25,7 +25,8 @@ const CUSTOMER_TABS = [
   { label: '制作中', value: 'in_progress' },
   { label: '待发货', value: 'paid' },
   { label: '待收货', value: 'shipped' },
-  { label: '已完成', value: 'completed' }
+  { label: '已完成', value: 'completed' },
+  { label: '已评价', value: 'reviewed' }
 ];
 
 const TEACHER_TABS = [
@@ -35,7 +36,8 @@ const TEACHER_TABS = [
   { label: '制作中', value: 'in_progress' },
   { label: '待发货', value: 'paid' },
   { label: '待收货', value: 'shipped' },
-  { label: '已完成', value: 'completed' }
+  { label: '已完成', value: 'completed' },
+  { label: '已评价', value: 'reviewed' }
 ];
 
 const SHIPPING_COMPANIES = [
@@ -247,8 +249,12 @@ Page({
         role: this.data.currentRole
       };
 
-      if (this.data.currentTab) {
+      if (this.data.currentTab && this.data.currentTab !== 'reviewed') {
         params.status = this.data.currentTab;
+      }
+
+      if (this.data.currentTab === 'reviewed') {
+        params.is_reviewed = 1;
       }
 
       if (this.data.searchKeyword) {

@@ -113,7 +113,7 @@
       </view>
     </view>
 
-    <view class="specs-section" wx:if="{{product.category || product.stock > 0 || product.rating}}">
+    <view class="specs-section" wx:if="{{product.category}}">
       <view class="section-header">
         <text class="section-title">作品信息</text>
       </view>
@@ -122,24 +122,12 @@
           <text class="spec-label">分类</text>
           <text class="spec-value">{{product.category.name}}</text>
         </view>
-        <view class="spec-item" wx:if="{{product.stock > 0}}">
-          <text class="spec-label">库存</text>
-          <text class="spec-value">{{product.stock}}件</text>
-        </view>
-        <view class="spec-item" wx:if="{{product.rating}}">
-          <text class="spec-label">评分</text>
-          <text class="spec-value">★{{product.rating}}</text>
-        </view>
-        <view class="spec-item" wx:if="{{product.view_count > 0}}">
-          <text class="spec-label">浏览</text>
-          <text class="spec-value">{{product.view_count}}次</text>
-        </view>
       </view>
     </view>
 
-    <view class="reviews-section" wx:if="{{reviews.length > 0}}">
+    <view class="reviews-section" wx:if="{{reviewStats && reviewStats.total > 0}}">
       <view class="section-header">
-        <text class="section-title">用户评价</text>
+        <text class="section-title">用户评价({{reviewStats.total || 0}})</text>
         <text class="view-all" bindtap="goToAllReviews">查看全部 ›</text>
       </view>
       
@@ -167,6 +155,7 @@
                     size="small"
                     showValue="{{false}}"
                   />
+                  <text class="rating-value">{{item.overall_rating}}分</text>
                   <text class="review-time">{{formatReviewTime(item.created_at)}}</text>
                 </view>
               </view>

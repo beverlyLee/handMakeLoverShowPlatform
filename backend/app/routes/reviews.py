@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request, g
 from app.utils.response import success, error
 from app.common.response_code import ResponseCode
 from app.common.auth import login_required
-from app.models import Review, Order, Product, User, TeacherProfile, \
+from app.models import Review, AppendReview, Order, Product, User, TeacherProfile, \
     PRODUCT_DETAIL_ITEMS, TEACHER_DETAIL_ITEMS, LOGISTICS_DETAIL_ITEMS
 from app.database import db
 from app.services.message_service import MessageService
@@ -143,7 +143,23 @@ def get_review_stats(query):
     return stats
 
 
-def enrich_review(review, include_user=False, include_product=False, include_order=False, include_teacher=False):
+def enrich_append_review(append_review, include_user=False):
+    append_dict = append_review.to_dict(include_user=include_user)
+    
+    if include_user:
+        nickname = get_user_nickname(append_review.user_id)
+        avatar = get_user_avatar(append_review.user_id)
+        append_dict['user_info'] = {
+            'nickname': nickname,
+            'avatar': avatar
+        }
+        append_dict['user_name'] = nickname
+        append_dict['user_avatar'] = avatar
+    
+    return append_dict
+
+
+def enrich_review(review, include_user=False, include_product=False, include_order=False, include_teacher=False, include_append_reviews=True):
     review_dict = review.to_dict(
         include_user=include_user,
         include_product=include_product,
@@ -174,6 +190,15 @@ def enrich_review(review, include_user=False, include_product=False, include_ord
             'nickname': get_user_nickname(review.teacher_id),
             'avatar': get_user_avatar(review.teacher_id)
         }
+    
+    if include_append_reviews:
+        append_reviews = AppendReview.query.filter_by(
+            review_id=review.id
+        ).order_by(AppendReview.created_at.asc()).all()
+        
+        review_dict['append_reviews'] = [
+            enrich_append_review(ar, include_user=True) for ar in append_reviews
+        ]
     
     return review_dict
 
@@ -527,6 +552,8 @@ def delete_review(review_id):
     teacher_id = review.teacher_id
     order_id = review.order_id
     
+    AppendReview.query.filter_by(review_id=review_id).delete()
+    
     db.session.delete(review)
     db.session.commit()
     
@@ -585,17 +612,42 @@ def append_review(review_id):
     if not review or review.is_hidden:
         return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='评价不存在')), 404
     
-    if review.user_id != user_id:
-        return jsonify(error(code=ResponseCode.PERMISSION_DENIED, msg='只能追加自己的评价')), 403
+    append_review = AppendReview(
+        review_id=review_id,
+        user_id=user_id,
+        content=data.get('content'),
+        images=data.get('images', [])
+    )
     
-    review.append_content = data.get('content')
-    review.append_images = data.get('images', [])
-    review.append_time = datetime.utcnow()
-    review.updated_at = datetime.utcnow()
-    
+    db.session.add(append_review)
     db.session.commit()
     
     return jsonify(success(data=enrich_review(review, include_user=True), msg='追加评论成功'))
+
+
+@review_bp.route('/append/<int:append_review_id>', methods=['DELETE'])
+@login_required
+def delete_append_review(append_review_id):
+    user_id = get_current_user()
+    
+    append_review = AppendReview.query.get(append_review_id)
+    
+    if not append_review:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='追加评论不存在')), 404
+    
+    if append_review.user_id != user_id:
+        return jsonify(error(code=ResponseCode.PERMISSION_DENIED, msg='只能删除自己的追加评论')), 403
+    
+    review_id = append_review.review_id
+    
+    db.session.delete(append_review)
+    db.session.commit()
+    
+    review = Review.query.get(review_id)
+    if review:
+        return jsonify(success(data=enrich_review(review, include_user=True), msg='追加评论删除成功'))
+    
+    return jsonify(success(data=None, msg='追加评论删除成功'))
 
 
 @review_bp.route('/product/<int:product_id>/stats', methods=['GET'])
@@ -636,7 +688,9 @@ def get_product_reviews(product_id):
     page = request.args.get('page', 1, type=int)
     size = request.args.get('size', 10, type=int)
     min_rating = request.args.get('min_rating', None, type=float)
+    max_rating = request.args.get('max_rating', None, type=float)
     has_image = request.args.get('has_image', None, type=bool)
+    sort_by = request.args.get('sort_by', 'newest')
     
     query = Review.query.filter_by(
         product_id=product_id,
@@ -645,6 +699,9 @@ def get_product_reviews(product_id):
     
     if min_rating is not None:
         query = query.filter(Review.overall_rating >= min_rating)
+    
+    if max_rating is not None:
+        query = query.filter(Review.overall_rating <= max_rating)
     
     if has_image is not None:
         if has_image:
@@ -658,7 +715,10 @@ def get_product_reviews(product_id):
     stats = get_review_stats(query)
     
     total = query.count()
-    query = query.order_by(Review.created_at.desc())
+    if sort_by == 'best':
+        query = query.order_by(Review.overall_rating.desc(), Review.created_at.desc())
+    else:
+        query = query.order_by(Review.created_at.desc())
     paginated = query.offset((page - 1) * size).limit(size).all()
     
     reviews_list = []
@@ -679,7 +739,9 @@ def get_teacher_reviews(teacher_user_id):
     page = request.args.get('page', 1, type=int)
     size = request.args.get('size', 10, type=int)
     min_rating = request.args.get('min_rating', None, type=float)
+    max_rating = request.args.get('max_rating', None, type=float)
     has_image = request.args.get('has_image', None, type=bool)
+    sort_by = request.args.get('sort_by', 'newest')
     
     query = Review.query.filter_by(
         teacher_id=teacher_user_id,
@@ -688,6 +750,9 @@ def get_teacher_reviews(teacher_user_id):
     
     if min_rating is not None:
         query = query.filter(Review.overall_rating >= min_rating)
+    
+    if max_rating is not None:
+        query = query.filter(Review.overall_rating <= max_rating)
     
     if has_image is not None:
         if has_image:
@@ -701,7 +766,10 @@ def get_teacher_reviews(teacher_user_id):
     stats = get_review_stats(query)
     
     total = query.count()
-    query = query.order_by(Review.created_at.desc())
+    if sort_by == 'best':
+        query = query.order_by(Review.overall_rating.desc(), Review.created_at.desc())
+    else:
+        query = query.order_by(Review.created_at.desc())
     paginated = query.offset((page - 1) * size).limit(size).all()
     
     reviews_list = []

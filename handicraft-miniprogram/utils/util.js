@@ -123,6 +123,10 @@ function processProductImages(product) {
     }
   }
   
+  if (processed.teacher && processed.teacher.avatar) {
+    processed.teacher.avatar = getFullImageUrl(processed.teacher.avatar);
+  }
+  
   return processed;
 }
 

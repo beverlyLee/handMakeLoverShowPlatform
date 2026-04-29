@@ -12,7 +12,8 @@ Page({
       { key: 'price_asc', label: '价格从低到高', value: 'price_asc' },
       { key: 'price_desc', label: '价格从高到低', value: 'price_desc' },
       { key: 'popular', label: '人气最高', value: 'popular' },
-      { key: 'sales', label: '销量最高', value: 'sales' }
+      { key: 'sales', label: '销量最高', value: 'sales' },
+      { key: 'rating', label: '好评优先', value: 'rating' }
     ],
     currentSortLabel: '默认排序',
     showSortDropdown: false,

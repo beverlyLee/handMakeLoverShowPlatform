@@ -745,6 +745,13 @@
   align-items: center;
 }
 
+.review-header .rating-value {
+  font-size: 24rpx;
+  color: #FFB300;
+  font-weight: bold;
+  margin-left: 8rpx;
+}
+
 .review-header .review-time {
   font-size: 22rpx;
   color: #999;

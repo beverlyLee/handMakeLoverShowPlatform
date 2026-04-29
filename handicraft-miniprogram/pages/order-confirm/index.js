@@ -2,7 +2,7 @@ const { getProductDetail } = require('../../api/products');
 const { getAddressList } = require('../../api/users');
 const { createOrder } = require('../../api/orders');
 const { getMyCoupons, SHIPPING_METHODS, PAY_METHODS } = require('../../api/promotions');
-const { showToast, showLoading, hideLoading } = require('../../utils/util');
+const { showToast, showLoading, hideLoading, processProductImages } = require('../../utils/util');
 const storage = require('../../utils/storage');
 
 Page({
@@ -105,7 +105,8 @@ Page({
   async loadProductDetail() {
     try {
       const product = await getProductDetail(this.data.productId);
-      this.setData({ product: product });
+      const processedProduct = processProductImages(product);
+      this.setData({ product: processedProduct });
       this.updateFormattedAmounts();
     } catch (error) {
       console.error('加载商品详情失败:', error);

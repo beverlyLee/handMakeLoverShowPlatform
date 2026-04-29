@@ -63,6 +63,14 @@ def migrate_database():
         add_column_if_not_exists('orders', 'start_making_time DATETIME')
         add_column_if_not_exists('orders', 'complete_making_time DATETIME')
         
+        print("\n正在检查 reviews 表:")
+        
+        add_column_if_not_exists('reviews', 'append_content TEXT')
+        add_column_if_not_exists('reviews', 'append_images TEXT')
+        add_column_if_not_exists('reviews', 'append_time DATETIME')
+        add_column_if_not_exists('reviews', 'is_reported BOOLEAN DEFAULT 0')
+        add_column_if_not_exists('reviews', 'report_reason VARCHAR(500)')
+        
         print("\n数据库迁移检查完成！")
         print("="*60)
 

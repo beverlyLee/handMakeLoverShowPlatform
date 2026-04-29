@@ -166,18 +166,6 @@
           </view>
           <text class="reply-content">{{item.reply}}</text>
         </view>
-
-        <view class="card-actions">
-          <view 
-            class="action-item {{item.is_liked ? 'liked' : ''}}"
-            catchtap="handleLike"
-            data-id="{{item.id}}"
-            data-index="{{index}}"
-          >
-            <text class="action-icon">{{item.is_liked ? '❤️' : '🤍'}}</text>
-            <text class="action-text">{{item.like_count > 0 ? item.like_count : '点赞'}}</text>
-          </view>
-        </view>
       </view>
 
       <view class="load-more" wx:if="{{isLoadMore}}">

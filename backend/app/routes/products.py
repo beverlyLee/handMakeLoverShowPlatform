@@ -13,7 +13,8 @@ SORT_OPTIONS = {
     'price_desc': Product.price.desc(),
     'sales': Product.sales_count.desc(),
     'popular': Product.favorite_count.desc(),
-    'newest': Product.created_at.desc()
+    'newest': Product.created_at.desc(),
+    'rating': Product.rating.desc()
 }
 
 def get_current_teacher_profile():

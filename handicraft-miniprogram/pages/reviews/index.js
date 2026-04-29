@@ -1,4 +1,4 @@
-const { getReviews, likeReview, getProductReviews, getTeacherReviews } = require('../../api/reviews');
+const { getReviews, likeReview, getProductReviews, getTeacherReviews, getProductReviewStats, getTeacherReviewStats } = require('../../api/reviews');
 const { getFullImageUrl } = require('../../utils/util');
 
 const RATING_FILTERS = [
@@ -8,10 +8,17 @@ const RATING_FILTERS = [
   { key: 'bad', label: '差评' }
 ];
 
+const SORT_OPTIONS = [
+  { key: 'newest', label: '最新优先' },
+  { key: 'best', label: '好评优先' }
+];
+
 Page({
   data: {
     ratingFilters: RATING_FILTERS,
+    sortOptions: SORT_OPTIONS,
     currentRating: 'all',
+    sortBy: 'newest',
     reviews: [],
     isLoading: false,
     isRefreshing: false,
@@ -40,7 +47,38 @@ Page({
       teacherUserId: teacherUserId || null
     });
 
+    this.loadReviewStats();
     this.loadReviews(true);
+  },
+
+  async loadReviewStats() {
+    const { source, productId, teacherUserId } = this.data;
+    
+    try {
+      let result;
+      
+      if (source === 'product' && productId) {
+        result = await getProductReviewStats(productId);
+      } else if (source === 'teacher' && teacherUserId) {
+        result = await getTeacherReviewStats(teacherUserId);
+      } else {
+        return;
+      }
+
+      if (result && result.stats) {
+        const stats = result.stats;
+        const mappedStats = {
+          total: stats.total || 0,
+          avgRating: stats.avg_overall_rating || 0,
+          goodCount: stats.good_count || 0,
+          mediumCount: stats.medium_count || 0,
+          badCount: stats.bad_count || 0
+        };
+        this.setData({ stats: mappedStats });
+      }
+    } catch (error) {
+      console.error('加载评价统计失败:', error);
+    }
   },
 
   onShow() {
@@ -68,7 +106,7 @@ Page({
   },
 
   async loadReviews(isRefresh = false) {
-    const { page, pageSize, currentRating, source, productId, teacherUserId, isLoading } = this.data;
+    const { page, pageSize, currentRating, sortBy, source, productId, teacherUserId, isLoading } = this.data;
     
     if (isLoading) return;
     
@@ -80,7 +118,8 @@ Page({
 
     let params = {
       page: isRefresh ? 1 : page,
-      page_size: pageSize
+      page_size: pageSize,
+      sort_by: sortBy
     };
 
     if (currentRating === 'good') {
@@ -114,18 +153,6 @@ Page({
           isRefreshing: false,
           isLoadMore: false
         });
-
-        if (result.stats) {
-          const stats = result.stats;
-          const mappedStats = {
-            total: stats.total || 0,
-            avgRating: stats.avg_overall_rating || 0,
-            goodCount: stats.good_count || 0,
-            mediumCount: stats.medium_count || 0,
-            badCount: stats.bad_count || 0
-          };
-          this.setData({ stats: mappedStats });
-        }
       }
     } catch (error) {
       console.error('加载评价列表失败:', error);
@@ -164,6 +191,19 @@ Page({
     
     this.setData({
       currentRating: rating,
+      page: 1,
+      reviews: [],
+      hasMore: true
+    });
+    this.loadReviews(true);
+  },
+
+  onSortChange(e) {
+    const sort = e.currentTarget.dataset.sort;
+    if (sort === this.data.sortBy) return;
+    
+    this.setData({
+      sortBy: sort,
       page: 1,
       reviews: [],
       hasMore: true

@@ -120,7 +120,7 @@
   color: #999;
 }
 
-.order-info {
+.product-info-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -129,15 +129,21 @@
   border-top: 1rpx solid #f0f0f0;
 }
 
-.order-left {
+.product-name-row {
   display: flex;
   align-items: center;
 }
 
-.order-label {
+.product-label {
   font-size: 24rpx;
   color: #999;
   margin-right: 12rpx;
+}
+
+.product-name {
+  font-size: 28rpx;
+  color: #333;
+  font-weight: 500;
 }
 
 .order-value {
@@ -339,11 +345,81 @@
   margin-bottom: 20rpx;
 }
 
+.append-list {
+  margin-top: 20rpx;
+}
+
+.append-item {
+  margin-bottom: 24rpx;
+  padding-bottom: 24rpx;
+  border-bottom: 1rpx solid #f5f5f5;
+}
+
+.append-item:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.append-user {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12rpx;
+}
+
+.append-user-info {
+  display: flex;
+  align-items: center;
+}
+
+.append-avatar {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  margin-right: 16rpx;
+}
+
+.append-user-detail {
+  display: flex;
+  flex-direction: column;
+}
+
+.append-user-name {
+  font-size: 26rpx;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 4rpx;
+}
+
 .append-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16rpx;
+}
+
+.append-header-right {
+  display: flex;
+  align-items: center;
+}
+
+.append-delete-btn {
+  display: flex;
+  align-items: center;
+  padding: 8rpx 16rpx;
+  background-color: rgba(244, 67, 54, 0.1);
+  border-radius: 20rpx;
+}
+
+.append-delete-btn .delete-icon {
+  font-size: 22rpx;
+  margin-right: 4rpx;
+}
+
+.append-delete-btn .delete-text {
+  font-size: 22rpx;
+  color: #f44336;
 }
 
 .append-label {

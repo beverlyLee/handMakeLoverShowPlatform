@@ -134,6 +134,11 @@ class Order(db.Model):
         if self.ship_time:
             self.estimated_arrival_time = self.ship_time + timedelta(days=self.estimated_arrival_days)
 
+    @property
+    def is_reviewed(self):
+        from app.models.review import Review
+        return db.session.query(Review).filter_by(order_id=self.id).first() is not None
+
     def to_dict(self, include_logistics=True, include_detail=True):
         customer_nickname = None
         if self.customer:
@@ -145,6 +150,7 @@ class Order(db.Model):
             'teacher_id': self.teacher_id,
             'status': self.status,
             'status_name': self.status_name,
+            'is_reviewed': self.is_reviewed,
             'total_amount': self.total_amount,
             'discount_amount': self.discount_amount,
             'pay_amount': self.pay_amount,

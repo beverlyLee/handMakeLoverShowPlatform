@@ -250,3 +250,59 @@ class Review(db.Model):
 
     def __repr__(self):
         return f'<Review id={self.id}, order_id={self.order_id}>'
+
+
+class AppendReview(db.Model):
+    __tablename__ = 'append_reviews'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    review_id = db.Column(db.Integer, db.ForeignKey('reviews.id'), nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    
+    content = db.Column(db.Text)
+    _images = db.Column('images', db.Text)
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    review = db.relationship('Review', backref='append_reviews', foreign_keys=[review_id])
+    
+    @property
+    def images(self):
+        if self._images:
+            try:
+                return json.loads(self._images)
+            except:
+                return []
+        return []
+    
+    @images.setter
+    def images(self, value):
+        if isinstance(value, list):
+            self._images = json.dumps(value, ensure_ascii=False)
+        else:
+            self._images = value
+    
+    def to_dict(self, include_user=False):
+        result = {
+            'id': self.id,
+            'review_id': self.review_id,
+            'user_id': self.user_id,
+            'content': self.content,
+            'images': self.images,
+            'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None,
+            'updated_at': self.updated_at.strftime('%Y-%m-%d %H:%M:%S') if self.updated_at else None,
+            'user_name': None,
+            'user_avatar': None
+        }
+        
+        if include_user and hasattr(self, 'user_info'):
+            result['user_info'] = self.user_info
+            if self.user_info:
+                result['user_name'] = self.user_info.get('nickname')
+                result['user_avatar'] = self.user_info.get('avatar')
+        
+        return result
+    
+    def __repr__(self):
+        return f'<AppendReview id={self.id}, review_id={self.review_id}>'

@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request, g
 from app.utils.response import success, error
 from app.common.response_code import ResponseCode
 from app.common.auth import login_required
-from app.models import Order, OrderItem, User, TeacherProfile, UserCoupon, Coupon
+from app.models import Order, OrderItem, User, TeacherProfile, UserCoupon, Coupon, Review
 from app.database import db
 from app.services.user_service import UserService
 from app.services.message_service import MessageService
@@ -29,7 +29,7 @@ def get_current_user():
     user_dict = UserService.get_user_by_id(user_id)
     return user_dict, user_id
 
-def build_query(user_id=None, teacher_id=None, status=None, role='customer'):
+def build_query(user_id=None, teacher_id=None, status=None, role='customer', is_reviewed=None):
     query = Order.query.filter(Order.status != 'deleted')
     
     if role == 'customer' and user_id:
@@ -40,6 +40,12 @@ def build_query(user_id=None, teacher_id=None, status=None, role='customer'):
     
     if status:
         query = query.filter_by(status=status)
+    
+    if is_reviewed is not None:
+        if is_reviewed:
+            query = query.filter(Order.reviews.any())
+        else:
+            query = query.filter(~Order.reviews.any())
     
     return query
 
@@ -108,6 +114,7 @@ def get_orders():
     size = request.args.get('size', 10, type=int)
     status = request.args.get('status', None)
     role = request.args.get('role', 'customer')
+    is_reviewed = request.args.get('is_reviewed', None, type=int)
     
     filter_user_id = request.args.get('user_id', None, type=int)
     filter_teacher_id = request.args.get('teacher_id', None, type=int)
@@ -118,11 +125,15 @@ def get_orders():
     if role == 'teacher' and filter_teacher_id is None:
         filter_teacher_id = user_id
     
+    if is_reviewed is not None:
+        is_reviewed = bool(is_reviewed)
+    
     query = build_query(
         user_id=filter_user_id,
         teacher_id=filter_teacher_id,
         status=status,
-        role=role
+        role=role,
+        is_reviewed=is_reviewed
     )
     
     stats = get_order_stats_from_query(query)

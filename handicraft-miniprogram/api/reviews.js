@@ -28,6 +28,10 @@ function appendReview(reviewId, content, images) {
   return post(`/reviews/${reviewId}/append`, { content, images });
 }
 
+function deleteAppendReview(appendReviewId) {
+  return del(`/reviews/append/${appendReviewId}`);
+}
+
 function updateReview(reviewId, data) {
   return put(`/reviews/${reviewId}`, data);
 }
@@ -70,6 +74,7 @@ module.exports = {
   deleteReview,
   replyReview,
   appendReview,
+  deleteAppendReview,
   likeReview,
   getProductReviews,
   getProductReviewStats,
