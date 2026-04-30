@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "手工圈",
+  "usingComponents": {
+    "like-button": "/components/like-button/index"
+  }
+}

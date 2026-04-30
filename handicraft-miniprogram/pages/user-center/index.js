@@ -238,8 +238,15 @@ Page({
   },
 
   onTapViewOrders() {
-    wx.switchTab({
+    wx.navigateTo({
       url: '/pages/orders/index'
+    });
+  },
+
+  goToOrders(e) {
+    const tab = e?.currentTarget?.dataset?.tab || '';
+    wx.navigateTo({
+      url: tab ? `/pages/orders/index?tab=${tab}` : '/pages/orders/index'
     });
   },
 

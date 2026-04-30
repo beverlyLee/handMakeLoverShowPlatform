@@ -130,6 +130,10 @@ Page({
       this.setData({
         currentTab: options.status
       });
+    } else if (options.tab) {
+      this.setData({
+        currentTab: options.tab
+      });
     }
 
     this.loadUserRoleAndOrders();
@@ -146,9 +150,6 @@ Page({
   onShow() {
     console.log('订单页面显示');
     this.loadUserRoleAndOrders();
-    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      this.getTabBar().setSelected(2)
-    }
   },
 
   onPullDownRefresh() {

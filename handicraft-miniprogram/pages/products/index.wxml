@@ -74,7 +74,8 @@
                       <like-button 
                         product-id="{{item.id}}"
                         is-liked="{{item.is_liked}}"
-                        like-count="{{item.popularity_score || 0}}"
+                        like-count="{{item.like_count || 0}}"
+                        popularity-score="{{item.popularity_score || 0}}"
                         size="small"
                         show-count="{{true}}"
                         bind:change="onLikeChange"

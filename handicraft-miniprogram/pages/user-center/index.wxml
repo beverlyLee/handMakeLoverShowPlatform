@@ -59,6 +59,45 @@
     </view>
   </view>
 
+  <view class="my-orders-section" wx:if="{{currentRole !== 'teacher'}}">
+    <view class="section-header">
+      <view class="header-left">
+        <text class="header-icon">📦</text>
+        <text class="header-title">我的订单</text>
+      </view>
+      <view class="header-right" bindtap="goToOrders">
+        <text class="view-all-text">全部订单</text>
+        <text class="arrow-icon">›</text>
+      </view>
+    </view>
+    <view class="order-shortcuts">
+      <view class="shortcut-item" bindtap="goToOrders" data-tab="pending">
+        <view class="shortcut-icon-wrapper">
+          <text class="shortcut-icon">💳</text>
+        </view>
+        <text class="shortcut-text">待付款</text>
+      </view>
+      <view class="shortcut-item" bindtap="goToOrders" data-tab="paid">
+        <view class="shortcut-icon-wrapper">
+          <text class="shortcut-icon">📦</text>
+        </view>
+        <text class="shortcut-text">待发货</text>
+      </view>
+      <view class="shortcut-item" bindtap="goToOrders" data-tab="shipped">
+        <view class="shortcut-icon-wrapper">
+          <text class="shortcut-icon">🚚</text>
+        </view>
+        <text class="shortcut-text">待收货</text>
+      </view>
+      <view class="shortcut-item" bindtap="goToOrders" data-tab="reviewed">
+        <view class="shortcut-icon-wrapper">
+          <text class="shortcut-icon">⭐</text>
+        </view>
+        <text class="shortcut-text">待评价</text>
+      </view>
+    </view>
+  </view>
+
 
   <view class="apply-teacher-section" wx:if="{{currentRole === 'customer' && !isTeacher}}">
     <view class="apply-card" bindtap="onTapApplyTeacher">

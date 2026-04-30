@@ -342,13 +342,15 @@ Page({
       if (result) {
         this.setData({
           isLiked: result.is_liked || false,
-          likeCount: result.like_count || 0
+          likeCount: result.like_count || 0,
+          heatScore: result.popularity_score || 0
         });
 
         const product = this.data.product;
         if (product) {
           product.is_liked = result.is_liked || false;
           product.like_count = result.like_count || 0;
+          product.popularity_score = result.popularity_score || 0;
           this.setData({ product: product });
         }
       }

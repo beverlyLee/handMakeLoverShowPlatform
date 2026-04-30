@@ -18,6 +18,11 @@ Component({
       value: 0,
       observer: 'updateStatus'
     },
+    popularityScore: {
+      type: Number,
+      value: 0,
+      observer: 'updateStatus'
+    },
     size: {
       type: String,
       value: 'default'
@@ -35,6 +40,7 @@ Component({
   data: {
     _isLiked: false,
     _likeCount: 0,
+    _popularityScore: 0,
     isAnimating: false
   },
 
@@ -48,7 +54,8 @@ Component({
     updateStatus() {
       this.setData({
         _isLiked: this.properties.isLiked,
-        _likeCount: this.properties.likeCount
+        _likeCount: this.properties.likeCount,
+        _popularityScore: this.properties.popularityScore
       });
     },
 
@@ -79,7 +86,8 @@ Component({
           
           this.setData({
             _isLiked: is_liked,
-            _likeCount: popularity_score,
+            _likeCount: like_count,
+            _popularityScore: popularity_score,
             isAnimating: false
           });
           

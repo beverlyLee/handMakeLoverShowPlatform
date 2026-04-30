@@ -103,14 +103,17 @@ class Product(db.Model):
         else:
             self._tags = value
 
-    def update_heat_score(self):
-        self.heat_score = (
+    def update_popularity_score(self):
+        self.popularity_score = (
             (self.like_count or 0) * 10 +
             (self.sales_count or 0) * 5 +
             (self.favorite_count or 0) * 3 +
             (self.view_count or 0) * 1
         )
-        self.popularity_score = self.heat_score
+        self.heat_score = self.popularity_score
+    
+    def update_heat_score(self):
+        self.update_popularity_score()
 
     def to_dict(self, include_teacher=False):
         result = {

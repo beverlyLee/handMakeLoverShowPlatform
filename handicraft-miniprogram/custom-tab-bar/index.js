@@ -13,10 +13,9 @@ Component({
         icon: '🎨'
       },
       {
-        pagePath: '/pages/orders/index',
-        text: '订单',
-        icon: '📦',
-        badge: 0
+        pagePath: '/pages/community/index',
+        text: '手工圈',
+        icon: '🌐'
       },
       {
         pagePath: '/pages/messages/index',

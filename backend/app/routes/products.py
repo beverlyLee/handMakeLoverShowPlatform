@@ -94,6 +94,7 @@ def get_product_detail(product_id):
         return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='作品不存在')), 404
     
     product.view_count = (product.view_count or 0) + 1
+    product.update_heat_score()
     db.session.commit()
     
     product_dict = product.to_dict()

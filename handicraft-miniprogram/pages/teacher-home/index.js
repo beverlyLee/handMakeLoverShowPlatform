@@ -2,11 +2,40 @@ const { getTeacherPublicInfo, getTeacherPublicOrderStats, getUserInfo, updateTea
 const { getProducts, createProduct: createProductApi, getCategories, updateProduct, deleteProduct } = require('../../api/products');
 const { getSpecialties } = require('../../api/specialties');
 const { uploadImages } = require('../../api/upload');
-const { getTeacherReviews, getTeacherReviewStats } = require('../../api/reviews');
+const { 
+  getTeacherReviews, 
+  getTeacherReviewStats, 
+  getTeacherUnreadStats,
+  getTeacherTrendStats,
+  markReviewRead,
+  markReviewsBatchRead,
+  replyReview,
+  updateReviewReply
+} = require('../../api/reviews');
 const { batchCheckLikeStatus } = require('../../api/favorites');
 const { showToast, processTeacherInfo, processProductImages, getRelativeImageUrl, getFullImageUrl } = require('../../utils/util');
 const config = require('../../utils/config');
 const storage = require('../../utils/storage');
+
+const RATING_FILTERS = [
+  { key: 'all', label: '全部', value: null },
+  { key: 'good', label: '好评', minRating: 4.0 },
+  { key: 'medium', label: '中评', minRating: 2.0, maxRating: 3.9 },
+  { key: 'bad', label: '差评', maxRating: 1.9 }
+];
+
+const REPLY_STATUS_FILTERS = [
+  { key: 'all', label: '全部状态' },
+  { key: 'pending', label: '待回复' },
+  { key: 'replied', label: '已回复' }
+];
+
+const SORT_OPTIONS = [
+  { key: 'newest', label: '最新优先' },
+  { key: 'oldest', label: '最早优先' },
+  { key: 'best', label: '好评优先' },
+  { key: 'worst', label: '差评优先' }
+];
 
 const DEFAULT_SPECIALTIES = [
   { label: '棒针编织', value: '棒针编织', checked: false },
@@ -99,6 +128,46 @@ Page({
     reviewsPageSize: 3,
     reviewsHasMore: true,
     
+    ratingFilters: RATING_FILTERS,
+    replyStatusFilters: REPLY_STATUS_FILTERS,
+    sortOptions: SORT_OPTIONS,
+    
+    currentRating: 'all',
+    currentReplyStatus: 'all',
+    sortBy: 'newest',
+    
+    reviewManageStats: {
+      total: 0,
+      avgRating: 0,
+      goodCount: 0,
+      mediumCount: 0,
+      badCount: 0,
+      unread: 0,
+      pendingReply: 0
+    },
+    reviewManageList: [],
+    selectedReviews: [],
+    isSelectMode: false,
+    
+    trendStats: {
+      trendData: [],
+      overallStats: {},
+      days: 30
+    },
+    
+    reviewManageLoading: false,
+    reviewManagePage: 1,
+    reviewManagePageSize: 10,
+    reviewManageHasMore: true,
+    
+    showReplyDialog: false,
+    replyingReview: null,
+    replyContent: '',
+    isEditingReply: false,
+    
+    showStatsDialog: false,
+    currentStatTab: 'overview',
+    
     orderTimeRange: 'total',
     currentTimeRangeLabel: '全部时间',
     pendingOrders: null,
@@ -160,9 +229,10 @@ Page({
     this.setData({ isLoading: true });
     
     try {
+      await this.loadCurrentUser();
+      await this.loadTeacherInfo();
+      
       await Promise.all([
-        this.loadCurrentUser(),
-        this.loadTeacherInfo(),
         this.loadCategories(),
         this.loadSpecialties(),
         this.loadTeacherProducts()
@@ -172,9 +242,18 @@ Page({
         await this.loadOrderStats();
       }
       
-      if (this.data.currentTab === 'reviews' && this.data.reviews.length === 0) {
-        await this.loadTeacherReviewStats();
-        await this.loadTeacherReviews(false);
+      if (this.data.currentTab === 'reviews') {
+        if (this.data.isOwner) {
+          if (this.data.reviewManageList.length === 0) {
+            await this.loadReviewManageStats();
+            await this.loadReviewManageList(true);
+          }
+        } else {
+          if (this.data.reviews.length === 0) {
+            await this.loadTeacherReviewStats();
+            await this.loadTeacherReviews(false);
+          }
+        }
       }
     } catch (error) {
       console.error('加载数据失败:', error);
@@ -351,7 +430,8 @@ Page({
         result.forEach(item => {
           likeStatusMap[item.product_id] = {
             is_liked: item.is_liked,
-            like_count: item.like_count
+            like_count: item.like_count,
+            popularity_score: item.popularity_score
           };
         });
 
@@ -361,7 +441,8 @@ Page({
             return {
               ...product,
               is_liked: likeStatus.is_liked,
-              like_count: likeStatus.like_count
+              like_count: likeStatus.like_count,
+              popularity_score: likeStatus.popularity_score
             };
           }
           return product;
@@ -435,9 +516,17 @@ Page({
     if (tab === 'orders' && this.data.recentOrders.length === 0 && !this.data.orderStats) {
       this.loadOrderStats();
     }
-    if (tab === 'reviews' && this.data.reviews.length === 0) {
-      this.loadTeacherReviewStats();
-      this.loadTeacherReviews(false);
+    if (tab === 'reviews') {
+      if (this.data.isOwner) {
+        if (this.data.reviewManageList.length === 0) {
+          this.loadAllReviewManageData();
+        }
+      } else {
+        if (this.data.reviews.length === 0) {
+          this.loadTeacherReviewStats();
+          this.loadTeacherReviews(false);
+        }
+      }
     }
   },
 
@@ -559,56 +648,45 @@ Page({
   },
 
   goToAllReviews() {
-    const teacher = this.data.teacher;
-    if (!teacher || !teacher.user_id) {
-      showToast('老师信息未加载');
-      return;
+    this.setData({ currentTab: 'reviews' });
+    if (this.data.reviews.length === 0 && !this.data.isOwner) {
+      this.loadTeacherReviewStats();
+      this.loadTeacherReviews(false);
     }
-    wx.navigateTo({
-      url: `/pages/reviews/index?source=teacher&teacherUserId=${teacher.user_id}`
-    });
   },
 
   goToReviewManage() {
-    const teacher = this.data.teacher;
-    if (!teacher || !teacher.user_id) {
-      showToast('老师信息未加载');
-      return;
+    this.setData({ currentTab: 'reviews' });
+    if (this.data.isOwner && this.data.reviewManageList.length === 0) {
+      this.loadAllReviewManageData();
     }
-    wx.navigateTo({
-      url: `/pages/teacher-reviews/index?teacherId=${teacher.user_id}`
-    });
   },
 
   goToReviewManageWithFilter(e) {
-    const teacher = this.data.teacher;
-    if (!teacher || !teacher.user_id) {
-      showToast('老师信息未加载');
-      return;
-    }
-    
     const filter = e.currentTarget.dataset.filter;
-    let url = `/pages/teacher-reviews/index?teacherId=${teacher.user_id}`;
+    
+    this.setData({ currentTab: 'reviews' });
     
     if (filter === 'pending') {
-      url += '&currentReplyStatus=pending';
-    } else if (filter === 'unread') {
-      url += '&showOnlyUnread=true';
+      this.setData({
+        currentReplyStatus: 'pending',
+        reviewManagePage: 1,
+        reviewManageList: [],
+        reviewManageHasMore: true
+      });
     }
     
-    wx.navigateTo({ url: url });
+    if (this.data.isOwner) {
+      this.loadAllReviewManageData();
+    }
   },
 
   goToReviewStats() {
-    const teacher = this.data.teacher;
-    if (!teacher || !teacher.user_id) {
-      showToast('老师信息未加载');
-      return;
+    this.setData({ currentTab: 'reviews' });
+    if (this.data.isOwner) {
+      this.loadTrendStats();
+      this.setData({ showStatsDialog: true, currentStatTab: 'overview' });
     }
-    
-    wx.navigateTo({
-      url: `/pages/teacher-reviews/index?teacherId=${teacher.user_id}&openStats=true`
-    });
   },
 
   goToReviewDetail(e) {
@@ -1198,5 +1276,475 @@ Page({
 
   preventBubble() {
     return;
+  },
+
+  getRatingText(rating) {
+    if (rating >= 4.0) return '好评';
+    if (rating >= 2.0) return '中评';
+    return '差评';
+  },
+
+  getRatingTagClass(rating) {
+    if (rating >= 4.0) return 'tag-good';
+    if (rating >= 2.0) return 'tag-medium';
+    return 'tag-bad';
+  },
+
+  onRatingChange(e) {
+    const rating = e.currentTarget.dataset.rating;
+    if (rating === this.data.currentRating) return;
+    
+    this.setData({
+      currentRating: rating,
+      reviewManagePage: 1,
+      reviewManageList: [],
+      reviewManageHasMore: true
+    });
+    this.loadReviewManageList(true);
+  },
+
+  onReplyStatusChange(e) {
+    const status = e.currentTarget.dataset.status;
+    if (status === this.data.currentReplyStatus) return;
+    
+    this.setData({
+      currentReplyStatus: status,
+      reviewManagePage: 1,
+      reviewManageList: [],
+      reviewManageHasMore: true
+    });
+    this.loadReviewManageList(true);
+  },
+
+  onSortChange(e) {
+    const sort = e.currentTarget.dataset.sort;
+    if (sort === this.data.sortBy) return;
+    
+    this.setData({
+      sortBy: sort,
+      reviewManagePage: 1,
+      reviewManageList: [],
+      reviewManageHasMore: true
+    });
+    this.loadReviewManageList(true);
+  },
+
+  toggleSelectMode() {
+    this.setData({
+      isSelectMode: !this.data.isSelectMode,
+      selectedReviews: []
+    });
+  },
+
+  toggleReviewSelection(e) {
+    const { id } = e.currentTarget.dataset;
+    const { selectedReviews } = this.data;
+    
+    const index = selectedReviews.indexOf(id);
+    if (index > -1) {
+      selectedReviews.splice(index, 1);
+    } else {
+      selectedReviews.push(id);
+    }
+    
+    this.setData({ selectedReviews: [...selectedReviews] });
+  },
+
+  toggleSelectAll() {
+    const { reviewManageList, selectedReviews } = this.data;
+    
+    if (selectedReviews.length === reviewManageList.length) {
+      this.setData({ selectedReviews: [] });
+    } else {
+      this.setData({ selectedReviews: reviewManageList.map(r => r.id) });
+    }
+  },
+
+  async markSelectedAsRead() {
+    const { selectedReviews } = this.data;
+    
+    if (selectedReviews.length === 0) {
+      showToast('请选择要标记的评价');
+      return;
+    }
+    
+    wx.showLoading({ title: '标记中...', mask: true });
+    
+    try {
+      const result = await markReviewsBatchRead(selectedReviews);
+      
+      if (result) {
+        const { reviewManageList } = this.data;
+        const updatedReviews = reviewManageList.map(r => {
+          if (selectedReviews.includes(r.id)) {
+            return { ...r, is_read: true, isUnread: false };
+          }
+          return r;
+        });
+        
+        this.setData({
+          reviewManageList: updatedReviews,
+          selectedReviews: [],
+          isSelectMode: false,
+          'reviewManageStats.unread': Math.max(0, this.data.reviewManageStats.unread - (result.marked_count || selectedReviews.length))
+        });
+        
+        wx.hideLoading();
+        showToast(`已标记 ${result.marked_count || selectedReviews.length} 条评价为已读`, 'success');
+      }
+    } catch (error) {
+      wx.hideLoading();
+      console.error('批量标记已读失败:', error);
+      showToast('标记失败，请重试');
+    }
+  },
+
+  async markReviewAsRead(e) {
+    const reviewId = e.currentTarget.dataset.id;
+    
+    try {
+      await markReviewRead(reviewId);
+      
+      const { reviewManageList } = this.data;
+      const updatedReviews = reviewManageList.map(r => {
+        if (r.id === reviewId) {
+          return { ...r, is_read: true, isUnread: false };
+        }
+        return r;
+      });
+      
+      this.setData({
+        reviewManageList: updatedReviews,
+        'reviewManageStats.unread': Math.max(0, this.data.reviewManageStats.unread - 1)
+      });
+    } catch (error) {
+      console.error('标记已读失败:', error);
+    }
+  },
+
+  openReplyDialog(e) {
+    const { id, index } = e.currentTarget.dataset;
+    const { reviewManageList } = this.data;
+    const review = reviewManageList[index];
+    
+    if (!review) return;
+    
+    this.setData({
+      showReplyDialog: true,
+      replyingReview: review,
+      replyContent: review.reply_content || '',
+      isEditingReply: !!review.reply_content
+    });
+  },
+
+  closeReplyDialog() {
+    this.setData({
+      showReplyDialog: false,
+      replyingReview: null,
+      replyContent: '',
+      isEditingReply: false
+    });
+  },
+
+  onReplyInput(e) {
+    this.setData({ replyContent: e.detail.value });
+  },
+
+  async submitReply() {
+    const { replyingReview, replyContent, isEditingReply } = this.data;
+    
+    if (!replyingReview) return;
+    
+    if (!replyContent.trim() && !isEditingReply) {
+      showToast('请输入回复内容');
+      return;
+    }
+    
+    wx.showLoading({ title: isEditingReply ? '更新中...' : '发送中...', mask: true });
+    
+    try {
+      let result;
+      
+      if (isEditingReply) {
+        result = await updateReviewReply(replyingReview.id, replyContent.trim());
+      } else {
+        result = await replyReview(replyingReview.id, replyContent.trim());
+      }
+      
+      if (result) {
+        const { reviewManageList } = this.data;
+        const updatedReviews = reviewManageList.map(r => {
+          if (r.id === replyingReview.id) {
+            return {
+              ...r,
+              reply_content: replyContent.trim() || null,
+              reply: replyContent.trim() || null,
+              reply_time: result.reply_time || new Date().toISOString(),
+              isPendingReply: !replyContent.trim()
+            };
+          }
+          return r;
+        });
+        
+        let pendingReplyChange = 0;
+        if (isEditingReply) {
+          if (!replyingReview.reply_content && replyContent.trim()) {
+            pendingReplyChange = -1;
+          } else if (replyingReview.reply_content && !replyContent.trim()) {
+            pendingReplyChange = 1;
+          }
+        } else {
+          pendingReplyChange = -1;
+        }
+        
+        this.setData({
+          reviewManageList: updatedReviews,
+          'reviewManageStats.pendingReply': Math.max(0, this.data.reviewManageStats.pendingReply + pendingReplyChange)
+        });
+        
+        wx.hideLoading();
+        this.closeReplyDialog();
+        showToast(isEditingReply ? '回复已更新' : '回复已发送', 'success');
+      }
+    } catch (error) {
+      wx.hideLoading();
+      console.error('提交回复失败:', error);
+      showToast(error.msg || error.message || '提交失败，请重试');
+    }
+  },
+
+  async cancelReply() {
+    const { replyingReview } = this.data;
+    
+    if (!replyingReview || !replyingReview.reply_content) return;
+    
+    wx.showModal({
+      title: '确认撤销',
+      content: '确定要撤销这条回复吗？撤销后用户将无法看到。',
+      success: async (res) => {
+        if (res.confirm) {
+          wx.showLoading({ title: '撤销中...', mask: true });
+          
+          try {
+            const result = await updateReviewReply(replyingReview.id, '');
+            
+            if (result) {
+              const { reviewManageList } = this.data;
+              const updatedReviews = reviewManageList.map(r => {
+                if (r.id === replyingReview.id) {
+                  return {
+                    ...r,
+                    reply_content: null,
+                    reply: null,
+                    reply_time: null,
+                    isPendingReply: true
+                  };
+                }
+                return r;
+              });
+              
+              this.setData({
+                reviewManageList: updatedReviews,
+                'reviewManageStats.pendingReply': this.data.reviewManageStats.pendingReply + 1
+              });
+              
+              wx.hideLoading();
+              this.closeReplyDialog();
+              showToast('回复已撤销', 'success');
+            }
+          } catch (error) {
+            wx.hideLoading();
+            console.error('撤销回复失败:', error);
+            showToast('撤销失败，请重试');
+          }
+        }
+      }
+    });
+  },
+
+  openStatsDialog() {
+    this.loadTrendStats();
+    this.setData({ showStatsDialog: true, currentStatTab: 'overview' });
+  },
+
+  closeStatsDialog() {
+    this.setData({ showStatsDialog: false });
+  },
+
+  onStatTabChange(e) {
+    const tab = e.currentTarget.dataset.tab;
+    this.setData({ currentStatTab: tab });
+    
+    if (tab === 'trend' && this.data.trendStats.trendData.length === 0) {
+      this.loadTrendStats();
+    }
+  },
+
+  onTrendDaysChange(e) {
+    const days = parseInt(e.currentTarget.dataset.days);
+    this.loadTrendStats(days);
+  },
+
+  async loadTrendStats(days = 30) {
+    try {
+      const teacher = this.data.teacher;
+      if (!teacher || !teacher.user_id) return;
+      
+      const result = await getTeacherTrendStats(teacher.user_id, { days });
+      if (result) {
+        this.setData({
+          'trendStats.trendData': result.trend_data || [],
+          'trendStats.overallStats': result.overall_stats || {},
+          'trendStats.days': result.days || days
+        });
+      }
+    } catch (error) {
+      console.error('加载趋势统计失败:', error);
+    }
+  },
+
+  async loadReviewManageStats() {
+    try {
+      const teacher = this.data.teacher;
+      if (!teacher || !teacher.user_id) return;
+      
+      const unreadResult = await getTeacherUnreadStats(teacher.user_id);
+      const statsResult = await getTeacherReviewStats(teacher.user_id);
+      
+      let updates = {};
+      
+      if (unreadResult) {
+        updates['reviewManageStats.unread'] = unreadResult.unread || 0;
+        updates['reviewManageStats.pendingReply'] = unreadResult.pending_reply || 0;
+        updates['reviewManageStats.total'] = unreadResult.total || 0;
+      }
+      
+      if (statsResult && statsResult.stats) {
+        const stats = statsResult.stats;
+        updates['reviewManageStats.avgRating'] = stats.avg_overall_rating || 0;
+        updates['reviewManageStats.goodCount'] = stats.good_count || 0;
+        updates['reviewManageStats.mediumCount'] = stats.medium_count || 0;
+        updates['reviewManageStats.badCount'] = stats.bad_count || 0;
+      }
+      
+      this.setData(updates);
+    } catch (error) {
+      console.error('加载评价管理统计失败:', error);
+    }
+  },
+
+  processReviewManageList(reviews) {
+    if (!reviews || !Array.isArray(reviews)) return [];
+    
+    return reviews.map(review => {
+      const processed = { ...review };
+      
+      if (processed.user_avatar && !processed.is_anonymous) {
+        processed.user_avatar = getFullImageUrl(processed.user_avatar);
+      }
+      
+      if (processed.images && Array.isArray(processed.images)) {
+        processed.images = processed.images.map(img => getFullImageUrl(img));
+      }
+      
+      if (processed.product_info && processed.product_info.cover_image) {
+        processed.product_info.cover_image = getFullImageUrl(processed.product_info.cover_image);
+      }
+      
+      processed.isPendingReply = !processed.reply_content;
+      processed.isUnread = !processed.is_read;
+      
+      return processed;
+    });
+  },
+
+  async loadReviewManageList(isRefresh = false) {
+    const { 
+      reviewManagePage, 
+      reviewManagePageSize, 
+      currentRating, 
+      currentReplyStatus,
+      sortBy, 
+      teacher, 
+      reviewManageLoading 
+    } = this.data;
+    
+    if (reviewManageLoading && !isRefresh) return;
+    if (!teacher || !teacher.user_id) return;
+    
+    if (isRefresh) {
+      this.setData({ 
+        reviewManagePage: 1, 
+        reviewManageList: [], 
+        reviewManageHasMore: true, 
+        reviewManageLoading: true,
+        selectedReviews: [],
+        isSelectMode: false
+      });
+    } else {
+      this.setData({ reviewManageLoading: true });
+    }
+
+    let params = {
+      page: isRefresh ? 1 : reviewManagePage,
+      page_size: reviewManagePageSize
+    };
+
+    const ratingFilter = RATING_FILTERS.find(f => f.key === currentRating);
+    if (ratingFilter) {
+      if (ratingFilter.minRating !== undefined) {
+        params.min_rating = ratingFilter.minRating;
+      }
+      if (ratingFilter.maxRating !== undefined) {
+        params.max_rating = ratingFilter.maxRating;
+      }
+    }
+
+    if (currentReplyStatus === 'pending') {
+      params.has_reply = false;
+    } else if (currentReplyStatus === 'replied') {
+      params.has_reply = true;
+    }
+
+    if (sortBy === 'best') {
+      params.sort_by = 'best';
+    }
+
+    try {
+      const result = await getTeacherReviews(teacher.user_id, params);
+
+      if (result) {
+        let newReviews = result.list || [];
+        
+        if (sortBy === 'oldest') {
+          newReviews = newReviews.reverse();
+        } else if (sortBy === 'worst') {
+          newReviews.sort((a, b) => (a.overall_rating || 0) - (b.overall_rating || 0));
+        }
+        
+        newReviews = this.processReviewManageList(newReviews);
+        
+        this.setData({
+          reviewManageList: isRefresh ? newReviews : [...this.data.reviewManageList, ...newReviews],
+          reviewManageHasMore: newReviews.length >= reviewManagePageSize,
+          reviewManagePage: isRefresh ? 2 : this.data.reviewManagePage + 1,
+          reviewManageLoading: false
+        });
+      }
+    } catch (error) {
+      console.error('加载评价管理列表失败:', error);
+      wx.showToast({
+        title: error.msg || error.message || '加载失败',
+        icon: 'none'
+      });
+      this.setData({
+        reviewManageLoading: false
+      });
+    }
+  },
+
+  loadAllReviewManageData() {
+    this.loadReviewManageStats();
+    this.loadReviewManageList(true);
   }
 });

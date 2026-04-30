@@ -1,0 +1,98 @@
+<view class="community-container">
+  <view class="community-header">
+    <text class="community-icon">🎨</text>
+    <text class="community-title">手工圈</text>
+    <text class="community-desc">分享手作，发现创意</text>
+  </view>
+
+  <view class="quick-actions">
+    <view class="action-card" bindtap="goToHotProducts">
+      <text class="action-icon">🔥</text>
+      <text class="action-text">热门作品</text>
+    </view>
+    <view class="action-card" bindtap="goToNewProducts">
+      <text class="action-icon">✨</text>
+      <text class="action-text">最新作品</text>
+    </view>
+    <view class="action-card" bindtap="goToCategories">
+      <text class="action-icon">📚</text>
+      <text class="action-text">分类浏览</text>
+    </view>
+    <view class="action-card" bindtap="showComingSoon">
+      <text class="action-icon">💬</text>
+      <text class="action-text">讨论区</text>
+    </view>
+  </view>
+
+  <view class="featured-section">
+    <view class="section-header">
+      <text class="section-icon">⭐</text>
+      <text class="section-title">精选推荐</text>
+    </view>
+
+    <view class="loading-state" wx:if="{{isLoading && featuredProducts.length === 0}}">
+      <text class="loading-text">加载中...</text>
+    </view>
+
+    <view class="empty-state" wx:elif="{{!isLoading && featuredProducts.length === 0}}">
+      <text class="empty-icon">🎨</text>
+      <text class="empty-text">暂无精选作品</text>
+      <text class="empty-desc">快来发现更多精彩手作吧</text>
+    </view>
+
+    <view class="products-grid" wx:else>
+      <view 
+        wx:for="{{featuredProducts}}" 
+        wx:key="id" 
+        class="product-card"
+        bindtap="goToProductDetail"
+        data-id="{{item.id}}"
+      >
+        <view class="product-image-wrapper">
+          <image 
+            class="product-image" 
+            src="{{item.cover_image || defaultImage}}" 
+            mode="aspectFill" 
+            binderror="onImageError"
+            data-index="{{index}}"
+          />
+          <view class="product-stats" wx:if="{{item.sales_count > 0 || item.view_count > 0}}">
+            <text class="stat-item" wx:if="{{item.sales_count > 0}}">已售{{item.sales_count}}</text>
+            <text class="stat-item" wx:if="{{item.view_count > 0 && item.sales_count === 0}}">{{item.view_count}}次浏览</text>
+          </view>
+        </view>
+        
+        <view class="product-info">
+          <text class="product-title" lines="2">{{item.title}}</text>
+          
+          <view class="product-footer">
+            <view class="price-section">
+              <text class="price-symbol">¥</text>
+              <text class="product-price">{{item.price}}</text>
+            </view>
+            <view class="like-section" catchtap="preventBubble">
+              <like-button 
+                product-id="{{item.id}}"
+                is-liked="{{item.is_liked}}"
+                like-count="{{item.like_count || 0}}"
+                popularity-score="{{item.popularity_score || 0}}"
+                size="small"
+                show-count="{{true}}"
+                bind:change="onLikeChange"
+                data-index="{{index}}"
+              />
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="create-section" bindtap="showComingSoon">
+    <view class="create-card">
+      <text class="create-icon">➕</text>
+      <text class="create-text">发布我的作品</text>
+      <text class="create-hint">分享你的手作故事</text>
+    </view>
+  </view>
+</view>

@@ -136,7 +136,8 @@ Page({
         result.forEach(item => {
           likeStatusMap[item.product_id] = {
             is_liked: item.is_liked,
-            like_count: item.like_count
+            like_count: item.like_count,
+            popularity_score: item.popularity_score
           };
         });
 
@@ -149,7 +150,8 @@ Page({
                 return {
                   ...product,
                   is_liked: likeStatus.is_liked,
-                  like_count: likeStatus.like_count
+                  like_count: likeStatus.like_count,
+                  popularity_score: likeStatus.popularity_score
                 };
               }
               return product;

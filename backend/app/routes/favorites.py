@@ -69,7 +69,8 @@ def check_like_status(product_id):
     return jsonify(success(data={
         'product_id': product_id,
         'is_liked': existing_like is not None,
-        'like_count': product.like_count or 0
+        'like_count': product.like_count or 0,
+        'popularity_score': product.popularity_score or 0
     }))
 
 @favorite_bp.route('/like/count/<int:product_id>', methods=['GET'])
@@ -143,14 +144,19 @@ def batch_check_like_status():
     liked_product_ids = [like.product_id for like in likes]
     
     products = Product.query.filter(Product.id.in_(product_ids)).all()
-    like_counts = {p.id: p.like_count or 0 for p in products}
+    product_info = {p.id: {
+        'like_count': p.like_count or 0,
+        'popularity_score': p.popularity_score or 0
+    } for p in products}
     
     result = []
     for product_id in product_ids:
+        info = product_info.get(product_id, {'like_count': 0, 'popularity_score': 0})
         result.append({
             'product_id': product_id,
             'is_liked': product_id in liked_product_ids,
-            'like_count': like_counts.get(product_id, 0)
+            'like_count': info['like_count'],
+            'popularity_score': info['popularity_score']
         })
     
     return jsonify(success(data=result))

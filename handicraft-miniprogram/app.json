@@ -2,9 +2,10 @@
   "pages": [
     "pages/home/index",
     "pages/products/index",
-    "pages/orders/index",
+    "pages/community/index",
     "pages/messages/index",
     "pages/user-center/index",
+    "pages/orders/index",
     "pages/message-detail/index",
     "pages/chat/index",
     "pages/teacher-apply/index",
@@ -43,8 +44,8 @@
         "text": "作品"
       },
       {
-        "pagePath": "pages/orders/index",
-        "text": "订单"
+        "pagePath": "pages/community/index",
+        "text": "手工圈"
       },
       {
         "pagePath": "pages/messages/index",
