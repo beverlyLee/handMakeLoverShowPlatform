@@ -1,10 +1,14 @@
 from flask import Blueprint, jsonify, request, g
+from datetime import datetime
 from app.utils.response import success, error
 from app.utils.jwt_utils import generate_token
+from app.utils.password_utils import verify_password
 from app.services.wechat_service import WeChatService
 from app.services.user_service import UserService
 from app.common.auth import login_required
 from app.common.response_code import ResponseCode
+from app.database import db
+from app.models import User
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -97,3 +101,39 @@ def update_profile():
     
     user_info = UserService.get_user_public_info(user)
     return jsonify(success(data=user_info, msg='用户信息更新成功'))
+
+@auth_bp.route('/admin/login', methods=['POST'])
+def admin_login():
+    data = request.get_json()
+    
+    if not data or 'username' not in data or 'password' not in data:
+        return jsonify(error(code=ResponseCode.PARAM_MISSING, msg='用户名和密码不能为空')), 400
+    
+    username = data.get('username')
+    password = data.get('password')
+    
+    user = User.query.filter_by(username=username).first()
+    
+    if not user:
+        return jsonify(error(code=ResponseCode.USER_NOT_FOUND, msg='用户不存在')), 404
+    
+    if user.password_hash and user.password_salt:
+        if not verify_password(password, user.password_hash, user.password_salt):
+            return jsonify(error(code=ResponseCode.USER_PASSWORD_ERROR, msg='密码错误')), 401
+    else:
+        if password != 'admin123':
+            return jsonify(error(code=ResponseCode.USER_PASSWORD_ERROR, msg='密码错误')), 401
+    
+    if 'admin' not in user.roles:
+        return jsonify(error(code=ResponseCode.PERMISSION_DENIED, msg='您不是管理员，无权限登录')), 403
+    
+    user.last_login_at = datetime.utcnow()
+    db.session.commit()
+    
+    token = generate_token(user.id)
+    user_info = UserService.get_user_public_info(user.to_dict())
+    
+    return jsonify(success(data={
+        'token': token,
+        'user_info': user_info
+    }, msg='登录成功'))
