@@ -225,6 +225,11 @@
   color: #fff;
 }
 
+.action-btn-activity {
+  background: linear-gradient(135deg, #E64A19 0%, #FF5722 100%);
+  color: #fff;
+}
+
 .btn-icon {
   margin-right: 8rpx;
   font-size: 32rpx;
@@ -2921,4 +2926,156 @@
 .empty-tip {
   font-size: 24rpx;
   color: #ccc;
+}
+
+.activities-tab {
+  min-height: 400rpx;
+}
+
+.activities-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.activity-card {
+  display: flex;
+  background-color: #fff;
+  border-radius: 16rpx;
+  padding: 16rpx;
+  border: 1rpx solid #f0f0f0;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+  transition: all 0.2s;
+}
+
+.activity-card:active {
+  transform: scale(0.99);
+  opacity: 0.95;
+}
+
+.activity-cover-wrapper {
+  position: relative;
+  width: 200rpx;
+  height: 200rpx;
+  border-radius: 12rpx;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.activity-cover {
+  width: 100%;
+  height: 100%;
+}
+
+.activity-tag-overlay {
+  position: absolute;
+  top: 8rpx;
+  left: 8rpx;
+}
+
+.activity-craft-tag {
+  font-size: 20rpx;
+  color: #fff;
+  background-color: rgba(121, 85, 72, 0.9);
+  padding: 4rpx 12rpx;
+  border-radius: 12rpx;
+}
+
+.activity-status-tag {
+  position: absolute;
+  top: 8rpx;
+  right: 8rpx;
+}
+
+.status-text {
+  font-size: 20rpx;
+  color: #fff;
+  background-color: rgba(76, 175, 80, 0.9);
+  padding: 4rpx 12rpx;
+  border-radius: 12rpx;
+}
+
+.activity-info {
+  flex: 1;
+  margin-left: 16rpx;
+  min-width: 0;
+}
+
+.activity-title {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #333;
+  line-height: 1.4;
+  margin-bottom: 8rpx;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.activity-meta-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8rpx;
+}
+
+.activity-type-tag {
+  font-size: 22rpx;
+  color: #795548;
+  background-color: rgba(121, 85, 72, 0.1);
+  padding: 4rpx 12rpx;
+  border-radius: 12rpx;
+  margin-right: 12rpx;
+}
+
+.activity-price {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #E64A19;
+}
+
+.activity-detail-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 6rpx;
+}
+
+.detail-icon {
+  font-size: 24rpx;
+  margin-right: 8rpx;
+}
+
+.detail-text {
+  font-size: 24rpx;
+  color: #666;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.activity-stats-row {
+  display: flex;
+  margin-top: 12rpx;
+  padding-top: 12rpx;
+  border-top: 1rpx solid #f0f0f0;
+}
+
+.stat-item-mini {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-right: 24rpx;
+}
+
+.stat-num {
+  font-size: 26rpx;
+  font-weight: bold;
+  color: #795548;
+}
+
+.stat-label {
+  font-size: 20rpx;
+  color: #999;
+  margin-top: 2rpx;
 }

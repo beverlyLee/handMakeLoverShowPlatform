@@ -1,0 +1,660 @@
+.activity-detail-container {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  padding-bottom: 120rpx;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+}
+
+.loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.loading-spinner {
+  font-size: 48rpx;
+  margin-bottom: 16rpx;
+}
+
+.loading-text {
+  font-size: 28rpx;
+  color: #999;
+}
+
+.image-section {
+  width: 100%;
+  background-color: #fff;
+  position: relative;
+}
+
+.image-swiper {
+  width: 100%;
+  height: 600rpx;
+}
+
+.activity-image {
+  width: 100%;
+  height: 100%;
+}
+
+.image-counter {
+  position: absolute;
+  right: 24rpx;
+  bottom: 24rpx;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  font-size: 24rpx;
+  padding: 8rpx 20rpx;
+  border-radius: 24rpx;
+}
+
+.info-section {
+  background-color: #fff;
+  padding: 30rpx;
+  margin-bottom: 20rpx;
+}
+
+.title-row {
+  margin-bottom: 24rpx;
+}
+
+.activity-title {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
+  line-height: 1.5;
+  margin-bottom: 16rpx;
+}
+
+.type-badges {
+  display: flex;
+  gap: 12rpx;
+}
+
+.type-badge {
+  font-size: 22rpx;
+  padding: 6rpx 16rpx;
+  border-radius: 16rpx;
+}
+
+.type-badge.craft {
+  background-color: rgba(121, 85, 72, 0.1);
+  color: #795548;
+}
+
+.type-badge.activity {
+  background-color: rgba(255, 152, 0, 0.1);
+  color: #FF9800;
+}
+
+.price-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+  padding-bottom: 20rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.price-section {
+  display: flex;
+  align-items: baseline;
+}
+
+.price {
+  font-size: 40rpx;
+  font-weight: bold;
+  color: #E64340;
+}
+
+.price.free {
+  color: #4CAF50;
+}
+
+.original-price {
+  font-size: 26rpx;
+  color: #999;
+  text-decoration: line-through;
+  margin-left: 16rpx;
+}
+
+.stats-section {
+  display: flex;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-left: 30rpx;
+}
+
+.stat-value {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.stat-label {
+  font-size: 22rpx;
+  color: #999;
+}
+
+.status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.status-badge {
+  display: flex;
+  align-items: center;
+  padding: 10rpx 20rpx;
+  border-radius: 24rpx;
+}
+
+.status-badge.open {
+  background-color: rgba(76, 175, 80, 0.1);
+}
+
+.status-badge.closed {
+  background-color: rgba(244, 67, 54, 0.1);
+}
+
+.status-icon {
+  font-size: 24rpx;
+  margin-right: 8rpx;
+}
+
+.status-text {
+  font-size: 24rpx;
+  font-weight: 500;
+}
+
+.status-badge.open .status-text {
+  color: #4CAF50;
+}
+
+.status-badge.closed .status-text {
+  color: #F44336;
+}
+
+.spots-info {
+  background-color: rgba(255, 152, 0, 0.1);
+  padding: 8rpx 16rpx;
+  border-radius: 16rpx;
+}
+
+.spots-text {
+  font-size: 22rpx;
+  color: #FF9800;
+  font-weight: 500;
+}
+
+.registered-alert {
+  display: flex;
+  align-items: center;
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.15) 0%, rgba(76, 175, 80, 0.05) 100%);
+  border-left: 6rpx solid #4CAF50;
+  background-color: rgba(76, 175, 80, 0.08);
+  margin: 20rpx 30rpx;
+  padding: 24rpx;
+  border-radius: 8rpx;
+}
+
+.alert-icon {
+  font-size: 48rpx;
+  margin-right: 20rpx;
+}
+
+.alert-content {
+  flex: 1;
+}
+
+.alert-title {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #2E7D32;
+  display: block;
+  margin-bottom: 6rpx;
+}
+
+.alert-status {
+  font-size: 24rpx;
+  color: #666;
+}
+
+.alert-action {
+  padding: 12rpx 24rpx;
+  background-color: rgba(244, 67, 54, 0.1);
+  border-radius: 20rpx;
+}
+
+.action-text {
+  font-size: 24rpx;
+  color: #F44336;
+}
+
+.upcoming-alert {
+  display: flex;
+  align-items: center;
+  background: linear-gradient(135deg, rgba(255, 152, 0, 0.1) 0%, rgba(255, 193, 7, 0.05) 100%);
+  border-left: 6rpx solid #FF9800;
+  margin: 20rpx 30rpx;
+  padding: 24rpx;
+  border-radius: 8rpx;
+}
+
+.upcoming-alert.urgent {
+  background: linear-gradient(135deg, rgba(244, 67, 54, 0.1) 0%, rgba(244, 67, 54, 0.05) 100%);
+  border-left: 6rpx solid #F44336;
+}
+
+.upcoming-icon {
+  font-size: 40rpx;
+  margin-right: 16rpx;
+}
+
+.upcoming-content {
+  flex: 1;
+}
+
+.upcoming-title {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #E65100;
+  display: block;
+  margin-bottom: 4rpx;
+}
+
+.upcoming-alert.urgent .upcoming-title {
+  color: #C62828;
+  font-weight: bold;
+}
+
+.upcoming-desc {
+  font-size: 22rpx;
+  color: #999;
+}
+
+.detail-section {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.section-icon {
+  font-size: 32rpx;
+  margin-right: 10rpx;
+}
+
+.section-title {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.detail-section {
+  background-color: #fff;
+  padding: 30rpx;
+  margin-bottom: 20rpx;
+}
+
+.detail-list {
+  padding-top: 10rpx;
+}
+
+.detail-item {
+  display: flex;
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid #f5f5f5;
+}
+
+.detail-item:last-child {
+  border-bottom: none;
+}
+
+.detail-icon-wrapper {
+  width: 60rpx;
+  display: flex;
+  align-items: flex-start;
+  padding-top: 4rpx;
+}
+
+.detail-icon {
+  font-size: 28rpx;
+}
+
+.detail-content {
+  flex: 1;
+}
+
+.detail-label {
+  font-size: 26rpx;
+  color: #999;
+  margin-bottom: 6rpx;
+  display: block;
+}
+
+.detail-value {
+  font-size: 28rpx;
+  color: #333;
+  line-height: 1.5;
+  display: block;
+}
+
+.detail-value.address {
+  color: #666;
+  font-size: 26rpx;
+}
+
+.description-section {
+  background-color: #fff;
+  padding: 30rpx;
+  margin-bottom: 20rpx;
+}
+
+.description-content {
+  padding-top: 10rpx;
+}
+
+.description-text {
+  font-size: 28rpx;
+  color: #555;
+  line-height: 1.8;
+}
+
+.teacher-card {
+  background-color: #fff;
+  padding: 30rpx;
+  margin-bottom: 20rpx;
+}
+
+.teacher-info-row {
+  display: flex;
+  align-items: center;
+  padding-top: 10rpx;
+}
+
+.teacher-avatar {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 50%;
+  margin-right: 20rpx;
+  border: 2rpx solid #e0e0e0;
+}
+
+.teacher-detail {
+  flex: 1;
+}
+
+.teacher-name-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8rpx;
+}
+
+.teacher-name {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #333;
+  margin-right: 16rpx;
+}
+
+.teacher-rating {
+  font-size: 24rpx;
+  color: #FFB300;
+  background-color: rgba(255, 179, 0, 0.1);
+  padding: 4rpx 12rpx;
+  border-radius: 12rpx;
+}
+
+.teacher-stats {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.arrow-icon {
+  font-size: 36rpx;
+  color: #ccc;
+}
+
+.registered-section {
+  background-color: #fff;
+  padding: 24rpx 30rpx;
+  margin-bottom: 20rpx;
+}
+
+.registered-card {
+  display: flex;
+  align-items: center;
+  padding: 20rpx;
+  background-color: rgba(76, 175, 80, 0.05);
+  border-radius: 16rpx;
+  border: 2rpx solid rgba(76, 175, 80, 0.2);
+}
+
+.registered-icon {
+  font-size: 48rpx;
+  margin-right: 20rpx;
+}
+
+.registered-content {
+  flex: 1;
+}
+
+.registered-title {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #4CAF50;
+  display: block;
+  margin-bottom: 6rpx;
+}
+
+.registered-status {
+  font-size: 24rpx;
+  color: #666;
+}
+
+.cancel-btn {
+  padding: 12rpx 24rpx;
+  background-color: rgba(244, 67, 54, 0.1);
+  border-radius: 20rpx;
+}
+
+.cancel-text {
+  font-size: 24rpx;
+  color: #F44336;
+}
+
+.bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 100rpx;
+  background-color: #fff;
+  display: flex;
+  align-items: center;
+  padding: 0 20rpx;
+  padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
+  box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.08);
+  z-index: 100;
+}
+
+.bar-actions {
+  display: flex;
+  margin-right: 20rpx;
+}
+
+.action-icon-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 20rpx;
+}
+
+.action-icon {
+  font-size: 36rpx;
+  margin-bottom: 4rpx;
+}
+
+.action-text {
+  font-size: 20rpx;
+  color: #666;
+}
+
+.bar-buttons {
+  flex: 1;
+  display: flex;
+}
+
+.btn-register {
+  flex: 1;
+  height: 80rpx;
+  line-height: 80rpx;
+  border-radius: 40rpx;
+  font-size: 30rpx;
+  font-weight: bold;
+  border: none;
+  margin: 0;
+  padding: 0;
+  background-color: #795548;
+  color: #fff;
+}
+
+.btn-register::after {
+  border: none;
+}
+
+.btn-register.disabled {
+  background-color: #ccc;
+  color: #fff;
+}
+
+.register-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+}
+
+.register-dialog {
+  width: 100%;
+  background-color: #fff;
+  border-radius: 24rpx 24rpx 0 0;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 30rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.dialog-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.dialog-close {
+  font-size: 40rpx;
+  color: #999;
+  width: 60rpx;
+  height: 60rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dialog-content {
+  flex: 1;
+  padding: 30rpx;
+  overflow-y: auto;
+}
+
+.form-item {
+  margin-bottom: 30rpx;
+}
+
+.form-label {
+  font-size: 28rpx;
+  color: #333;
+  margin-bottom: 16rpx;
+  display: block;
+}
+
+.required {
+  color: #F44336;
+}
+
+.form-input {
+  width: 100%;
+  height: 88rpx;
+  padding: 0 20rpx;
+  background-color: #f9f9f9;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  color: #333;
+}
+
+.form-textarea {
+  width: 100%;
+  height: 200rpx;
+  padding: 20rpx;
+  background-color: #f9f9f9;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  color: #333;
+}
+
+.dialog-footer {
+  display: flex;
+  padding: 20rpx 30rpx;
+  padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
+  border-top: 1rpx solid #f0f0f0;
+  gap: 20rpx;
+}
+
+.btn-cancel,
+.btn-confirm {
+  flex: 1;
+  height: 88rpx;
+  line-height: 88rpx;
+  border-radius: 44rpx;
+  font-size: 30rpx;
+  border: none;
+  margin: 0;
+  padding: 0;
+}
+
+.btn-cancel::after,
+.btn-confirm::after {
+  border: none;
+}
+
+.btn-cancel {
+  background-color: #f5f5f5;
+  color: #666;
+}
+
+.btn-confirm {
+  background-color: #795548;
+  color: #fff;
+}

@@ -12,6 +12,7 @@ const {
   replyReview,
   updateReviewReply
 } = require('../../api/reviews');
+const { getMyActivities } = require('../../api/activities');
 const { batchCheckLikeStatus } = require('../../api/favorites');
 const { showToast, processTeacherInfo, processProductImages, getRelativeImageUrl, getFullImageUrl } = require('../../utils/util');
 const config = require('../../utils/config');
@@ -174,7 +175,14 @@ Page({
     dailyTrend: [],
     maxTrendCount: 1,
     pending_reviews_count: 0,
-    pending_reply_count: 0
+    pending_reply_count: 0,
+
+    activities: [],
+    activitiesTotal: 0,
+    activitiesLoading: false,
+    activitiesPage: 1,
+    activitiesPageSize: 10,
+    activitiesHasMore: true
   },
 
   onLoad(options) {
@@ -528,6 +536,9 @@ Page({
         }
       }
     }
+    if (tab === 'activities' && this.data.activities.length === 0) {
+      this.loadTeacherActivities();
+    }
   },
 
   switchTimeRange(e) {
@@ -765,6 +776,12 @@ Page({
   goToStats() {
     wx.navigateTo({
       url: `/pages/teacher-stats/index?teacher_id=${this.data.teacherId}`
+    });
+  },
+
+  goToCreateActivity() {
+    wx.navigateTo({
+      url: '/pages/activity-create/index'
     });
   },
 
@@ -1752,5 +1769,59 @@ Page({
   loadAllReviewManageData() {
     this.loadReviewManageStats();
     this.loadReviewManageList(true);
+  },
+
+  async loadTeacherActivities(append = false) {
+    const { activitiesPage, activitiesPageSize, activitiesHasMore, activitiesLoading } = this.data;
+    
+    if (activitiesLoading && !append) return;
+    if (!this.data.isOwner) {
+      this.setData({ activitiesLoading: false });
+      return;
+    }
+
+    this.setData({ activitiesLoading: true });
+
+    try {
+      const result = await getMyActivities({
+        page: append ? activitiesPage : 1,
+        size: activitiesPageSize
+      });
+
+      if (result) {
+        const newActivities = result.list || result || [];
+        const total = result.total || newActivities.length;
+        
+        if (append) {
+          this.setData({
+            activities: [...this.data.activities, ...newActivities],
+            activitiesTotal: total,
+            activitiesHasMore: newActivities.length >= activitiesPageSize,
+            activitiesPage: activitiesPage + 1,
+            activitiesLoading: false
+          });
+        } else {
+          this.setData({
+            activities: newActivities,
+            activitiesTotal: total,
+            activitiesPage: 2,
+            activitiesHasMore: newActivities.length >= activitiesPageSize,
+            activitiesLoading: false
+          });
+        }
+      }
+    } catch (error) {
+      console.error('加载老师活动列表失败:', error);
+      this.setData({ activitiesLoading: false });
+    }
+  },
+
+  goToActivityDetail(e) {
+    const activityId = e.currentTarget.dataset.id;
+    if (activityId) {
+      wx.navigateTo({
+        url: `/pages/activity-detail/index?id=${activityId}`
+      });
+    }
   }
 });

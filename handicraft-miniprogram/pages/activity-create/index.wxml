@@ -1,0 +1,307 @@
+<view class="activity-create-container">
+  <scroll-view class="form-scroll" scroll-y>
+    <view class="form-section">
+      <view class="section-header">
+        <text class="section-icon">📝</text>
+        <text class="section-title">基本信息</text>
+      </view>
+      
+      <view class="form-item">
+        <view class="item-label required">活动标题</view>
+        <input 
+          class="item-input" 
+          type="text" 
+          placeholder="请输入活动标题" 
+          value="{{form.title}}"
+          bindinput="onInput"
+          data-field="title"
+          maxlength="50"
+        />
+      </view>
+
+      <view class="form-item">
+        <view class="item-label required">手工种类</view>
+        <picker 
+          mode="selector" 
+          range="{{craftTypes}}" 
+          bindchange="onCraftTypeChange"
+        >
+          <view class="picker-value">
+            <text class="{{form.craft_type ? '' : 'placeholder'}}">
+              {{form.craft_type || '请选择手工种类'}}
+            </text>
+            <text class="picker-arrow">›</text>
+          </view>
+        </picker>
+      </view>
+
+      <view class="form-item">
+        <view class="item-label required">活动类型</view>
+        <picker 
+          mode="selector" 
+          range="{{activityTypes}}" 
+          bindchange="onActivityTypeChange"
+        >
+          <view class="picker-value">
+            <text class="{{form.activity_type ? '' : 'placeholder'}}">
+              {{form.activity_type || '请选择活动类型'}}
+            </text>
+            <text class="picker-arrow">›</text>
+          </view>
+        </picker>
+      </view>
+
+      <view class="form-item">
+        <view class="item-label">活动描述</view>
+        <textarea 
+          class="item-textarea" 
+          placeholder="请输入活动描述（可选）" 
+          value="{{form.description}}"
+          bindinput="onInput"
+          data-field="description"
+          maxlength="500"
+          auto-height
+        />
+      </view>
+    </view>
+
+    <view class="form-section">
+      <view class="section-header">
+        <text class="section-icon">📅</text>
+        <text class="section-title">时间信息</text>
+      </view>
+
+      <view class="form-item">
+        <view class="item-label required">活动开始时间</view>
+        <view class="picker-value" bindtap="openTimePicker" data-type="start">
+          <text class="{{displayStartTime ? '' : 'placeholder'}}">
+            {{displayStartTime || '请选择开始时间'}}
+          </text>
+          <text class="picker-arrow">›</text>
+        </view>
+      </view>
+
+      <view class="form-item">
+        <view class="item-label">活动结束时间</view>
+        <view class="picker-value" bindtap="openTimePicker" data-type="end">
+          <text class="{{displayEndTime ? '' : 'placeholder'}}">
+            {{displayEndTime || '请选择结束时间（可选）'}}
+          </text>
+          <text class="picker-arrow">›</text>
+        </view>
+      </view>
+
+      <view class="form-item">
+        <view class="item-label required">报名截止时间</view>
+        <view class="picker-value" bindtap="openTimePicker" data-type="deadline">
+          <text class="{{displayDeadline ? '' : 'placeholder'}}">
+            {{displayDeadline || '请选择报名截止时间'}}
+          </text>
+          <text class="picker-arrow">›</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="form-section">
+      <view class="section-header">
+        <text class="section-icon">📍</text>
+        <text class="section-title">地点信息</text>
+      </view>
+
+      <view class="form-item">
+        <view class="item-label required">活动地点</view>
+        <input 
+          class="item-input" 
+          type="text" 
+          placeholder="请输入活动地点名称（如：匠心手作工作室）" 
+          value="{{form.location}}"
+          bindinput="onInput"
+          data-field="location"
+          maxlength="50"
+        />
+      </view>
+
+      <view class="form-item">
+        <view class="item-label">详细地址</view>
+        <input 
+          class="item-input" 
+          type="text" 
+          placeholder="请输入详细地址（可选）" 
+          value="{{form.address}}"
+          bindinput="onInput"
+          data-field="address"
+          maxlength="100"
+        />
+      </view>
+
+      <view class="form-item">
+        <view class="item-label">城市</view>
+        <input 
+          class="item-input" 
+          type="text" 
+          placeholder="请输入城市（可选）" 
+          value="{{form.city}}"
+          bindinput="onInput"
+          data-field="city"
+          maxlength="20"
+        />
+      </view>
+    </view>
+
+    <view class="form-section">
+      <view class="section-header">
+        <text class="section-icon">💰</text>
+        <text class="section-title">价格信息</text>
+      </view>
+
+      <view class="form-row">
+        <view class="form-item form-item-half">
+          <view class="item-label required">活动价格</view>
+          <input 
+            class="item-input" 
+            type="digit" 
+            placeholder="0表示免费" 
+            value="{{form.price}}"
+            bindinput="onInput"
+            data-field="price"
+          />
+          <text class="price-unit">元</text>
+        </view>
+
+        <view class="form-item form-item-half">
+          <view class="item-label">原价</view>
+          <input 
+            class="item-input" 
+            type="digit" 
+            placeholder="用于划线价（可选）" 
+            value="{{form.original_price}}"
+            bindinput="onInput"
+            data-field="original_price"
+          />
+          <text class="price-unit">元</text>
+        </view>
+      </view>
+
+      <view class="form-item">
+        <view class="item-label">最大参与人数</view>
+        <view class="input-wrapper">
+          <input 
+            class="item-input" 
+            type="number" 
+            placeholder="请输入人数，999表示不限制" 
+            value="{{form.max_participants}}"
+            bindinput="onInput"
+            data-field="max_participants"
+          />
+        </view>
+        <text class="input-hint">提示：输入999表示不限制人数</text>
+      </view>
+    </view>
+
+    <view class="form-section">
+      <view class="section-header">
+        <text class="section-icon">🖼️</text>
+        <text class="section-title">活动图片</text>
+      </view>
+
+      <view class="upload-section">
+        <view class="upload-label">封面图片</view>
+        <view class="cover-upload">
+          <view class="cover-image-wrapper" wx:if="{{coverImage}}">
+            <image class="cover-image" src="{{coverImage}}" mode="aspectFill" />
+            <view class="remove-btn" bindtap="removeCoverImage">
+              <text class="remove-icon">×</text>
+            </view>
+          </view>
+          <view class="upload-placeholder" wx:else bindtap="chooseCoverImage">
+            <text class="upload-icon">+</text>
+            <text class="upload-text">上传封面</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="upload-section">
+        <view class="upload-label">活动图片（最多9张）</view>
+        <view class="images-upload">
+          <view 
+            wx:for="{{imageList}}" 
+            wx:key="*this"
+            class="image-item-wrapper"
+          >
+            <image class="upload-image" src="{{item}}" mode="aspectFill" />
+            <view class="remove-btn" bindtap="removeImage" data-index="{{index}}">
+              <text class="remove-icon">×</text>
+            </view>
+          </view>
+          <view 
+            wx:if="{{imageList.length < 9}}" 
+            class="upload-placeholder small"
+            bindtap="chooseImages"
+          >
+            <text class="upload-icon">+</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+
+  <view class="bottom-bar">
+    <button 
+      class="btn-submit {{submitting ? 'disabled' : ''}}" 
+      bindtap="submitForm"
+      disabled="{{submitting}}"
+    >
+      {{submitting ? '发布中...' : '发布活动'}}
+    </button>
+  </view>
+
+  <view class="time-picker-mask" wx:if="{{showTimePicker}}" catchtap="closeTimePicker">
+    <view class="time-picker-content" catchtap="">
+      <view class="picker-header">
+        <text class="picker-title">选择时间</text>
+        <view class="picker-actions">
+          <text class="picker-cancel" bindtap="closeTimePicker">取消</text>
+          <text class="picker-confirm" bindtap="confirmTimePicker">确定</text>
+        </view>
+      </view>
+      
+      <view class="picker-body">
+        <view class="picker-row">
+          <view class="picker-col">
+            <text class="picker-label">日期</text>
+            <picker 
+              mode="date" 
+              start="{{minDate}}"
+              value="{{tempDate}}"
+              bindchange="onTempDateChange"
+            >
+              <view class="picker-value">
+                <text>{{tempDate}}</text>
+                <text class="picker-arrow">›</text>
+              </view>
+            </picker>
+          </view>
+          
+          <view class="picker-col">
+            <text class="picker-label">时间</text>
+            <picker 
+              mode="time" 
+              value="{{tempTime}}"
+              bindchange="onTempTimeChange"
+            >
+              <view class="picker-value">
+                <text>{{tempTime}}</text>
+                <text class="picker-arrow">›</text>
+              </view>
+            </picker>
+          </view>
+        </view>
+        
+        <view class="picker-preview">
+          <text class="preview-label">已选择：</text>
+          <text class="preview-value">{{tempDate}} {{tempTime}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

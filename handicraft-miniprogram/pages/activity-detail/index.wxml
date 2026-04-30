@@ -1,0 +1,267 @@
+<view class="activity-detail-container">
+  <view class="loading-container" wx:if="{{isLoading}}">
+    <view class="loading-content">
+      <text class="loading-spinner">⏳</text>
+      <text class="loading-text">加载中...</text>
+    </view>
+  </view>
+
+  <view class="activity-content" wx:else>
+    <view class="image-section">
+      <swiper 
+        class="image-swiper" 
+        indicator-dots="{{activity.images.length > 1}}" 
+        indicator-color="rgba(255,255,255,0.5)"
+        indicator-active-color="#fff"
+        autoplay="{{false}}" 
+        circular="{{activity.images.length > 1}}"
+        bindchange="onImageChange"
+      >
+        <swiper-item wx:for="{{activity.images}}" wx:key="*this">
+          <image 
+            class="activity-image" 
+            src="{{item}}" 
+            mode="aspectFill" 
+            bindtap="previewImage" 
+            data-url="{{item}}"
+          />
+        </swiper-item>
+      </swiper>
+      <view class="image-counter" wx:if="{{activity.images.length > 1}}">
+        <text>{{currentImageIndex + 1}}/{{activity.images.length}}</text>
+      </view>
+    </view>
+
+    <view class="info-section">
+      <view class="title-row">
+        <text class="activity-title">{{activity.title}}</text>
+        <view class="type-badges">
+          <text class="type-badge craft">{{activity.craft_type}}</text>
+          <text class="type-badge activity">{{activity.activity_type}}</text>
+        </view>
+      </view>
+
+      <view class="price-row">
+        <view class="price-section">
+          <text class="price" wx:if="{{activity.price > 0}}">¥{{activity.price}}</text>
+          <text class="price free" wx:else>免费</text>
+          <text class="original-price" wx:if="{{activity.original_price > activity.price}}">¥{{activity.original_price}}</text>
+        </view>
+        <view class="stats-section">
+          <view class="stat-item" wx:if="{{activity.current_participants > 0}}">
+            <text class="stat-value">{{activity.current_participants}}</text>
+            <text class="stat-label">已报名</text>
+          </view>
+          <view class="stat-item" wx:if="{{activity.view_count > 0}}">
+            <text class="stat-value">{{activity.view_count}}</text>
+            <text class="stat-label">浏览</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="status-row">
+        <view class="status-badge {{activity.is_registration_open ? 'open' : 'closed'}}">
+          <text class="status-icon">{{activity.is_registration_open ? '✅' : '❌'}}</text>
+          <text class="status-text">{{activity.is_registration_open ? '报名进行中' : '报名已截止'}}</text>
+        </view>
+        <view class="spots-info" wx:if="{{activity.max_participants < 999}}">
+          <text class="spots-text">仅剩{{activity.max_participants - activity.current_participants}}个名额</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="registered-alert" wx:if="{{isRegistered}}">
+      <view class="alert-icon">✅</view>
+      <view class="alert-content">
+        <text class="alert-title">您已成功报名该活动</text>
+        <text class="alert-status">状态：{{registrationStatus === 'confirmed' ? '已确认' : '待确认'}}</text>
+      </view>
+      <view class="alert-action" bindtap="cancelMyRegistration">
+        <text class="action-text">取消报名</text>
+      </view>
+    </view>
+
+    <view class="upcoming-alert {{isUrgent ? 'urgent' : ''}}" wx:if="{{isUpcoming && !isRegistered}}">
+      <view class="upcoming-icon">⏰</view>
+      <view class="upcoming-content">
+        <text class="upcoming-title">{{upcomingText}}</text>
+        <text class="upcoming-desc" wx:if="{{isUrgent}}">请准时参加活动</text>
+      </view>
+    </view>
+
+    <view class="detail-section">
+      <view class="section-header">
+        <text class="section-icon">📋</text>
+        <text class="section-title">活动详情</text>
+      </view>
+      
+      <view class="detail-list">
+        <view class="detail-item" wx:if="{{activity.start_time}}">
+          <view class="detail-icon-wrapper">
+            <text class="detail-icon">📅</text>
+          </view>
+          <view class="detail-content">
+            <text class="detail-label">活动时间</text>
+            <text class="detail-value">{{formatTime(activity.start_time)}}</text>
+            <text class="detail-value" wx:if="{{activity.end_time}}">至 {{formatTime(activity.end_time)}}</text>
+          </view>
+        </view>
+        
+        <view class="detail-item" wx:if="{{activity.registration_deadline}}">
+          <view class="detail-icon-wrapper">
+            <text class="detail-icon">⏰</text>
+          </view>
+          <view class="detail-content">
+            <text class="detail-label">报名截止</text>
+            <text class="detail-value">{{formatTime(activity.registration_deadline)}}</text>
+          </view>
+        </view>
+        
+        <view class="detail-item" wx:if="{{activity.location || activity.address}}">
+          <view class="detail-icon-wrapper">
+            <text class="detail-icon">📍</text>
+          </view>
+          <view class="detail-content">
+            <text class="detail-label">活动地点</text>
+            <text class="detail-value" wx:if="{{activity.location}}">{{activity.location}}</text>
+            <text class="detail-value address" wx:if="{{activity.address}}">{{activity.address}}</text>
+          </view>
+        </view>
+        
+        <view class="detail-item" wx:if="{{activity.city}}">
+          <view class="detail-icon-wrapper">
+            <text class="detail-icon">🌆</text>
+          </view>
+          <view class="detail-content">
+            <text class="detail-label">城市</text>
+            <text class="detail-value">{{activity.city}}</text>
+          </view>
+        </view>
+        
+        <view class="detail-item" wx:if="{{activity.max_participants < 999}}">
+          <view class="detail-icon-wrapper">
+            <text class="detail-icon">👥</text>
+          </view>
+          <view class="detail-content">
+            <text class="detail-label">名额限制</text>
+            <text class="detail-value">{{activity.max_participants}}人</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="description-section" wx:if="{{activity.description}}">
+      <view class="section-header">
+        <text class="section-icon">📝</text>
+        <text class="section-title">活动介绍</text>
+      </view>
+      <view class="description-content">
+        <text class="description-text">{{activity.description}}</text>
+      </view>
+    </view>
+
+    <view class="teacher-card">
+      <view class="section-header">
+        <text class="section-icon">👨‍🏫</text>
+        <text class="section-title">主办方</text>
+      </view>
+      
+      <view class="teacher-info-row" bindtap="goToTeacherProfile" data-teacher-id="{{activity.teacher_id}}">
+        <image 
+          class="teacher-avatar" 
+          src="{{activity.teacher ? (activity.teacher.avatar || '/images/default-avatar.png') : '/images/default-avatar.png'}}" 
+          mode="aspectFill" 
+        />
+        <view class="teacher-detail">
+          <view class="teacher-name-row">
+            <text class="teacher-name">{{activity.teacher ? (activity.teacher.nickname || activity.teacher.real_name || '手作老师') : '手作老师'}}</text>
+            <text class="teacher-rating" wx:if="{{activity.teacher && activity.teacher.rating}}">★{{activity.teacher.rating}}</text>
+          </view>
+          <text class="teacher-stats" wx:if="{{activity.teacher && activity.teacher.follower_count > 0}}">
+            {{activity.teacher.follower_count}}粉丝
+          </text>
+        </view>
+        <text class="arrow-icon">›</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="bottom-bar" wx:if="{{!isLoading}}">
+    <view class="bar-actions">
+      <view class="action-icon-wrapper" bindtap="toggleFavorite">
+        <text class="action-icon">{{isFavorited ? '❤️' : '🤍'}}</text>
+        <text class="action-text">{{isFavorited ? '已收藏' : '收藏'}}</text>
+      </view>
+      <view class="action-icon-wrapper" bindtap="shareActivity">
+        <text class="action-icon">📤</text>
+        <text class="action-text">分享</text>
+      </view>
+      <view class="action-icon-wrapper" bindtap="goBackList">
+        <text class="action-icon">🏠</text>
+        <text class="action-text">返回列表</text>
+      </view>
+    </view>
+    <view class="bar-buttons">
+      <button 
+        class="btn-register {{!activity.is_registration_open || isRegistered ? 'disabled' : ''}}" 
+        bindtap="showRegisterDialog"
+        disabled="{{!activity.is_registration_open || isRegistered}}"
+      >
+        {{isRegistered ? '已报名' : (activity.is_registration_open ? '立即报名' : '报名截止')}}
+      </button>
+    </view>
+  </view>
+
+  <view class="register-mask" wx:if="{{showRegisterDialog}}" catchtap="hideRegisterDialog">
+    <view class="register-dialog" catchtap="preventBubble">
+      <view class="dialog-header">
+        <text class="dialog-title">活动报名</text>
+        <text class="dialog-close" bindtap="hideRegisterDialog">×</text>
+      </view>
+      
+      <view class="dialog-content">
+        <view class="form-item">
+          <text class="form-label">姓名 <text class="required">*</text></text>
+          <input 
+            class="form-input" 
+            type="text" 
+            placeholder="请输入您的姓名" 
+            value="{{registerForm.name}}"
+            bindinput="onRegisterInput"
+            data-field="name"
+          />
+        </view>
+        
+        <view class="form-item">
+          <text class="form-label">手机号 <text class="required">*</text></text>
+          <input 
+            class="form-input" 
+            type="number" 
+            placeholder="请输入您的手机号" 
+            value="{{registerForm.phone}}"
+            bindinput="onRegisterInput"
+            data-field="phone"
+            maxlength="11"
+          />
+        </view>
+        
+        <view class="form-item">
+          <text class="form-label">备注</text>
+          <textarea 
+            class="form-textarea" 
+            placeholder="请输入备注信息（选填）" 
+            value="{{registerForm.remark}}"
+            bindinput="onRegisterInput"
+            data-field="remark"
+            maxlength="200"
+          />
+        </view>
+      </view>
+      
+      <view class="dialog-footer">
+        <button class="btn-cancel" bindtap="hideRegisterDialog">取消</button>
+        <button class="btn-confirm" bindtap="submitRegistration">确认报名</button>
+      </view>
+    </view>
+  </view>
+</view>

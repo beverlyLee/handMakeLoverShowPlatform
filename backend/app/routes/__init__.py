@@ -11,9 +11,10 @@ from app.routes.search import search_bp
 from app.routes.specialties import specialty_bp
 from app.routes.promotions import promotion_bp
 from app.routes.upload import upload_bp
+from app.routes.activities import activity_bp
 
 __all__ = [
     'main_bp', 'auth_bp', 'product_bp', 'order_bp', 'user_bp',
     'message_bp', 'review_bp', 'cart_bp', 'favorite_bp', 'search_bp',
-    'specialty_bp', 'promotion_bp', 'upload_bp'
+    'specialty_bp', 'promotion_bp', 'upload_bp', 'activity_bp'
 ]

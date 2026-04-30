@@ -84,9 +84,13 @@
             <text class="btn-icon">💬</text>
             <text class="btn-text">咨询</text>
           </button>
+          <button wx:if="{{isOwner}}" class="action-btn action-btn-activity" bindtap="goToCreateActivity">
+            <text class="btn-icon">🎉</text>
+            <text class="btn-text">发布活动</text>
+          </button>
           <button wx:if="{{isOwner}}" class="action-btn action-btn-manage" bindtap="goToEditInfo">
             <text class="btn-icon">✏️</text>
-            <text class="btn-text">修改入驻信息</text>
+            <text class="btn-text">入驻信息</text>
           </button>
           <button wx:if="{{isOwner}}" class="action-btn action-btn-stats" bindtap="goToStats">
             <text class="btn-icon">📊</text>
@@ -124,6 +128,13 @@
           data-tab="products"
         >
           <text class="tab-text">作品 ({{productsTotal || 0}})</text>
+        </view>
+        <view 
+          class="tab-item {{currentTab === 'activities' ? 'active' : ''}}" 
+          bindtap="switchTab" 
+          data-tab="activities"
+        >
+          <text class="tab-text">活动 ({{activitiesTotal || 0}})</text>
         </view>
         <view 
           class="tab-item {{currentTab === 'reviews' ? 'active' : ''}}" 
@@ -418,6 +429,79 @@
 
           <view class="no-more" wx:if="{{!productsHasMore && products.length > 0 && !productsLoading}}">
             <text class="no-more-text">没有更多了</text>
+          </view>
+        </view>
+
+        <view class="activities-tab" wx:if="{{currentTab === 'activities'}}">
+          <view class="empty-state" wx:if="{{!isOwner}}">
+            <text class="empty-icon">🔒</text>
+            <text class="empty-text">仅老师本人可见</text>
+            <text class="empty-desc">这是老师管理自己发布活动的专属区域</text>
+          </view>
+
+          <view wx:else>
+            <view class="activities-list" wx:if="{{activities.length > 0}}">
+              <view 
+                wx:for="{{activities}}" 
+                wx:key="id" 
+                class="activity-card"
+                bindtap="goToActivityDetail"
+                data-id="{{item.id}}"
+              >
+                <view class="activity-cover-wrapper">
+                  <image class="activity-cover" src="{{item.cover_image || '/images/default-avatar.png'}}" mode="aspectFill" />
+                  <view class="activity-tag-overlay">
+                    <text class="activity-craft-tag">{{item.craft_type}}</text>
+                  </view>
+                  <view class="activity-status-tag" wx:if="{{item.status}}">
+                    <text class="status-text">{{item.status === 'active' ? '进行中' : item.status === 'draft' ? '草稿' : '已结束'}}</text>
+                  </view>
+                </view>
+                <view class="activity-info">
+                  <text class="activity-title" lines="2">{{item.title}}</text>
+                  <view class="activity-meta-row">
+                    <text class="activity-type-tag">{{item.activity_type}}</text>
+                    <text class="activity-price">¥{{item.price}}</text>
+                  </view>
+                  <view class="activity-detail-row">
+                    <text class="detail-icon">📅</text>
+                    <text class="detail-text">{{item.start_time_display || item.start_time}}</text>
+                  </view>
+                  <view class="activity-detail-row" wx:if="{{item.location}}">
+                    <text class="detail-icon">📍</text>
+                    <text class="detail-text">{{item.location}}</text>
+                  </view>
+                  <view class="activity-stats-row">
+                    <view class="stat-item-mini">
+                      <text class="stat-num">{{item.current_participants || 0}}</text>
+                      <text class="stat-label">已报名</text>
+                    </view>
+                    <view class="stat-item-mini">
+                      <text class="stat-num">{{item.max_participants || 0}}</text>
+                      <text class="stat-label">最大名额</text>
+                    </view>
+                    <view class="stat-item-mini">
+                      <text class="stat-num">{{item.view_count || 0}}</text>
+                      <text class="stat-label">浏览量</text>
+                    </view>
+                  </view>
+                </view>
+              </view>
+            </view>
+
+            <view class="empty-state" wx:elif="{{!activitiesLoading && activities.length === 0}}">
+              <text class="empty-icon">🎉</text>
+              <text class="empty-text">暂无活动</text>
+              <text class="empty-desc">您还没有发布任何活动</text>
+            </view>
+
+            <view class="load-more" wx:if="{{activitiesLoading}}">
+              <text class="load-more-text">加载中...</text>
+            </view>
+
+            <view class="no-more" wx:if="{{!activitiesHasMore && activities.length > 0 && !activitiesLoading}}">
+              <text class="no-more-text">没有更多了</text>
+            </view>
           </view>
         </view>
 

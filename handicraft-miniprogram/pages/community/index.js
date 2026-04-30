@@ -1,19 +1,40 @@
-const { getHotProducts, getNewProducts } = require('../../api/products');
-const { batchCheckLikeStatus } = require('../../api/favorites');
-const { showToast, getFullImageUrl, processProductImages, DEFAULT_IMAGE } = require('../../utils/util');
-const { getToken } = require('../../utils/storage');
+const { 
+  getActivityTypes, 
+  getLatestActivities, 
+  getActivities 
+} = require('../../api/activities');
+const { showToast, DEFAULT_IMAGE, formatDateTime } = require('../../utils/util');
 
 Page({
   data: {
-    featuredProducts: [],
+    defaultImage: DEFAULT_IMAGE,
+    
+    bannerActivities: [],
+    currentBannerIndex: 0,
+    autoplayInterval: 3000,
+    
+    craftTypes: [],
+    activityTypes: [],
+    selectedCraftType: '全部',
+    selectedActivityType: '全部',
+    
+    activities: [],
+    total: 0,
+    page: 1,
+    size: 10,
+    hasNext: true,
+    
     isLoading: false,
     isRefreshing: false,
-    defaultImage: DEFAULT_IMAGE
+    isLoadingMore: false,
+    showEmpty: false,
+    
+    showTypeTabs: false
   },
 
   onLoad() {
     console.log('手工圈页面加载完成');
-    this.loadFeaturedProducts();
+    this.initPage();
   },
 
   onReady() {
@@ -25,7 +46,6 @@ Page({
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setSelected(2);
     }
-    this.refreshLikeStatus();
   },
 
   onHide() {
@@ -37,171 +57,226 @@ Page({
   },
 
   onPullDownRefresh() {
-    this.setData({
-      isRefreshing: true
-    });
-    this.loadFeaturedProducts().then(() => {
+    this.setData({ isRefreshing: true });
+    this.refreshData().then(() => {
       wx.stopPullDownRefresh();
       this.setData({ isRefreshing: false });
     });
   },
 
-  async loadFeaturedProducts() {
-    if (this.data.isLoading) return;
+  onReachBottom() {
+    if (this.data.hasNext && !this.data.isLoadingMore) {
+      this.loadMoreActivities();
+    }
+  },
 
-    this.setData({ isLoading: true });
+  async initPage() {
+    try {
+      await this.loadActivityTypes();
+      await this.loadBannerActivities();
+      await this.loadActivities(true);
+    } catch (error) {
+      console.error('页面初始化失败:', error);
+    }
+  },
+
+  async refreshData() {
+    try {
+      await this.loadBannerActivities();
+      await this.loadActivities(true);
+    } catch (error) {
+      console.error('刷新数据失败:', error);
+    }
+  },
+
+  async loadActivityTypes() {
+    try {
+      const result = await getActivityTypes();
+      if (result) {
+        const craftTypes = ['全部', ...(result.craft_types || [])];
+        const activityTypes = ['全部', ...(result.activity_types || [])];
+        this.setData({
+          craftTypes,
+          activityTypes
+        });
+      }
+    } catch (error) {
+      console.error('加载活动类型失败:', error);
+      this.setData({
+        craftTypes: ['全部', '编织', '陶艺', '刺绣', '皮具', '其他'],
+        activityTypes: ['全部', '线下体验', '线上课程', '讲座', '工作坊', '其他']
+      });
+    }
+  },
+
+  async loadBannerActivities() {
+    try {
+      const result = await getLatestActivities({ limit: 5 });
+      const activities = result || [];
+      
+      this.setData({
+        bannerActivities: activities,
+        currentBannerIndex: 0
+      });
+    } catch (error) {
+      console.error('加载轮播活动失败:', error);
+      this.setData({ bannerActivities: [] });
+    }
+  },
+
+  async loadActivities(isRefresh = false) {
+    if (this.data.isLoading && !isRefresh) return;
+
+    const page = isRefresh ? 1 : this.data.page;
+    const { size, selectedCraftType, selectedActivityType } = this.data;
+
+    this.setData({ 
+      isLoading: true,
+      isLoadingMore: !isRefresh && page > 1
+    });
 
     try {
-      const result = await getHotProducts({ limit: 12 });
-      const products = result || [];
+      const params = { page, size };
       
-      const processedProducts = products.map(product => {
-        const processedProduct = { ...product };
-        
-        if (processedProduct.is_liked === undefined || processedProduct.is_liked === null) {
-          processedProduct.is_liked = false;
-        }
-        
-        if (!processedProduct.cover_image) {
-          if (processedProduct.images && processedProduct.images.length > 0) {
-            processedProduct.cover_image = processedProduct.images[0];
-          } else {
-            processedProduct.cover_image = DEFAULT_IMAGE;
-          }
-        }
-        
-        processedProduct.cover_image = getFullImageUrl(processedProduct.cover_image);
-        
-        if (!processedProduct.images || processedProduct.images.length === 0) {
-          processedProduct.images = [processedProduct.cover_image];
-        } else {
-          processedProduct.images = processedProduct.images.map(img => getFullImageUrl(img));
-        }
-        
-        return processedProduct;
-      });
+      if (selectedCraftType && selectedCraftType !== '全部') {
+        params.craft_type = selectedCraftType;
+      }
+      if (selectedActivityType && selectedActivityType !== '全部') {
+        params.activity_type = selectedActivityType;
+      }
 
-      this.setData({
-        featuredProducts: processedProducts,
-        isLoading: false
-      });
+      const result = await getActivities(params);
+      
+      if (result && result.list) {
+        const activities = isRefresh 
+          ? result.list 
+          : [...this.data.activities, ...result.list];
+        
+        const showEmpty = activities.length === 0;
 
-      this.refreshLikeStatus();
+        this.setData({
+          activities,
+          total: result.total || 0,
+          page: page,
+          hasNext: result.has_next || false,
+          isLoading: false,
+          isLoadingMore: false,
+          showEmpty
+        });
+      }
     } catch (error) {
-      console.error('加载精选作品失败:', error);
-      this.setData({ isLoading: false, isRefreshing: false });
+      console.error('加载活动列表失败:', error);
+      this.setData({ 
+        isLoading: false,
+        isLoadingMore: false,
+        showEmpty: this.data.activities.length === 0
+      });
       showToast('加载失败，请重试');
     }
   },
 
-  async refreshLikeStatus() {
-    const { featuredProducts } = this.data;
-    if (!featuredProducts || featuredProducts.length === 0) return;
+  async loadMoreActivities() {
+    if (this.data.isLoadingMore || !this.data.hasNext) return;
 
-    const token = getToken();
-    if (!token) {
-      console.log('用户未登录，不检查点赞状态');
-      return;
+    const nextPage = this.data.page + 1;
+    this.setData({ page: nextPage });
+    await this.loadActivities(false);
+  },
+
+  onCraftTypeChange(e) {
+    const craftType = e.currentTarget.dataset.type;
+    if (craftType === this.data.selectedCraftType) return;
+
+    this.setData({
+      selectedCraftType: craftType,
+      page: 1,
+      activities: [],
+      hasNext: true
+    });
+    
+    this.loadActivities(true);
+  },
+
+  onActivityTypeChange(e) {
+    const activityType = e.currentTarget.dataset.type;
+    if (activityType === this.data.selectedActivityType) return;
+
+    this.setData({
+      selectedActivityType: activityType,
+      page: 1,
+      activities: [],
+      hasNext: true
+    });
+    
+    this.loadActivities(true);
+  },
+
+  onBannerChange(e) {
+    const current = e.detail.current;
+    this.setData({ currentBannerIndex: current });
+  },
+
+  onBannerClick(e) {
+    const activityId = e.currentTarget.dataset.id;
+    if (activityId) {
+      this.goToActivityDetail(activityId);
     }
-
-    const productIds = featuredProducts.map(product => product.id);
-
-    if (productIds.length === 0) return;
-
-    try {
-      const result = await batchCheckLikeStatus({ product_ids: productIds });
-      if (result && Array.isArray(result)) {
-        const likeStatusMap = {};
-        result.forEach(item => {
-          likeStatusMap[item.product_id] = {
-            is_liked: item.is_liked,
-            like_count: item.like_count,
-            popularity_score: item.popularity_score
-          };
-        });
-
-        const updatedProducts = featuredProducts.map(product => {
-          const likeStatus = likeStatusMap[product.id];
-          if (likeStatus) {
-            return {
-              ...product,
-              is_liked: likeStatus.is_liked,
-              like_count: likeStatus.like_count,
-              popularity_score: likeStatus.popularity_score
-            };
-          }
-          return product;
-        });
-
-        this.setData({
-          featuredProducts: updatedProducts
-        });
-      }
-    } catch (error) {
-      console.error('检查点赞状态失败:', error);
-    }
   },
 
-  goToHotProducts() {
-    wx.switchTab({
-      url: '/pages/products/index'
-    });
+  onActivityCardClick(e) {
+    const activityId = e.currentTarget.dataset.id;
+    this.goToActivityDetail(activityId);
   },
 
-  goToNewProducts() {
-    wx.switchTab({
-      url: '/pages/products/index'
-    });
-  },
-
-  goToCategories() {
-    wx.switchTab({
-      url: '/pages/products/index'
-    });
-  },
-
-  goToProductDetail(e) {
-    const productId = e.currentTarget.dataset.id;
+  goToActivityDetail(activityId) {
     wx.navigateTo({
-      url: `/pages/work-detail/index?id=${productId}`
+      url: `/pages/activity-detail/index?id=${activityId}`
     });
   },
 
-  onImageError(e) {
-    const index = e.currentTarget.dataset.index;
-    const featuredProducts = this.data.featuredProducts;
-    
-    if (featuredProducts && featuredProducts[index]) {
-      featuredProducts[index].cover_image = DEFAULT_IMAGE;
-      this.setData({
-        featuredProducts: featuredProducts
-      });
-    }
+  goToHome() {
+    wx.switchTab({
+      url: '/pages/home/index'
+    });
   },
 
-  onLikeChange(e) {
-    const { index } = e.currentTarget.dataset;
-    const { isLiked, likeCount, popularityScore } = e.detail;
-    
-    const featuredProducts = this.data.featuredProducts;
-    if (featuredProducts && featuredProducts[index]) {
-      featuredProducts[index].is_liked = isLiked;
-      featuredProducts[index].like_count = likeCount;
-      if (popularityScore !== undefined && popularityScore !== null) {
-        featuredProducts[index].heat_score = popularityScore;
-        featuredProducts[index].popularity_score = popularityScore;
-      }
-      this.setData({
-        featuredProducts: featuredProducts
-      });
-    }
+  goToTeacherHome() {
+    wx.switchTab({
+      url: '/pages/teacher-home/index'
+    });
+  },
+
+  goToMyActivities() {
+    wx.navigateTo({
+      url: '/pages/my-activities/index'
+    });
+  },
+
+  toggleTypeTabs() {
+    this.setData({
+      showTypeTabs: !this.data.showTypeTabs
+    });
+  },
+
+  hideTypeTabs() {
+    this.setData({
+      showTypeTabs: false
+    });
   },
 
   preventBubble() {
     return;
   },
 
-  showComingSoon() {
-    showToast('功能开发中，敬请期待');
+  formatPrice(price) {
+    if (price === 0 || price === null || price === undefined) {
+      return '免费';
+    }
+    return `¥${price}`;
+  },
+
+  formatTime(timeStr) {
+    if (!timeStr) return '';
+    return formatDateTime(timeStr, 'MM-DD HH:mm');
   }
 });

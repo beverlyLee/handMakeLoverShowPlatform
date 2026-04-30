@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from app import create_app
 from app.database import db
-from app.models import User, Address, TeacherProfile, Order, OrderItem, Category, Product, Coupon, UserCoupon
+from app.models import User, Address, TeacherProfile, Order, OrderItem, Category, Product, Coupon, UserCoupon, Activity, ActivityRegistration
 from app.config import Config
 
 MOCK_DATA_DIR = os.path.join(os.path.dirname(__file__), 'mock-data')

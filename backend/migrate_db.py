@@ -9,7 +9,8 @@ from app.models import (
     User, Address, TeacherProfile, Order, OrderItem, 
     Category, Product, Specialty, Coupon, UserCoupon,
     Logistics, LogisticsItem, Image,
-    Message, Conversation, ChatMessage, Like
+    Message, Conversation, ChatMessage, Like,
+    Activity, ActivityRegistration
 )
 
 app = create_app()
@@ -127,7 +128,7 @@ def migrate():
         print("\n【1/5】创建新表...")
         print("-"*40)
         
-        new_tables = ['coupons', 'user_coupons', 'logistics', 'logistics_items', 'images', 'messages', 'conversations', 'chat_messages', 'likes']
+        new_tables = ['coupons', 'user_coupons', 'logistics', 'logistics_items', 'images', 'messages', 'conversations', 'chat_messages', 'likes', 'activities', 'activity_registrations']
         for table in new_tables:
             if not check_table_exists(table):
                 print(f"  创建表: {table}")
@@ -261,6 +262,46 @@ def migrate():
                 print(f"\n用户优惠券表已有数据 ({UserCoupon.query.count()} 条)，跳过导入")
         
         migrate_order_addresses()
+        
+        if not Activity.query.first():
+            print("\n开始导入活动数据...")
+            activities_data = load_json_file('activities.json')
+            activities_list = activities_data.get('activities', []) if isinstance(activities_data, dict) else []
+            activity_count = 0
+            
+            for activity_data in activities_list:
+                activity = Activity(
+                    id=activity_data.get('id'),
+                    teacher_id=activity_data.get('teacher_id'),
+                    title=activity_data.get('title'),
+                    description=activity_data.get('description'),
+                    craft_type=activity_data.get('craft_type'),
+                    activity_type=activity_data.get('activity_type'),
+                    start_time=parse_datetime(activity_data.get('start_time')),
+                    end_time=parse_datetime(activity_data.get('end_time')),
+                    registration_deadline=parse_datetime(activity_data.get('registration_deadline')),
+                    location=activity_data.get('location'),
+                    address=activity_data.get('address'),
+                    city=activity_data.get('city'),
+                    price=activity_data.get('price'),
+                    original_price=activity_data.get('original_price'),
+                    max_participants=activity_data.get('max_participants'),
+                    current_participants=activity_data.get('current_participants', 0),
+                    images=activity_data.get('images', []),
+                    cover_image=activity_data.get('cover_image'),
+                    tags=activity_data.get('tags', []),
+                    status=activity_data.get('status', 'active'),
+                    view_count=activity_data.get('view_count', 0),
+                    favorite_count=activity_data.get('favorite_count', 0),
+                    registration_count=activity_data.get('registration_count', 0)
+                )
+                db.session.add(activity)
+                activity_count += 1
+            
+            db.session.commit()
+            print(f"  ✓ 已导入 {activity_count} 个活动")
+        else:
+            print(f"\n活动表已有数据 ({Activity.query.count()} 条)，跳过导入")
         
         print("\n【5/5】初始化消息数据...")
         print("-"*40)
@@ -527,6 +568,8 @@ def migrate():
         print(f"会话数: {Conversation.query.count()}")
         print(f"聊天消息数: {ChatMessage.query.count()}")
         print(f"点赞数: {Like.query.count()}")
+        print(f"活动数: {Activity.query.count()}")
+        print(f"报名记录数: {ActivityRegistration.query.count()}")
 
 if __name__ == '__main__':
     migrate()

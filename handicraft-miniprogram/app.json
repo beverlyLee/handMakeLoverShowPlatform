@@ -21,7 +21,10 @@
     "pages/reviews/index",
     "pages/teacher-reviews/index",
     "pages/teacher-stats/index",
-    "pages/teacher-stats-detail/index"
+    "pages/teacher-stats-detail/index",
+    "pages/activity-detail/index",
+    "pages/my-activities/index",
+    "pages/activity-create/index"
   ],
   "window": {
     "navigationBarBackgroundColor": "#795548",
