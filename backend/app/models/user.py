@@ -13,6 +13,7 @@ class User(db.Model):
     email = db.Column(db.String(120))
     gender = db.Column(db.Integer, default=0)
     password_hash = db.Column(db.String(256))
+    password_salt = db.Column(db.String(64))
     bio = db.Column(db.String(500))
     
     _roles = db.Column('roles', db.Text, default='["customer"]')
@@ -60,6 +61,10 @@ class User(db.Model):
     def has_multiple_roles(self):
         return len(self.roles) > 1
 
+    @property
+    def is_admin(self):
+        return 'admin' in self.roles
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -75,6 +80,7 @@ class User(db.Model):
             'bio': self.bio,
             'is_teacher': self.is_teacher,
             'is_customer': self.is_customer,
+            'is_admin': self.is_admin,
             'has_multiple_roles': self.has_multiple_roles,
             'teacher_info': self.teacher_profile.to_dict() if self.teacher_profile else None,
             'create_time': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None,

@@ -58,6 +58,10 @@ def migrate_database():
                 print(f"✗ 添加列失败 {table_name}.{column_name}: {e}")
                 return False
         
+        print("\n正在检查 users 表:")
+        
+        add_column_if_not_exists('users', 'password_salt VARCHAR(64)')
+        
         print("\n正在检查 orders 表:")
         
         add_column_if_not_exists('orders', 'start_making_time DATETIME')
