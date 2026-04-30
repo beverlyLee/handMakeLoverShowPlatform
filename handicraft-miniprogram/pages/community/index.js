@@ -278,5 +278,23 @@ Page({
   formatTime(timeStr) {
     if (!timeStr) return '';
     return formatDateTime(timeStr, 'MM-DD HH:mm');
+  },
+
+  formatTimeRange(startTime, endTime) {
+    if (!startTime) return '';
+    
+    const startFormatted = this.formatTime(startTime);
+    
+    if (!endTime) {
+      return startFormatted;
+    }
+    
+    const endFormatted = this.formatTime(endTime);
+    
+    if (startFormatted === endFormatted) {
+      return startFormatted;
+    }
+    
+    return `${startFormatted} ~ ${endFormatted}`;
   }
 });

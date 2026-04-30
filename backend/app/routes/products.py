@@ -293,10 +293,11 @@ def create_product():
         rating=5.0
     )
     
-    if data.get('images'):
-        product.images = data.get('images')
-        if len(data.get('images')) > 0:
-            product.cover_image = data.get('images')[0]
+    images = data.get('images')
+    if images and isinstance(images, list):
+        product.images = images
+        if len(images) > 0:
+            product.cover_image = images[0]
     
     if data.get('cover_image'):
         product.cover_image = data.get('cover_image')
@@ -341,10 +342,11 @@ def update_product(product_id):
             else:
                 setattr(product, field, data[field])
     
-    if data.get('images'):
-        product.images = data.get('images')
-        if len(data.get('images')) > 0 and not data.get('cover_image'):
-            product.cover_image = data.get('images')[0]
+    images = data.get('images')
+    if images and isinstance(images, list):
+        product.images = images
+        if len(images) > 0 and not data.get('cover_image'):
+            product.cover_image = images[0]
     
     if data.get('tags'):
         product.tags = data.get('tags')

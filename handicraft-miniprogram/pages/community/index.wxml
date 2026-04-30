@@ -31,7 +31,7 @@
               <text class="banner-type">{{item.craft_type}} · {{item.activity_type}}</text>
               <text class="banner-title">{{item.title}}</text>
               <view class="banner-meta">
-                <text class="meta-item" wx:if="{{item.start_time}}">📅 {{item.start_time}}</text>
+                <text class="meta-item" wx:if="{{item.start_time}}">📅 {{formatTimeRange(item.start_time, item.end_time)}}</text>
                 <text class="meta-item" wx:if="{{item.location}}">📍 {{item.location}}</text>
                 <text class="meta-item price" wx:if="{{item.price > 0}}">¥{{item.price}}</text>
                 <text class="meta-item price free" wx:else>免费</text>
@@ -158,7 +158,7 @@
           <view class="card-meta">
             <view class="meta-row" wx:if="{{item.start_time}}">
               <text class="meta-icon">📅</text>
-              <text class="meta-text">{{formatTime(item.start_time)}}</text>
+              <text class="meta-text">{{formatTimeRange(item.start_time, item.end_time)}}</text>
             </view>
             <view class="meta-row" wx:if="{{item.location}}">
               <text class="meta-icon">📍</text>

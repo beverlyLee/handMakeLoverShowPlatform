@@ -331,6 +331,42 @@ Page({
     return formatDateTime(timeStr, 'MM月DD日 HH:mm:ss');
   },
 
+  formatTimeRange(startTime, endTime) {
+    if (!startTime) return '';
+    
+    const startFormatted = this.formatTime(startTime);
+    
+    if (!endTime) {
+      return startFormatted;
+    }
+    
+    const endFormatted = this.formatTime(endTime);
+    
+    if (startFormatted === endFormatted) {
+      return startFormatted;
+    }
+    
+    return `${startFormatted} 至 ${endFormatted}`;
+  },
+
+  formatShortTimeRange(startTime, endTime) {
+    if (!startTime) return '';
+    
+    const startFormatted = formatDateTime(startTime, 'MM-DD HH:mm');
+    
+    if (!endTime) {
+      return startFormatted;
+    }
+    
+    const endFormatted = formatDateTime(endTime, 'MM-DD HH:mm');
+    
+    if (startFormatted === endFormatted) {
+      return startFormatted;
+    }
+    
+    return `${startFormatted} ~ ${endFormatted}`;
+  },
+
   getRemainingSpots() {
     const { activity } = this.data;
     if (!activity) return 0;

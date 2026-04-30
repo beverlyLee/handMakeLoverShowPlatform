@@ -102,18 +102,25 @@
           </view>
           <view class="detail-content">
             <text class="detail-label">活动时间</text>
-            <text class="detail-value">{{formatTime(activity.start_time)}}</text>
-            <text class="detail-value" wx:if="{{activity.end_time}}">至 {{formatTime(activity.end_time)}}</text>
+            <text class="detail-value">{{formatTimeRange(activity.start_time, activity.end_time)}}</text>
           </view>
         </view>
         
-        <view class="detail-item" wx:if="{{activity.registration_deadline}}">
+        <view class="detail-item" wx:if="{{activity.registration_start_time || activity.registration_deadline}}">
           <view class="detail-icon-wrapper">
             <text class="detail-icon">⏰</text>
           </view>
           <view class="detail-content">
-            <text class="detail-label">报名截止</text>
-            <text class="detail-value">{{formatTime(activity.registration_deadline)}}</text>
+            <text class="detail-label">报名时间</text>
+            <text class="detail-value" wx:if="{{activity.registration_start_time && activity.registration_deadline}}">
+              {{formatTimeRange(activity.registration_start_time, activity.registration_deadline)}}
+            </text>
+            <text class="detail-value" wx:elif="{{activity.registration_start_time}}">
+              {{formatTime(activity.registration_start_time)}} 起
+            </text>
+            <text class="detail-value" wx:elif="{{activity.registration_deadline}}">
+              至 {{formatTime(activity.registration_deadline)}}
+            </text>
           </view>
         </view>
         

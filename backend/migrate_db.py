@@ -279,6 +279,7 @@ def migrate():
                     activity_type=activity_data.get('activity_type'),
                     start_time=parse_datetime(activity_data.get('start_time')),
                     end_time=parse_datetime(activity_data.get('end_time')),
+                    registration_start_time=parse_datetime(activity_data.get('registration_start_time')),
                     registration_deadline=parse_datetime(activity_data.get('registration_deadline')),
                     location=activity_data.get('location'),
                     address=activity_data.get('address'),

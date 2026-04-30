@@ -72,33 +72,25 @@
       </view>
 
       <view class="form-item">
-        <view class="item-label required">活动开始时间</view>
-        <view class="picker-value" bindtap="openTimePicker" data-type="start">
-          <text class="{{displayStartTime ? '' : 'placeholder'}}">
-            {{displayStartTime || '请选择开始时间'}}
+        <view class="item-label required">活动时间</view>
+        <view class="picker-value date-range-picker" bindtap="openRangePicker">
+          <text class="{{displayDateRange ? '' : 'placeholder'}}">
+            {{displayDateRange || '请选择活动时间范围'}}
           </text>
           <text class="picker-arrow">›</text>
         </view>
+        <text class="input-hint">提示：点击选择活动开始和结束时间</text>
       </view>
 
       <view class="form-item">
-        <view class="item-label">活动结束时间</view>
-        <view class="picker-value" bindtap="openTimePicker" data-type="end">
-          <text class="{{displayEndTime ? '' : 'placeholder'}}">
-            {{displayEndTime || '请选择结束时间（可选）'}}
+        <view class="item-label required">报名时间</view>
+        <view class="picker-value date-range-picker" bindtap="openRegistrationRangePicker">
+          <text class="{{displayRegistrationRange ? '' : 'placeholder'}}">
+            {{displayRegistrationRange || '请选择报名时间范围'}}
           </text>
           <text class="picker-arrow">›</text>
         </view>
-      </view>
-
-      <view class="form-item">
-        <view class="item-label required">报名截止时间</view>
-        <view class="picker-value" bindtap="openTimePicker" data-type="deadline">
-          <text class="{{displayDeadline ? '' : 'placeholder'}}">
-            {{displayDeadline || '请选择报名截止时间'}}
-          </text>
-          <text class="picker-arrow">›</text>
-        </view>
+        <text class="input-hint">提示：报名结束时间不能晚于活动开始时间</text>
       </view>
     </view>
 
@@ -253,6 +245,181 @@
     >
       {{submitting ? '发布中...' : '发布活动'}}
     </button>
+  </view>
+
+  <view class="range-picker-mask" wx:if="{{showRangePicker}}" catchtap="closeRangePicker">
+    <view class="range-picker-content" catchtap="">
+      <view class="picker-header">
+        <text class="picker-title">选择活动时间</text>
+        <view class="picker-actions">
+          <text class="picker-cancel" bindtap="closeRangePicker">取消</text>
+          <text class="picker-confirm" bindtap="confirmRangePicker">确定</text>
+        </view>
+      </view>
+      
+      <view class="picker-body">
+        <view class="date-range-section">
+          <view class="date-col">
+            <view class="date-label-wrapper">
+              <text class="date-label required">开始时间</text>
+            </view>
+            <view class="date-pickers">
+              <picker 
+                mode="date" 
+                start="{{minDate}}"
+                end="{{maxDate}}"
+                value="{{rangeStartDate}}"
+                bindchange="onRangeStartDateChange"
+              >
+                <view class="picker-value small">
+                  <text>{{rangeStartDate}}</text>
+                  <text class="picker-arrow">›</text>
+                </view>
+              </picker>
+              <picker 
+                mode="time" 
+                value="{{rangeStartTime}}"
+                bindchange="onRangeStartTimeChange"
+              >
+                <view class="picker-value small">
+                  <text>{{rangeStartTime}}</text>
+                  <text class="picker-arrow">›</text>
+                </view>
+              </picker>
+            </view>
+          </view>
+
+          <view class="range-divider">
+            <view class="divider-line"></view>
+            <text class="divider-text">至</text>
+            <view class="divider-line"></view>
+          </view>
+
+          <view class="date-col">
+            <view class="date-label-wrapper">
+              <text class="date-label required">结束时间</text>
+            </view>
+            <view class="date-pickers">
+              <picker 
+                mode="date" 
+                start="{{minDate}}"
+                end="{{maxDate}}"
+                value="{{rangeEndDate}}"
+                bindchange="onRangeEndDateChange"
+              >
+                <view class="picker-value small">
+                  <text>{{rangeEndDate}}</text>
+                  <text class="picker-arrow">›</text>
+                </view>
+              </picker>
+              <picker 
+                mode="time" 
+                value="{{rangeEndTime}}"
+                bindchange="onRangeEndTimeChange"
+              >
+                <view class="picker-value small">
+                  <text>{{rangeEndTime}}</text>
+                  <text class="picker-arrow">›</text>
+                </view>
+              </picker>
+            </view>
+          </view>
+        </view>
+        
+        <view class="picker-preview">
+          <text class="preview-label">已选择：</text>
+          <text class="preview-value">{{rangeStartDate}} {{rangeStartTime}} ~ {{rangeEndDate}} {{rangeEndTime}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="range-picker-mask" wx:if="{{showRegistrationRangePicker}}" catchtap="closeRegistrationRangePicker">
+    <view class="range-picker-content" catchtap="">
+      <view class="picker-header">
+        <text class="picker-title">选择报名时间</text>
+        <view class="picker-actions">
+          <text class="picker-cancel" bindtap="closeRegistrationRangePicker">取消</text>
+          <text class="picker-confirm" bindtap="confirmRegistrationRangePicker">确定</text>
+        </view>
+      </view>
+      
+      <view class="picker-body">
+        <view class="date-range-section">
+          <view class="date-col">
+            <view class="date-label-wrapper">
+              <text class="date-label required">报名开始</text>
+            </view>
+            <view class="date-pickers">
+              <picker 
+                mode="date" 
+                start="{{minDate}}"
+                end="{{maxDate}}"
+                value="{{registrationRangeStartDate}}"
+                bindchange="onRegistrationRangeStartDateChange"
+              >
+                <view class="picker-value small">
+                  <text>{{registrationRangeStartDate}}</text>
+                  <text class="picker-arrow">›</text>
+                </view>
+              </picker>
+              <picker 
+                mode="time" 
+                value="{{registrationRangeStartTime}}"
+                bindchange="onRegistrationRangeStartTimeChange"
+              >
+                <view class="picker-value small">
+                  <text>{{registrationRangeStartTime}}</text>
+                  <text class="picker-arrow">›</text>
+                </view>
+              </picker>
+            </view>
+          </view>
+
+          <view class="range-divider">
+            <view class="divider-line"></view>
+            <text class="divider-text">至</text>
+            <view class="divider-line"></view>
+          </view>
+
+          <view class="date-col">
+            <view class="date-label-wrapper">
+              <text class="date-label required">报名结束</text>
+            </view>
+            <view class="date-pickers">
+              <picker 
+                mode="date" 
+                start="{{minDate}}"
+                end="{{maxDate}}"
+                value="{{registrationRangeEndDate}}"
+                bindchange="onRegistrationRangeEndDateChange"
+              >
+                <view class="picker-value small">
+                  <text>{{registrationRangeEndDate}}</text>
+                  <text class="picker-arrow">›</text>
+                </view>
+              </picker>
+              <picker 
+                mode="time" 
+                value="{{registrationRangeEndTime}}"
+                bindchange="onRegistrationRangeEndTimeChange"
+              >
+                <view class="picker-value small">
+                  <text>{{registrationRangeEndTime}}</text>
+                  <text class="picker-arrow">›</text>
+                </view>
+              </picker>
+            </view>
+          </view>
+        </view>
+        
+        <view class="picker-preview">
+          <text class="preview-label">已选择：</text>
+          <text class="preview-value">{{registrationRangeStartDate}} {{registrationRangeStartTime}} ~ {{registrationRangeEndDate}} {{registrationRangeEndTime}}</text>
+        </view>
+        <text class="input-hint">提示：报名结束时间不能晚于活动开始时间</text>
+      </view>
+    </view>
   </view>
 
   <view class="time-picker-mask" wx:if="{{showTimePicker}}" catchtap="closeTimePicker">

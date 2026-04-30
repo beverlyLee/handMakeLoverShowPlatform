@@ -167,6 +167,7 @@ def create_activity():
         activity_type=data.get('activity_type', '其他'),
         start_time=parse_datetime(data.get('start_time')),
         end_time=parse_datetime(data.get('end_time')),
+        registration_start_time=parse_datetime(data.get('registration_start_time')),
         registration_deadline=parse_datetime(data.get('registration_deadline')),
         location=data.get('location'),
         address=data.get('address'),
@@ -178,10 +179,11 @@ def create_activity():
         status=data.get('status', 'active')
     )
     
-    if data.get('images'):
-        activity.images = data.get('images')
-        if len(data.get('images')) > 0:
-            activity.cover_image = data.get('images')[0]
+    images = data.get('images')
+    if images and isinstance(images, list):
+        activity.images = images
+        if len(images) > 0:
+            activity.cover_image = images[0]
     
     if data.get('cover_image'):
         activity.cover_image = data.get('cover_image')
@@ -229,13 +231,16 @@ def update_activity(activity_id):
         activity.start_time = parse_datetime(data.get('start_time'))
     if data.get('end_time'):
         activity.end_time = parse_datetime(data.get('end_time'))
+    if data.get('registration_start_time'):
+        activity.registration_start_time = parse_datetime(data.get('registration_start_time'))
     if data.get('registration_deadline'):
         activity.registration_deadline = parse_datetime(data.get('registration_deadline'))
     
-    if data.get('images'):
-        activity.images = data.get('images')
-        if len(data.get('images')) > 0 and not data.get('cover_image'):
-            activity.cover_image = data.get('images')[0]
+    images = data.get('images')
+    if images and isinstance(images, list):
+        activity.images = images
+        if len(images) > 0 and not data.get('cover_image'):
+            activity.cover_image = images[0]
     
     if data.get('tags'):
         activity.tags = data.get('tags')

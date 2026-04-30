@@ -21,6 +21,7 @@ class Activity(db.Model):
     
     start_time = db.Column(db.DateTime)
     end_time = db.Column(db.DateTime)
+    registration_start_time = db.Column(db.DateTime)
     registration_deadline = db.Column(db.DateTime)
     
     location = db.Column(db.String(200))
@@ -86,6 +87,8 @@ class Activity(db.Model):
     def is_registration_open(self):
         if self.status != 'active':
             return False
+        if self.registration_start_time and datetime.utcnow() < self.registration_start_time:
+            return False
         if self.registration_deadline and datetime.utcnow() > self.registration_deadline:
             return False
         if self.current_participants >= self.max_participants:
@@ -103,6 +106,7 @@ class Activity(db.Model):
             'activity_type': self.activity_type,
             'start_time': self.start_time.strftime('%Y-%m-%d %H:%M:%S') if self.start_time else None,
             'end_time': self.end_time.strftime('%Y-%m-%d %H:%M:%S') if self.end_time else None,
+            'registration_start_time': self.registration_start_time.strftime('%Y-%m-%d %H:%M:%S') if self.registration_start_time else None,
             'registration_deadline': self.registration_deadline.strftime('%Y-%m-%d %H:%M:%S') if self.registration_deadline else None,
             'location': self.location,
             'address': self.address,
