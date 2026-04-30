@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "数据统计",
+  "usingComponents": {
+    "star-rating": "/components/star-rating/index",
+    "like-button": "/components/like-button/index"
+  }
+}

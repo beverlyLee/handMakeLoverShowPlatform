@@ -1,0 +1,271 @@
+<view class="stats-container">
+  <view class="loading-container" wx:if="{{isLoading}}">
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <view class="stats-content" wx:else>
+    <view class="time-range-section">
+      <scroll-view class="time-range-scroll" scroll-x>
+        <view class="time-range-list">
+          <view 
+            wx:for="{{timeRanges}}" 
+            wx:key="key"
+            class="time-range-item {{currentTimeRange === item.key ? 'active' : ''}}"
+            bindtap="switchTimeRange"
+            data-range="{{item.key}}"
+          >
+            <text class="time-range-text">{{item.label}}</text>
+          </view>
+        </view>
+      </scroll-view>
+    </view>
+
+    <view class="overview-section">
+      <view class="overview-grid">
+        <view class="overview-card card-products" bindtap="goToDetailPage" data-type="products">
+          <view class="card-header">
+            <text class="card-icon">🎨</text>
+            <text class="card-label">作品</text>
+            <text class="card-arrow">›</text>
+          </view>
+          <view class="card-main">
+            <text class="card-value">{{overviewStats.products.total}}</text>
+            <text class="card-unit">个作品</text>
+          </view>
+          <view class="card-stats-row">
+            <view class="stat-item">
+              <text class="stat-label">上期</text>
+              <text class="stat-value">{{overviewStats.products.lastPeriod}}</text>
+            </view>
+            <view class="stat-item">
+              <text class="stat-label">本期</text>
+              <text class="stat-value">{{overviewStats.products.thisPeriod}}</text>
+            </view>
+            <view class="stat-item">
+              <text class="stat-label">同比</text>
+              <text class="stat-value {{overviewStats.products.yoy >= 0 ? 'up' : 'down'}}">
+                {{overviewStats.products.yoy >= 0 ? '+' : ''}}{{overviewStats.products.yoy}}%
+              </text>
+            </view>
+            <view class="stat-item">
+              <text class="stat-label">环比</text>
+              <text class="stat-value {{overviewStats.products.mom >= 0 ? 'up' : 'down'}}">
+                {{overviewStats.products.mom >= 0 ? '+' : ''}}{{overviewStats.products.mom}}%
+              </text>
+            </view>
+          </view>
+        </view>
+
+        <view class="overview-card card-orders" bindtap="goToDetailPage" data-type="orders">
+          <view class="card-header">
+            <text class="card-icon">📦</text>
+            <text class="card-label">订单</text>
+            <text class="card-arrow">›</text>
+          </view>
+          <view class="card-main">
+            <text class="card-value">{{overviewStats.orders.total}}</text>
+            <text class="card-unit">笔订单</text>
+          </view>
+          <view class="card-amount-row">
+            <text class="amount-label">成交额</text>
+            <text class="amount-value">¥{{overviewStats.orders.totalAmount}}</text>
+          </view>
+          <view class="card-stats-row">
+            <view class="stat-item">
+              <text class="stat-label">上期</text>
+              <text class="stat-value">{{overviewStats.orders.lastPeriod}}</text>
+            </view>
+            <view class="stat-item">
+              <text class="stat-label">本期</text>
+              <text class="stat-value">{{overviewStats.orders.thisPeriod}}</text>
+            </view>
+            <view class="stat-item">
+              <text class="stat-label">同比</text>
+              <text class="stat-value {{overviewStats.orders.yoy >= 0 ? 'up' : 'down'}}">
+                {{overviewStats.orders.yoy >= 0 ? '+' : ''}}{{overviewStats.orders.yoy}}%
+              </text>
+            </view>
+            <view class="stat-item">
+              <text class="stat-label">环比</text>
+              <text class="stat-value {{overviewStats.orders.mom >= 0 ? 'up' : 'down'}}">
+                {{overviewStats.orders.mom >= 0 ? '+' : ''}}{{overviewStats.orders.mom}}%
+              </text>
+            </view>
+          </view>
+        </view>
+
+        <view class="overview-card card-reviews" bindtap="goToDetailPage" data-type="reviews">
+          <view class="card-header">
+            <text class="card-icon">📝</text>
+            <text class="card-label">评价</text>
+            <text class="card-arrow">›</text>
+          </view>
+          <view class="card-main">
+            <text class="card-value">{{overviewStats.reviews.avgRating}}</text>
+            <text class="card-unit">平均分</text>
+          </view>
+          <view class="card-rating-row">
+            <view class="rating-item">
+              <text class="rating-count">{{overviewStats.reviews.total}}</text>
+              <text class="rating-label">条评价</text>
+            </view>
+            <view class="rating-item">
+              <text class="rating-count good">{{overviewStats.reviews.goodCount}}</text>
+              <text class="rating-label">好评</text>
+            </view>
+          </view>
+          <view class="card-stats-row">
+            <view class="stat-item">
+              <text class="stat-label">上期</text>
+              <text class="stat-value">{{overviewStats.reviews.lastPeriod}}</text>
+            </view>
+            <view class="stat-item">
+              <text class="stat-label">本期</text>
+              <text class="stat-value">{{overviewStats.reviews.thisPeriod}}</text>
+            </view>
+            <view class="stat-item">
+              <text class="stat-label">同比</text>
+              <text class="stat-value {{overviewStats.reviews.yoy >= 0 ? 'up' : 'down'}}">
+                {{overviewStats.reviews.yoy >= 0 ? '+' : ''}}{{overviewStats.reviews.yoy}}%
+              </text>
+            </view>
+            <view class="stat-item">
+              <text class="stat-label">环比</text>
+              <text class="stat-value {{overviewStats.reviews.mom >= 0 ? 'up' : 'down'}}">
+                {{overviewStats.reviews.mom >= 0 ? '+' : ''}}{{overviewStats.reviews.mom}}%
+              </text>
+            </view>
+          </view>
+        </view>
+
+        <view class="overview-card card-likes" bindtap="goToDetailPage" data-type="likes">
+          <view class="card-header">
+            <text class="card-icon">❤️</text>
+            <text class="card-label">点赞</text>
+            <text class="card-arrow">›</text>
+          </view>
+          <view class="card-main">
+            <text class="card-value">{{overviewStats.likes.total}}</text>
+            <text class="card-unit">次点赞</text>
+          </view>
+          <view class="card-stats-row">
+            <view class="stat-item">
+              <text class="stat-label">上期</text>
+              <text class="stat-value">{{overviewStats.likes.lastPeriod}}</text>
+            </view>
+            <view class="stat-item">
+              <text class="stat-label">本期</text>
+              <text class="stat-value">{{overviewStats.likes.thisPeriod}}</text>
+            </view>
+            <view class="stat-item">
+              <text class="stat-label">同比</text>
+              <text class="stat-value {{overviewStats.likes.yoy >= 0 ? 'up' : 'down'}}">
+                {{overviewStats.likes.yoy >= 0 ? '+' : ''}}{{overviewStats.likes.yoy}}%
+              </text>
+            </view>
+            <view class="stat-item">
+              <text class="stat-label">环比</text>
+              <text class="stat-value {{overviewStats.likes.mom >= 0 ? 'up' : 'down'}}">
+                {{overviewStats.likes.mom >= 0 ? '+' : ''}}{{overviewStats.likes.mom}}%
+              </text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="top3-section" wx:if="{{top3Sales.length > 0 || top3Popular.length > 0 || top3Reviews.length > 0}}">
+      <view class="section-header">
+        <text class="section-title">🔥 热门作品排行榜</text>
+      </view>
+
+      <view class="top3-card" wx:if="{{top3Sales.length > 0}}">
+        <view class="top3-header">
+          <text class="top3-icon">🏆</text>
+          <text class="top3-title">销量最高 TOP3</text>
+        </view>
+        <view class="top3-list">
+          <view 
+            wx:for="{{top3Sales}}" 
+            wx:key="id" 
+            class="top3-item rank-{{index + 1}}"
+            bindtap="goToProductDetail"
+            data-id="{{item.id}}"
+          >
+            <view class="top3-rank">
+              <text class="rank-number">{{index + 1}}</text>
+            </view>
+            <image class="top3-cover" src="{{item.cover_image}}" mode="aspectFill" />
+            <view class="top3-info">
+              <text class="top3-name" lines="1">{{item.title}}</text>
+              <view class="top3-meta">
+                <text class="top3-price">¥{{item.price}}</text>
+                <text class="top3-sales">销量 {{item.sales_count || 0}}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <view class="top3-card" wx:if="{{top3Popular.length > 0}}">
+        <view class="top3-header">
+          <text class="top3-icon">❤️</text>
+          <text class="top3-title">人气最旺 TOP3</text>
+        </view>
+        <view class="top3-list">
+          <view 
+            wx:for="{{top3Popular}}" 
+            wx:key="id" 
+            class="top3-item rank-{{index + 1}}"
+            bindtap="goToProductDetail"
+            data-id="{{item.id}}"
+          >
+            <view class="top3-rank">
+              <text class="rank-number">{{index + 1}}</text>
+            </view>
+            <image class="top3-cover" src="{{item.cover_image}}" mode="aspectFill" />
+            <view class="top3-info">
+              <text class="top3-name" lines="1">{{item.title}}</text>
+              <view class="top3-meta">
+                <text class="top3-price">¥{{item.price}}</text>
+                <text class="top3-likes">点赞 {{item.like_count || 0}}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <view class="top3-card" wx:if="{{top3Reviews.length > 0}}">
+        <view class="top3-header">
+          <text class="top3-icon">⭐</text>
+          <text class="top3-title">好评最多 TOP3</text>
+        </view>
+        <view class="top3-list">
+          <view 
+            wx:for="{{top3Reviews}}" 
+            wx:key="id" 
+            class="top3-item rank-{{index + 1}}"
+            bindtap="goToProductDetail"
+            data-id="{{item.id}}"
+          >
+            <view class="top3-rank">
+              <text class="rank-number">{{index + 1}}</text>
+            </view>
+            <image class="top3-cover" src="{{item.cover_image}}" mode="aspectFill" />
+            <view class="top3-info">
+              <text class="top3-name" lines="1">{{item.title}}</text>
+              <view class="top3-meta">
+                <text class="top3-price">¥{{item.price}}</text>
+                <text class="top3-rating">评分 {{item.formattedRating}}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="stats-tips">
+      <text class="tips-text">💡 点击上方卡片可查看详细数据和趋势图表</text>
+    </view>
+  </view>
+</view>

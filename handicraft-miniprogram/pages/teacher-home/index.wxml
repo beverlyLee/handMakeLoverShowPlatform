@@ -88,6 +88,10 @@
             <text class="btn-icon">✏️</text>
             <text class="btn-text">修改入驻信息</text>
           </button>
+          <button wx:if="{{isOwner}}" class="action-btn action-btn-stats" bindtap="goToStats">
+            <text class="btn-icon">📊</text>
+            <text class="btn-text">数据统计</text>
+          </button>
         </view>
       </view>
     </view>

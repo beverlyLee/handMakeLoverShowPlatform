@@ -19,7 +19,9 @@
     "pages/order-review/index",
     "pages/review-detail/index",
     "pages/reviews/index",
-    "pages/teacher-reviews/index"
+    "pages/teacher-reviews/index",
+    "pages/teacher-stats/index",
+    "pages/teacher-stats-detail/index"
   ],
   "window": {
     "navigationBarBackgroundColor": "#795548",

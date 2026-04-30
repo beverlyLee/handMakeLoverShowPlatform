@@ -1,0 +1,346 @@
+<view class="detail-container">
+  <view class="loading-container" wx:if="{{isLoading}}">
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <view class="detail-content" wx:else>
+    <view class="page-header">
+      <text class="page-title">{{pageTitle}}</text>
+      <text class="page-subtitle">{{timeRangeLabel}}数据</text>
+    </view>
+
+    <view class="chart-type-section">
+      <view class="chart-type-tabs">
+        <view 
+          wx:for="{{chartTypes}}" 
+          wx:key="key"
+          class="chart-type-tab {{currentChartType === item.key ? 'active' : ''}}"
+          bindtap="switchChartType"
+          data-type="{{item.key}}"
+        >
+          <text class="chart-type-text">{{item.label}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="chart-section">
+      <view class="section-header">
+        <text class="section-title">趋势分析</text>
+      </view>
+
+      <view class="chart-container" wx:if="{{currentChartType === 'line' || currentChartType === 'bar'}}">
+        <view class="trend-chart">
+          <view class="trend-bars">
+            <view 
+              wx:for="{{trendData}}" 
+              wx:key="date" 
+              class="trend-bar-item {{currentChartType === 'line' ? 'line-mode' : ''}}"
+              style="--bar-height: {{item.barHeight}}%; --prev-bar-height: {{index > 0 ? trendData[index - 1].barHeight : item.barHeight}}%;"
+            >
+              <view class="trend-line-connector" wx:if="{{currentChartType === 'line' && index > 0}}"></view>
+              <view class="trend-bar-wrapper">
+                <view 
+                  class="trend-bar {{currentChartType === 'line' ? 'trend-dot trend-dot-' + currentType : 'trend-bar-' + currentType}}" 
+                  style="height: {{item.barHeight}}%;"
+                >
+                  <text class="trend-bar-value" wx:if="{{currentChartType !== 'line'}}">{{item.value}}</text>
+                </view>
+              </view>
+              <text class="trend-bar-label">{{item.date}}</text>
+              <text class="trend-bar-amount" wx:if="{{currentType === 'orders' && item.amount > 0}}">¥{{item.amount}}</text>
+            </view>
+          </view>
+          <view class="trend-legend">
+            <view class="legend-item">
+              <view class="legend-color legend-{{currentType}}"></view>
+              <text class="legend-text">{{legendText}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <view class="chart-container" wx:if="{{currentChartType === 'pie'}}">
+        <view class="pie-chart">
+          <view class="pie-visual" catchtap="closePieDetail">
+            <view class="pie-center"></view>
+            <view class="pie-slice-wrapper">
+              <view 
+                wx:for="{{pieData}}" 
+                wx:key="name"
+                class="pie-slice {{selectedPieIndex === index ? 'selected' : ''}}"
+                catchtap="selectPieItem"
+                data-index="{{index}}"
+                style="transform: rotate({{item.rotateDeg}}deg) skewY({{90 - (item.skewDeg / 2)}}deg); background-color: {{item.color}};"
+              ></view>
+            </view>
+          </view>
+          <view class="pie-legend">
+            <view 
+              wx:for="{{pieData}}" 
+              wx:key="name" 
+              class="pie-legend-item {{selectedPieIndex === index ? 'selected' : ''}}"
+              bindtap="selectPieItem"
+              data-index="{{index}}"
+            >
+              <view class="legend-color" style="background-color: {{item.color}};"></view>
+              <text class="legend-name">{{item.name}}</text>
+              <text class="legend-value">{{item.value}}%</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <view class="chart-empty" wx:if="{{trendData.length === 0 && pieData.length === 0}}">
+        <text class="empty-icon">📈</text>
+        <text class="empty-text">暂无趋势数据</text>
+      </view>
+    </view>
+
+    <view class="pie-detail-popup" wx:if="{{pieDetailVisible && selectedPieIndex !== -1}}">
+      <view class="popup-mask" bindtap="closePieDetail"></view>
+      <view class="popup-content">
+        <view class="popup-header">
+          <text class="popup-title">{{pieData[selectedPieIndex].name}} - 详情统计</text>
+          <view class="popup-close" bindtap="closePieDetail">
+            <text class="close-icon">✕</text>
+          </view>
+        </view>
+        <view class="popup-body">
+          <view class="stat-row">
+            <text class="stat-label">占比</text>
+            <text class="stat-value highlight">{{pieData[selectedPieIndex].value}}%</text>
+          </view>
+          <view class="stat-row">
+            <text class="stat-label">数量</text>
+            <text class="stat-value">{{pieData[selectedPieIndex].count}}</text>
+          </view>
+          <view class="stat-row" wx:if="{{pieData[selectedPieIndex].description}}">
+            <text class="stat-label">说明</text>
+            <text class="stat-value desc">{{pieData[selectedPieIndex].description}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="detail-section">
+      <view class="section-header">
+        <text class="section-title">数据明细</text>
+        <view class="detail-actions">
+          <view class="action-btn" bindtap="openSortModal">
+            <text class="action-icon">📊</text>
+            <text class="action-text">排序</text>
+          </view>
+          <view class="action-btn" bindtap="openFilterModal">
+            <text class="action-icon">🔍</text>
+            <text class="action-text">筛选</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="period-toggle-section" wx:if="{{detailListLastPeriod.length > 0 || currentType === 'orders'}}">
+        <view class="period-toggle {{showThisPeriod ? 'active' : ''}}" bindtap="togglePeriod" data-period="this">
+          <text class="toggle-text">本期数据</text>
+          <text class="toggle-badge" wx:if="{{detailList.length > 0}}">{{detailList.length}}</text>
+        </view>
+        <view class="period-toggle {{showLastPeriod ? 'active' : ''}}" bindtap="togglePeriod" data-period="last">
+          <text class="toggle-text">上期数据</text>
+          <text class="toggle-badge" wx:if="{{detailListLastPeriod.length > 0}}">{{detailListLastPeriod.length}}</text>
+        </view>
+      </view>
+
+      <view class="detail-list-wrapper" wx:if="{{showThisPeriod}}">
+        <view class="period-label">本期数据</view>
+        <view class="detail-list" wx:if="{{detailList.length > 0}}">
+          <view class="detail-item" wx:if="{{currentType === 'products'}}" wx:for="{{detailList}}" wx:key="id" bindtap="goToProductDetail" data-id="{{item.id}}">
+            <image class="item-cover" src="{{item.coverImage}}" mode="aspectFill" />
+            <view class="item-info">
+              <text class="item-title" lines="2">{{item.title}}</text>
+              <view class="item-meta">
+                <text class="item-price">¥{{item.price}}</text>
+                <text class="item-likes">❤️ {{item.likeCount}}</text>
+                <text class="item-sales">已售{{item.salesCount}}</text>
+              </view>
+            </view>
+          </view>
+
+          <view class="detail-item" wx:if="{{currentType === 'reviews'}}" wx:for="{{detailList}}" wx:key="id" bindtap="goToReviewDetail" data-id="{{item.id}}">
+            <image class="item-avatar" src="{{item.userAvatar}}" mode="aspectFill" />
+            <view class="item-info">
+              <view class="item-header">
+                <text class="item-name">{{item.userName}}</text>
+                <view class="rating-section">
+                  <star-rating value="{{item.rating}}" disabled="{{true}}" size="small" showValue="{{false}}" />
+                  <text class="rating-tag {{item.ratingTagClass}}">{{item.ratingText}}</text>
+                </view>
+              </view>
+              <text class="item-content" lines="2">{{item.content}}</text>
+              <view class="item-meta">
+                <text class="item-time">{{item.relativeTime}}</text>
+                <text class="item-reply" wx:if="{{item.reply}}">已回复</text>
+              </view>
+            </view>
+          </view>
+
+          <view class="detail-item" wx:if="{{currentType === 'orders'}}" wx:for="{{detailList}}" wx:key="id" bindtap="goToOrderDetail" data-id="{{item.id}}">
+            <view class="order-info">
+              <text class="order-number">订单号: {{item.orderNo}}</text>
+              <text class="order-status {{item.status}}">{{item.statusText}}</text>
+            </view>
+            <view class="order-details">
+              <image class="product-cover" src="{{item.productCover}}" mode="aspectFill" />
+              <view class="product-info">
+                <text class="product-title" lines="1">{{item.productTitle}}</text>
+                <text class="product-price">¥{{item.amount}}</text>
+              </view>
+            </view>
+            <view class="order-meta">
+              <text class="order-time">{{item.formattedTime}}</text>
+            </view>
+          </view>
+
+          <view class="detail-item" wx:if="{{currentType === 'likes'}}" wx:for="{{detailList}}" wx:key="id" bindtap="goToProductDetail" data-id="{{item.productId}}">
+            <image class="item-cover" src="{{item.productCover}}" mode="aspectFill" />
+            <view class="item-info">
+              <text class="item-title" lines="2">{{item.productTitle}}</text>
+              <view class="item-meta">
+                <text class="item-price">¥{{item.productPrice}}</text>
+                <text class="item-likes">❤️ {{item.likeCount}}</text>
+              </view>
+              <text class="like-time">点赞时间: {{item.formattedTime}}</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="detail-empty" wx:if="{{detailList.length === 0 && !detailLoading}}">
+          <text class="empty-icon">📋</text>
+          <text class="empty-text">本期暂无数据</text>
+        </view>
+      </view>
+
+      <view class="detail-list-wrapper" wx:if="{{showLastPeriod}}">
+        <view class="period-label last-period">上期数据</view>
+        <view class="detail-list" wx:if="{{detailListLastPeriod.length > 0}}">
+          <view class="detail-item" wx:if="{{currentType === 'products'}}" wx:for="{{detailListLastPeriod}}" wx:key="id" bindtap="goToProductDetail" data-id="{{item.id}}">
+            <image class="item-cover" src="{{item.coverImage}}" mode="aspectFill" />
+            <view class="item-info">
+              <text class="item-title" lines="2">{{item.title}}</text>
+              <view class="item-meta">
+                <text class="item-price">¥{{item.price}}</text>
+                <text class="item-likes">❤️ {{item.likeCount}}</text>
+                <text class="item-sales">已售{{item.salesCount}}</text>
+              </view>
+            </view>
+          </view>
+
+          <view class="detail-item" wx:if="{{currentType === 'reviews'}}" wx:for="{{detailListLastPeriod}}" wx:key="id" bindtap="goToReviewDetail" data-id="{{item.id}}">
+            <image class="item-avatar" src="{{item.userAvatar}}" mode="aspectFill" />
+            <view class="item-info">
+              <view class="item-header">
+                <text class="item-name">{{item.userName}}</text>
+                <view class="rating-section">
+                  <star-rating value="{{item.rating}}" disabled="{{true}}" size="small" showValue="{{false}}" />
+                  <text class="rating-tag {{item.ratingTagClass}}">{{item.ratingText}}</text>
+                </view>
+              </view>
+              <text class="item-content" lines="2">{{item.content}}</text>
+              <view class="item-meta">
+                <text class="item-time">{{item.relativeTime}}</text>
+                <text class="item-reply" wx:if="{{item.reply}}">已回复</text>
+              </view>
+            </view>
+          </view>
+
+          <view class="detail-item" wx:if="{{currentType === 'orders'}}" wx:for="{{detailListLastPeriod}}" wx:key="id" bindtap="goToOrderDetail" data-id="{{item.id}}">
+            <view class="order-info">
+              <text class="order-number">订单号: {{item.orderNo}}</text>
+              <text class="order-status {{item.status}}">{{item.statusText}}</text>
+            </view>
+            <view class="order-details">
+              <image class="product-cover" src="{{item.productCover}}" mode="aspectFill" />
+              <view class="product-info">
+                <text class="product-title" lines="1">{{item.productTitle}}</text>
+                <text class="product-price">¥{{item.amount}}</text>
+              </view>
+            </view>
+            <view class="order-meta">
+              <text class="order-time">{{item.formattedTime}}</text>
+            </view>
+          </view>
+
+          <view class="detail-item" wx:if="{{currentType === 'likes'}}" wx:for="{{detailListLastPeriod}}" wx:key="id" bindtap="goToProductDetail" data-id="{{item.productId}}">
+            <image class="item-cover" src="{{item.productCover}}" mode="aspectFill" />
+            <view class="item-info">
+              <text class="item-title" lines="2">{{item.productTitle}}</text>
+              <view class="item-meta">
+                <text class="item-price">¥{{item.productPrice}}</text>
+                <text class="item-likes">❤️ {{item.likeCount}}</text>
+              </view>
+              <text class="like-time">点赞时间: {{item.formattedTime}}</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="detail-empty" wx:if="{{detailListLastPeriod.length === 0 && !detailLoading}}">
+          <text class="empty-icon">📋</text>
+          <text class="empty-text">上期暂无数据</text>
+        </view>
+      </view>
+
+      <view class="load-more" wx:if="{{detailLoading}}">
+        <text class="load-more-text">加载中...</text>
+      </view>
+
+      <view class="no-more" wx:if="{{!detailHasMore && (detailList.length > 0 || detailListLastPeriod.length > 0)}}">
+        <text class="no-more-text">没有更多了</text>
+      </view>
+    </view>
+
+    <view class="sort-modal" wx:if="{{showSortModal}}">
+      <view class="modal-mask" bindtap="closeSortModal"></view>
+      <view class="modal-content">
+        <view class="modal-header">
+          <text class="modal-title">选择排序方式</text>
+          <view class="popup-close" bindtap="closeSortModal">
+            <text class="close-icon">✕</text>
+          </view>
+        </view>
+        <view class="modal-body">
+          <view 
+            wx:for="{{sortOptions}}" 
+            wx:key="key" 
+            class="modal-item {{currentSort === item.key ? 'selected' : ''}}"
+            bindtap="selectSort"
+            data-key="{{item.key}}"
+          >
+            <text class="modal-item-text">{{item.label}}</text>
+            <text class="modal-item-check" wx:if="{{currentSort === item.key}}">✓</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="filter-modal" wx:if="{{showFilterModal}}">
+      <view class="modal-mask" bindtap="closeFilterModal"></view>
+      <view class="modal-content">
+        <view class="modal-header">
+          <text class="modal-title">选择筛选条件</text>
+          <view class="popup-close" bindtap="closeFilterModal">
+            <text class="close-icon">✕</text>
+          </view>
+        </view>
+        <view class="modal-body">
+          <view 
+            wx:for="{{filterOptions}}" 
+            wx:key="key" 
+            class="modal-item {{currentFilter === item.key ? 'selected' : ''}}"
+            bindtap="selectFilter"
+            data-key="{{item.key}}"
+          >
+            <text class="modal-item-text">{{item.label}}</text>
+            <text class="modal-item-check" wx:if="{{currentFilter === item.key}}">✓</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

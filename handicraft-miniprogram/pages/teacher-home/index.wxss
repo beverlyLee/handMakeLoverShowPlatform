@@ -220,6 +220,11 @@
   border: 2rpx solid rgba(21, 101, 192, 0.3);
 }
 
+.action-btn-stats {
+  background: linear-gradient(135deg, #7E57C2 0%, #9575CD 100%);
+  color: #fff;
+}
+
 .btn-icon {
   margin-right: 8rpx;
   font-size: 32rpx;

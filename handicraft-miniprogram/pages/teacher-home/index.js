@@ -762,6 +762,12 @@ Page({
     showToast('管理后台功能开发中');
   },
 
+  goToStats() {
+    wx.navigateTo({
+      url: `/pages/teacher-stats/index?teacher_id=${this.data.teacherId}`
+    });
+  },
+
   previewStudioImage(e) {
     const url = e.currentTarget.dataset.url;
     const images = this.data.teacher.studio_images || [];
