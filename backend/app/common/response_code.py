@@ -16,6 +16,7 @@ class ResponseCode(Enum):
     USER_NOT_FOUND = 3001
     USER_EXISTS = 3002
     USER_PASSWORD_ERROR = 3003
+    ACCOUNT_DISABLED = 3004
     
     DATA_NOT_FOUND = 4001
     DATA_EXISTS = 4002
@@ -45,6 +46,7 @@ class ResponseCodeMsg(Enum):
     USER_NOT_FOUND = "用户不存在"
     USER_EXISTS = "用户已存在"
     USER_PASSWORD_ERROR = "密码错误"
+    ACCOUNT_DISABLED = "账号已被禁用"
     
     DATA_NOT_FOUND = "数据不存在"
     DATA_EXISTS = "数据已存在"

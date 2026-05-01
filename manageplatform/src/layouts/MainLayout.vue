@@ -22,6 +22,20 @@
           <el-icon><User /></el-icon>
           <span>用户管理</span>
         </el-menu-item>
+        <el-sub-menu index="teachers-manage">
+          <template #title>
+            <el-icon><Avatar /></el-icon>
+            <span>老师管理</span>
+          </template>
+          <el-menu-item index="/teachers">
+            <el-icon><List /></el-icon>
+            <span>老师列表</span>
+          </el-menu-item>
+          <el-menu-item index="/teachers-verify">
+            <el-icon><DocumentChecked /></el-icon>
+            <span>入驻审核</span>
+          </el-menu-item>
+        </el-sub-menu>
         <el-menu-item index="/products">
           <el-icon><Goods /></el-icon>
           <span>商品管理</span>

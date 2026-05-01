@@ -78,6 +78,7 @@ class User(db.Model):
             'roles': self.roles,
             'current_role': self.current_role,
             'bio': self.bio,
+            'is_active': self.is_active,
             'is_teacher': self.is_teacher,
             'is_customer': self.is_customer,
             'is_admin': self.is_admin,
@@ -158,6 +159,10 @@ class TeacherProfile(db.Model):
     
     is_verified = db.Column(db.Boolean, default=False)
     verified_at = db.Column(db.DateTime)
+    verify_status = db.Column(db.String(20), default='pending')
+    reject_reason = db.Column(db.String(500))
+    
+    is_active = db.Column(db.Boolean, default=True)
     
     auto_accept = db.Column(db.Boolean, default=False)
     
@@ -252,6 +257,9 @@ class TeacherProfile(db.Model):
             'follower_count': self.follower_count,
             'verified': self.is_verified,
             'is_verified': self.is_verified,
+            'verify_status': self.verify_status,
+            'reject_reason': self.reject_reason,
+            'is_active': self.is_active,
             'auto_accept': self.auto_accept,
             'verify_time': self.verified_at.strftime('%Y-%m-%d %H:%M:%S') if self.verified_at else None,
             'verified_at': self.verified_at.strftime('%Y-%m-%d %H:%M:%S') if self.verified_at else None,

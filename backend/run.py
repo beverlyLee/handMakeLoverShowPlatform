@@ -81,6 +81,11 @@ def migrate_database():
         print("\n正在检查 append_reviews 表:")
         add_column_if_not_exists('append_reviews', 'reviewer_role VARCHAR(20) DEFAULT "customer"')
         
+        print("\n正在检查 teacher_profiles 表:")
+        add_column_if_not_exists('teacher_profiles', 'verify_status VARCHAR(20) DEFAULT "pending"')
+        add_column_if_not_exists('teacher_profiles', 'reject_reason VARCHAR(500)')
+        add_column_if_not_exists('teacher_profiles', 'is_active BOOLEAN DEFAULT 1')
+        
         print("\n数据库迁移检查完成！")
         print("="*60)
 

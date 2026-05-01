@@ -299,62 +299,6 @@ def get_user_stats():
         'period_end': (end - timedelta(days=1)).strftime('%Y-%m-%d')
     }))
 
-@admin_bp.route('/users/list', methods=['GET'])
-@login_required
-def get_users_list():
-    page = request.args.get('page', 1, type=int)
-    size = request.args.get('size', 10, type=int)
-    keyword = request.args.get('keyword', '')
-    role = request.args.get('role', '')
-    sort = request.args.get('sort', 'newest')
-    
-    query = User.query
-    
-    if keyword:
-        query = query.filter(
-            db.or_(
-                User.username.contains(keyword),
-                User.nickname.contains(keyword),
-                User.phone.contains(keyword)
-            )
-        )
-    
-    if role:
-        if role == 'teacher':
-            query = query.filter(User._roles.contains('"teacher"'))
-        elif role == 'customer':
-            query = query.filter(User._roles.contains('"customer"'))
-    
-    if sort == 'newest':
-        query = query.order_by(User.created_at.desc())
-    elif sort == 'oldest':
-        query = query.order_by(User.created_at.asc())
-    elif sort == 'active':
-        query = query.order_by(User.last_login_at.desc().nullslast())
-    
-    pagination = query.paginate(page=page, per_page=size, error_out=False)
-    
-    users = []
-    for user in pagination.items:
-        user_dict = user.to_dict()
-        teacher_profile = TeacherProfile.query.filter_by(user_id=user.id).first()
-        if teacher_profile:
-            user_dict['teacher_info'] = {
-                'id': teacher_profile.id,
-                'real_name': teacher_profile.real_name,
-                'rating': teacher_profile.rating,
-                'is_verified': teacher_profile.is_verified,
-                'follower_count': teacher_profile.follower_count
-            }
-        users.append(user_dict)
-    
-    return jsonify(success(data={
-        'list': users,
-        'total': pagination.total,
-        'page': page,
-        'size': size,
-        'total_pages': pagination.pages
-    }))
 
 @admin_bp.route('/users/<int:user_id>', methods=['GET'])
 @login_required
@@ -1901,3 +1845,614 @@ def update_system_config(config_id):
     except Exception as e:
         db.session.rollback()
         return jsonify(error(code=ResponseCode.SYSTEM_ERROR, msg=f'更新失败: {str(e)}')), 500
+
+
+@admin_bp.route('/users/list', methods=['GET'])
+@login_required
+def get_users_list():
+    page = request.args.get('page', 1, type=int)
+    size = request.args.get('size', 10, type=int)
+    user_id = request.args.get('user_id', type=int)
+    keyword = request.args.get('keyword', '')
+    start_date = request.args.get('start_date', '')
+    end_date = request.args.get('end_date', '')
+    role = request.args.get('role', '')
+    status = request.args.get('status', '')
+    sort = request.args.get('sort', 'newest')
+    
+    query = User.query
+    
+    if user_id:
+        query = query.filter(User.id == user_id)
+    
+    if keyword:
+        query = query.filter(
+            db.or_(
+                User.username.contains(keyword),
+                User.nickname.contains(keyword),
+                User.phone.contains(keyword)
+            )
+        )
+    
+    if start_date:
+        try:
+            start = datetime.strptime(start_date, '%Y-%m-%d')
+            query = query.filter(User.created_at >= start)
+        except:
+            pass
+    
+    if end_date:
+        try:
+            end = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
+            query = query.filter(User.created_at < end)
+        except:
+            pass
+    
+    if role:
+        if role == 'teacher':
+            query = query.filter(User._roles.contains('"teacher"'))
+        elif role == 'customer':
+            query = query.filter(User._roles.contains('"customer"'))
+    
+    if status:
+        if status == 'active':
+            query = query.filter(User.is_active == True)
+        elif status == 'inactive':
+            query = query.filter(User.is_active == False)
+    
+    if sort == 'newest':
+        query = query.order_by(User.created_at.desc())
+    elif sort == 'oldest':
+        query = query.order_by(User.created_at.asc())
+    elif sort == 'active':
+        query = query.order_by(User.last_login_at.desc().nullslast())
+    
+    pagination = query.paginate(page=page, per_page=size, error_out=False)
+    
+    users = []
+    for user in pagination.items:
+        user_dict = user.to_dict()
+        teacher_profile = TeacherProfile.query.filter_by(user_id=user.id).first()
+        if teacher_profile:
+            user_dict['teacher_info'] = teacher_profile.to_dict()
+        users.append(user_dict)
+    
+    return jsonify(success(data={
+        'list': users,
+        'total': pagination.total,
+        'page': page,
+        'size': size,
+        'total_pages': pagination.pages
+    }))
+
+
+@admin_bp.route('/users/<int:user_id>/status', methods=['PUT'])
+@login_required
+def update_user_status(user_id):
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify(error(code=ResponseCode.USER_NOT_FOUND, msg='用户不存在')), 404
+    
+    data = request.get_json()
+    is_active = data.get('is_active')
+    
+    if is_active is None:
+        return jsonify(error(code=ResponseCode.PARAM_MISSING, msg='状态参数不能为空')), 400
+    
+    user.is_active = is_active
+    user.updated_at = datetime.utcnow()
+    
+    try:
+        db.session.commit()
+        return jsonify(success(data=user.to_dict(), msg=f'用户已{"启用" if is_active else "禁用"}'))
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(error(code=ResponseCode.SYSTEM_ERROR, msg=f'操作失败: {str(e)}')), 500
+
+
+@admin_bp.route('/users/<int:user_id>/likes', methods=['GET'])
+@login_required
+def get_user_likes(user_id):
+    page = request.args.get('page', 1, type=int)
+    size = request.args.get('size', 10, type=int)
+    
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify(error(code=ResponseCode.USER_NOT_FOUND, msg='用户不存在')), 404
+    
+    query = Like.query.filter_by(user_id=user_id).order_by(Like.created_at.desc())
+    pagination = query.paginate(page=page, per_page=size, error_out=False)
+    
+    likes = []
+    for like in pagination.items:
+        like_dict = like.to_dict()
+        product = Product.query.get(like.product_id)
+        if product:
+            like_dict['product_title'] = product.title
+            like_dict['product_image'] = product.cover_image
+            like_dict['product_price'] = product.price
+        likes.append(like_dict)
+    
+    return jsonify(success(data={
+        'list': likes,
+        'total': pagination.total,
+        'page': page,
+        'size': size,
+        'total_pages': pagination.pages
+    }))
+
+
+@admin_bp.route('/users/<int:user_id>/orders', methods=['GET'])
+@login_required
+def get_user_orders(user_id):
+    page = request.args.get('page', 1, type=int)
+    size = request.args.get('size', 10, type=int)
+    status = request.args.get('status', '')
+    
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify(error(code=ResponseCode.USER_NOT_FOUND, msg='用户不存在')), 404
+    
+    query = Order.query.filter_by(user_id=user_id)
+    
+    if status:
+        query = query.filter(Order.status == status)
+    
+    query = query.order_by(Order.created_at.desc())
+    pagination = query.paginate(page=page, per_page=size, error_out=False)
+    
+    orders = []
+    for order in pagination.items:
+        order_dict = order.to_dict()
+        if order.teacher_id:
+            teacher = User.query.get(order.teacher_id)
+            if teacher:
+                order_dict['teacher_nickname'] = teacher.nickname or teacher.username
+        orders.append(order_dict)
+    
+    return jsonify(success(data={
+        'list': orders,
+        'total': pagination.total,
+        'page': page,
+        'size': size,
+        'total_pages': pagination.pages,
+        'status_names': STATUS_NAMES
+    }))
+
+
+@admin_bp.route('/users/<int:user_id>/reviews', methods=['GET'])
+@login_required
+def get_user_reviews(user_id):
+    page = request.args.get('page', 1, type=int)
+    size = request.args.get('size', 10, type=int)
+    
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify(error(code=ResponseCode.USER_NOT_FOUND, msg='用户不存在')), 404
+    
+    query = Review.query.filter_by(user_id=user_id).order_by(Review.created_at.desc())
+    pagination = query.paginate(page=page, per_page=size, error_out=False)
+    
+    reviews = []
+    for review in pagination.items:
+        rev_dict = review.to_dict()
+        product = Product.query.get(review.product_id)
+        if product:
+            rev_dict['product_title'] = product.title
+            rev_dict['product_image'] = product.cover_image
+        teacher = User.query.get(review.teacher_id)
+        if teacher:
+            rev_dict['teacher_nickname'] = teacher.nickname or teacher.username
+        reviews.append(rev_dict)
+    
+    return jsonify(success(data={
+        'list': reviews,
+        'total': pagination.total,
+        'page': page,
+        'size': size,
+        'total_pages': pagination.pages
+    }))
+
+
+@admin_bp.route('/teachers/pending', methods=['GET'])
+@login_required
+def get_pending_teachers():
+    page = request.args.get('page', 1, type=int)
+    size = request.args.get('size', 10, type=int)
+    
+    query = TeacherProfile.query.filter_by(verify_status='pending').order_by(TeacherProfile.created_at.asc())
+    pagination = query.paginate(page=page, per_page=size, error_out=False)
+    
+    teachers = []
+    for tp in pagination.items:
+        teacher_dict = tp.to_dict()
+        user = User.query.get(tp.user_id)
+        if user:
+            teacher_dict['user_info'] = {
+                'id': user.id,
+                'nickname': user.nickname,
+                'avatar': user.avatar,
+                'phone': user.phone,
+                'create_time': user.created_at.strftime('%Y-%m-%d %H:%M:%S') if user.created_at else None
+            }
+        teachers.append(teacher_dict)
+    
+    return jsonify(success(data={
+        'list': teachers,
+        'total': pagination.total,
+        'page': page,
+        'size': size,
+        'total_pages': pagination.pages
+    }))
+
+
+@admin_bp.route('/teachers/<int:teacher_id>/verify', methods=['POST'])
+@login_required
+def verify_teacher(teacher_id):
+    tp = TeacherProfile.query.get(teacher_id)
+    if not tp:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='老师信息不存在')), 404
+    
+    data = request.get_json()
+    action = data.get('action')
+    reason = data.get('reason', '')
+    
+    if action == 'approve':
+        tp.is_verified = True
+        tp.verify_status = 'approved'
+        tp.verified_at = datetime.utcnow()
+        tp.reject_reason = None
+        
+        user = User.query.get(tp.user_id)
+        if user and 'teacher' not in user.roles:
+            roles = user.roles
+            roles.append('teacher')
+            user.roles = roles
+        
+        message = '老师审核通过'
+    elif action == 'reject':
+        if not reason or len(reason.strip()) < 10:
+            return jsonify(error(code=ResponseCode.PARAM_ERROR, msg='拒绝理由不能少于10个字')), 400
+        
+        tp.is_verified = False
+        tp.verify_status = 'rejected'
+        tp.reject_reason = reason
+        tp.verified_at = None
+        
+        message = '老师审核已拒绝'
+    else:
+        return jsonify(error(code=ResponseCode.PARAM_ERROR, msg='无效的操作类型')), 400
+    
+    tp.updated_at = datetime.utcnow()
+    
+    try:
+        db.session.commit()
+        return jsonify(success(data=tp.to_dict(), msg=message))
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(error(code=ResponseCode.SYSTEM_ERROR, msg=f'操作失败: {str(e)}')), 500
+
+
+@admin_bp.route('/teachers/list', methods=['GET'])
+@login_required
+def get_teachers_list():
+    page = request.args.get('page', 1, type=int)
+    size = request.args.get('size', 10, type=int)
+    teacher_id = request.args.get('teacher_id', type=int)
+    keyword = request.args.get('keyword', '')
+    specialty = request.args.get('specialty', '')
+    verify_status = request.args.get('verify_status', '')
+    sort = request.args.get('sort', 'newest')
+    
+    query = TeacherProfile.query
+    
+    if teacher_id:
+        query = query.filter(TeacherProfile.id == teacher_id)
+    
+    if keyword:
+        user_ids = []
+        users = User.query.filter(
+            db.or_(
+                User.nickname.contains(keyword),
+                User.phone.contains(keyword)
+            )
+        ).all()
+        user_ids = [u.id for u in users]
+        
+        query = query.filter(
+            db.or_(
+                TeacherProfile.real_name.contains(keyword),
+                TeacherProfile.user_id.in_(user_ids)
+            )
+        )
+    
+    if specialty:
+        query = query.filter(TeacherProfile._specialties.contains(specialty))
+    
+    if verify_status:
+        query = query.filter(TeacherProfile.verify_status == verify_status)
+    
+    if sort == 'newest':
+        query = query.order_by(TeacherProfile.created_at.desc())
+    elif sort == 'oldest':
+        query = query.order_by(TeacherProfile.created_at.asc())
+    elif sort == 'rating':
+        query = query.order_by(TeacherProfile.rating.desc())
+    elif sort == 'orders':
+        query = query.order_by(TeacherProfile.order_count.desc())
+    
+    pagination = query.paginate(page=page, per_page=size, error_out=False)
+    
+    teachers = []
+    for tp in pagination.items:
+        teacher_dict = tp.to_dict()
+        user = User.query.get(tp.user_id)
+        if user:
+            teacher_dict['user_info'] = {
+                'id': user.id,
+                'nickname': user.nickname,
+                'avatar': user.avatar,
+                'phone': user.phone,
+                'is_active': user.is_active,
+                'create_time': user.created_at.strftime('%Y-%m-%d %H:%M:%S') if user.created_at else None
+            }
+        teachers.append(teacher_dict)
+    
+    return jsonify(success(data={
+        'list': teachers,
+        'total': pagination.total,
+        'page': page,
+        'size': size,
+        'total_pages': pagination.pages
+    }))
+
+
+@admin_bp.route('/teachers/<int:teacher_id>', methods=['GET'])
+@login_required
+def get_teacher_detail(teacher_id):
+    tp = TeacherProfile.query.get(teacher_id)
+    if not tp:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='老师信息不存在')), 404
+    
+    teacher_dict = tp.to_dict()
+    user = User.query.get(tp.user_id)
+    if user:
+        teacher_dict['user_info'] = {
+            'id': user.id,
+            'nickname': user.nickname,
+            'avatar': user.avatar,
+            'phone': user.phone,
+            'email': user.email,
+            'gender': user.gender,
+            'is_active': user.is_active,
+            'create_time': user.created_at.strftime('%Y-%m-%d %H:%M:%S') if user.created_at else None
+        }
+    
+    product_count = Product.query.filter_by(teacher_id=tp.id, status='active').count()
+    order_count = Order.query.filter_by(teacher_id=tp.user_id).count()
+    review_count = Review.query.filter_by(teacher_id=tp.user_id).count()
+    
+    teacher_dict['stats'] = {
+        'product_count': product_count,
+        'order_count': order_count,
+        'review_count': review_count
+    }
+    
+    return jsonify(success(data=teacher_dict))
+
+
+@admin_bp.route('/teachers/<int:teacher_id>', methods=['PUT'])
+@login_required
+def update_teacher(teacher_id):
+    tp = TeacherProfile.query.get(teacher_id)
+    if not tp:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='老师信息不存在')), 404
+    
+    data = request.get_json()
+    
+    if 'real_name' in data:
+        tp.real_name = data['real_name']
+    if 'phone' in data:
+        tp.phone = data['phone']
+    if 'intro' in data:
+        tp.intro = data['intro']
+    if 'bio' in data:
+        tp.bio = data['bio']
+    if 'specialties' in data:
+        tp.specialties = data['specialties']
+    if 'studio_name' in data:
+        tp.studio_name = data['studio_name']
+    if 'studio_address' in data:
+        tp.studio_address = data['studio_address']
+    
+    tp.updated_at = datetime.utcnow()
+    
+    try:
+        db.session.commit()
+        return jsonify(success(data=tp.to_dict(), msg='老师信息更新成功'))
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(error(code=ResponseCode.SYSTEM_ERROR, msg=f'更新失败: {str(e)}')), 500
+
+
+@admin_bp.route('/teachers/<int:teacher_id>/check-pending-orders', methods=['GET'])
+@login_required
+def check_teacher_pending_orders(teacher_id):
+    tp = TeacherProfile.query.get(teacher_id)
+    if not tp:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='老师信息不存在')), 404
+    
+    pending_statuses = ['pending', 'pending_accept', 'accepted', 'in_progress', 'paid', 'shipped']
+    pending_orders = Order.query.filter(
+        Order.teacher_id == tp.user_id,
+        Order.status.in_(pending_statuses)
+    ).all()
+    
+    pending_count = len(pending_orders)
+    
+    return jsonify(success(data={
+        'has_pending_orders': pending_count > 0,
+        'pending_count': pending_count,
+        'pending_orders': [
+            {
+                'id': o.id,
+                'status': o.status,
+                'status_name': o.status_name,
+                'create_time': o.created_at.strftime('%Y-%m-%d %H:%M:%S') if o.created_at else None
+            } for o in pending_orders
+        ]
+    }))
+
+
+@admin_bp.route('/teachers/<int:teacher_id>/status', methods=['PUT'])
+@login_required
+def update_teacher_status(teacher_id):
+    tp = TeacherProfile.query.get(teacher_id)
+    if not tp:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='老师信息不存在')), 404
+    
+    data = request.get_json()
+    is_active = data.get('is_active')
+    
+    if is_active is None:
+        return jsonify(error(code=ResponseCode.PARAM_MISSING, msg='状态参数不能为空')), 400
+    
+    if not is_active:
+        pending_statuses = ['pending', 'pending_accept', 'accepted', 'in_progress', 'paid', 'shipped']
+        pending_orders = Order.query.filter(
+            Order.teacher_id == tp.user_id,
+            Order.status.in_(pending_statuses)
+        ).count()
+        
+        if pending_orders > 0:
+            return jsonify(error(
+                code=ResponseCode.OPERATION_FAILED,
+                msg=f'该老师有{pending_orders}个未完成订单，暂时无法禁用'
+            )), 400
+    
+    tp.is_active = is_active
+    tp.updated_at = datetime.utcnow()
+    
+    try:
+        db.session.commit()
+        return jsonify(success(data=tp.to_dict(), msg=f'老师已{"启用" if is_active else "禁用"}'))
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(error(code=ResponseCode.SYSTEM_ERROR, msg=f'操作失败: {str(e)}')), 500
+
+
+@admin_bp.route('/teachers/<int:teacher_id>/products', methods=['GET'])
+@login_required
+def get_teacher_products(teacher_id):
+    page = request.args.get('page', 1, type=int)
+    size = request.args.get('size', 10, type=int)
+    status = request.args.get('status', '')
+    
+    tp = TeacherProfile.query.get(teacher_id)
+    if not tp:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='老师信息不存在')), 404
+    
+    query = Product.query.filter_by(teacher_id=tp.id)
+    
+    if status:
+        query = query.filter(Product.status == status)
+    
+    query = query.order_by(Product.created_at.desc())
+    pagination = query.paginate(page=page, per_page=size, error_out=False)
+    
+    products = []
+    for product in pagination.items:
+        product_dict = product.to_dict()
+        product_dict['likes_count'] = Like.query.filter_by(product_id=product.id).count()
+        product_dict['reviews_count'] = Review.query.filter_by(product_id=product.id).count()
+        products.append(product_dict)
+    
+    return jsonify(success(data={
+        'list': products,
+        'total': pagination.total,
+        'page': page,
+        'size': size,
+        'total_pages': pagination.pages
+    }))
+
+
+@admin_bp.route('/teachers/<int:teacher_id>/orders', methods=['GET'])
+@login_required
+def get_teacher_orders(teacher_id):
+    page = request.args.get('page', 1, type=int)
+    size = request.args.get('size', 10, type=int)
+    status = request.args.get('status', '')
+    
+    tp = TeacherProfile.query.get(teacher_id)
+    if not tp:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='老师信息不存在')), 404
+    
+    query = Order.query.filter_by(teacher_id=tp.user_id)
+    
+    if status:
+        query = query.filter(Order.status == status)
+    
+    query = query.order_by(Order.created_at.desc())
+    pagination = query.paginate(page=page, per_page=size, error_out=False)
+    
+    orders = []
+    for order in pagination.items:
+        order_dict = order.to_dict()
+        customer = User.query.get(order.user_id)
+        if customer:
+            order_dict['customer_nickname'] = customer.nickname or customer.username
+            order_dict['customer_avatar'] = customer.avatar
+        orders.append(order_dict)
+    
+    return jsonify(success(data={
+        'list': orders,
+        'total': pagination.total,
+        'page': page,
+        'size': size,
+        'total_pages': pagination.pages,
+        'status_names': STATUS_NAMES
+    }))
+
+
+@admin_bp.route('/teachers/<int:teacher_id>/reviews', methods=['GET'])
+@login_required
+def get_teacher_reviews(teacher_id):
+    page = request.args.get('page', 1, type=int)
+    size = request.args.get('size', 10, type=int)
+    
+    tp = TeacherProfile.query.get(teacher_id)
+    if not tp:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='老师信息不存在')), 404
+    
+    query = Review.query.filter_by(teacher_id=tp.user_id).order_by(Review.created_at.desc())
+    pagination = query.paginate(page=page, per_page=size, error_out=False)
+    
+    reviews = []
+    for review in pagination.items:
+        rev_dict = review.to_dict()
+        user = User.query.get(review.user_id)
+        if user:
+            rev_dict['user_nickname'] = user.nickname or user.username
+            rev_dict['user_avatar'] = user.avatar
+        product = Product.query.get(review.product_id)
+        if product:
+            rev_dict['product_title'] = product.title
+            rev_dict['product_image'] = product.cover_image
+        reviews.append(rev_dict)
+    
+    return jsonify(success(data={
+        'list': reviews,
+        'total': pagination.total,
+        'page': page,
+        'size': size,
+        'total_pages': pagination.pages
+    }))
+
+
+@admin_bp.route('/specialties/all', methods=['GET'])
+@login_required
+def get_all_specialties():
+    from app.models import Specialty
+    specialties = Specialty.query.filter_by(is_active=True).order_by(Specialty.sort_order.asc()).all()
+    specialty_list = [s.to_dict() for s in specialties]
+    return jsonify(success(data=specialty_list))

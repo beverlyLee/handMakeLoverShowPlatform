@@ -134,6 +134,9 @@ def admin_login():
     if 'admin' not in user.roles:
         return jsonify(error(code=ResponseCode.PERMISSION_DENIED, msg='您不是管理员，无权限登录')), 403
     
+    if not user.is_active:
+        return jsonify(error(code=ResponseCode.ACCOUNT_DISABLED, msg='账号已被禁用')), 403
+    
     user.last_login_at = datetime.utcnow()
     db.session.commit()
     

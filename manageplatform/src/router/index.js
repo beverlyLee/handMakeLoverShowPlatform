@@ -26,6 +26,18 @@ const routes = [
         meta: { title: '用户管理', icon: 'User' }
       },
       {
+        path: 'teachers',
+        name: 'Teachers',
+        component: () => import('@/views/teachers/index.vue'),
+        meta: { title: '老师管理', icon: 'Avatar' }
+      },
+      {
+        path: 'teachers-verify',
+        name: 'TeachersVerify',
+        component: () => import('@/views/teachers/verify.vue'),
+        meta: { title: '老师入驻审核', icon: 'DocumentChecked' }
+      },
+      {
         path: 'products',
         name: 'Products',
         component: () => import('@/views/products/index.vue'),
