@@ -77,6 +77,7 @@ def migrate_database():
         add_column_if_not_exists('reviews', 'is_read BOOLEAN DEFAULT 0')
         add_column_if_not_exists('reviews', 'read_at DATETIME')
         add_column_if_not_exists('reviews', 'reviewer_role VARCHAR(20) DEFAULT "customer"')
+        add_column_if_not_exists('reviews', 'reply_role VARCHAR(20)')
         
         print("\n正在检查 append_reviews 表:")
         add_column_if_not_exists('append_reviews', 'reviewer_role VARCHAR(20) DEFAULT "customer"')

@@ -42,6 +42,22 @@ function deleteProduct(productId) {
 }
 
 /**
+ * 提交作品审核（上架请求）
+ * @param {number} productId
+ */
+function submitProductReview(productId) {
+  return post(`/products/${productId}/submit-review`);
+}
+
+/**
+ * 下架作品
+ * @param {number} productId
+ */
+function takeProductOffline(productId) {
+  return post(`/products/${productId}/take-offline`);
+}
+
+/**
  * 获取作品分类
  */
 function getCategories() {
@@ -70,6 +86,8 @@ module.exports = {
   createProduct,
   updateProduct,
   deleteProduct,
+  submitProductReview,
+  takeProductOffline,
   getCategories,
   getMyProducts,
   getCategoriesWithHotProducts

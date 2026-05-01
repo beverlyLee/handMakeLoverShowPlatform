@@ -229,13 +229,6 @@ class UserService:
             profile.work_photos = data.get('work_photos')
         
         db.session.add(profile)
-        
-        user = User.query.get(user_id)
-        if user and 'teacher' not in user.roles:
-            roles = user.roles
-            roles.append('teacher')
-            user.roles = roles
-        
         db.session.commit()
         
         return profile.to_dict()

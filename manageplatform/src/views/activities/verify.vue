@@ -186,6 +186,7 @@
 import { reactive, ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getPendingReviewActivities, reviewActivity } from '@/api/activities'
+import { processActivityList, processActivityImages } from '@/utils/image'
 
 const loading = ref(false)
 const verifyLoading = ref(false)
@@ -225,7 +226,8 @@ const fetchData = async () => {
     
     const res = await getPendingReviewActivities(params)
     if (res.code === 0) {
-      tableData.value = res.data.list || []
+      const rawList = res.data.list || []
+      tableData.value = processActivityList(rawList)
       total.value = res.data.total || 0
     }
   } catch (e) {
@@ -248,7 +250,7 @@ const resetQuery = () => {
 }
 
 const handleView = (row) => {
-  currentActivity.value = { ...row }
+  currentActivity.value = processActivityImages({ ...row })
   activeImageIndex.value = 0
   detailVisible.value = true
 }

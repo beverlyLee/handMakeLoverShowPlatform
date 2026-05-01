@@ -741,6 +741,8 @@ def get_products_list():
     
     query = Product.query
     
+    query = query.filter(Product.status != 'inactive')
+    
     if keyword:
         query = query.filter(
             db.or_(
@@ -2004,6 +2006,7 @@ def admin_reply_review(review_id):
         
         review.reply_content = None
         review.reply_time = None
+        review.reply_role = None
         review.updated_at = datetime.utcnow()
         
         try:
@@ -2036,6 +2039,7 @@ def admin_reply_review(review_id):
     
     review.reply_content = reply_content
     review.reply_time = datetime.utcnow()
+    review.reply_role = 'admin'
     review.updated_at = datetime.utcnow()
     
     try:
@@ -3137,9 +3141,14 @@ def get_teacher_likes(teacher_id):
 @admin_bp.route('/specialties/all', methods=['GET'])
 @login_required
 def get_all_specialties():
-    from app.models import Specialty
-    specialties = Specialty.query.filter_by(is_active=True).order_by(Specialty.sort_order.asc()).all()
-    specialty_list = [s.to_dict() for s in specialties]
+    categories = Category.query.filter_by(status='active').order_by(Category.sort.asc()).all()
+    specialty_list = [{
+        'id': c.id,
+        'name': c.name,
+        'icon': c.icon,
+        'sort_order': c.sort,
+        'is_active': c.status == 'active'
+    } for c in categories]
     return jsonify(success(data=specialty_list))
 
 
@@ -3220,6 +3229,7 @@ def review_product(product_id):
         product.verify_time = datetime.utcnow()
         product.verify_admin_id = admin_id
         product.reject_reason = None
+        product.is_online = True
         message = '作品审核通过'
         
     elif action == 'reject':
@@ -3519,10 +3529,6 @@ def create_official_activity():
     title = data.get('title', '').strip()
     if not title or len(title) < 5:
         return jsonify(error(code=ResponseCode.PARAM_ERROR, msg='活动标题不能少于5个字')), 400
-    
-    process = data.get('process', '').strip()
-    if not process or len(process) < 20:
-        return jsonify(error(code=ResponseCode.PARAM_ERROR, msg='活动流程不能少于20个字')), 400
     
     images = data.get('images', [])
     if not images or len(images) < 1:

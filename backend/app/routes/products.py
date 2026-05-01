@@ -310,6 +310,8 @@ def create_product():
         original_price=float(data.get('original_price', 0)) if data.get('original_price') else float(data.get('price', 0)),
         stock=int(data.get('stock', 999)),
         status=data.get('status', 'active'),
+        verify_status='pending',
+        is_online=False,
         rating=5.0
     )
     
@@ -390,3 +392,37 @@ def delete_product(product_id):
     db.session.commit()
     
     return jsonify(success(msg='作品已删除'))
+
+@product_bp.route('/<int:product_id>/submit-review', methods=['POST'])
+@login_required
+def submit_product_review(product_id):
+    teacher_profile = get_current_teacher_profile()
+    if not teacher_profile:
+        return jsonify(error(code=ResponseCode.PERMISSION_DENIED, msg='您不是手作老师身份')), 403
+    
+    product = Product.query.filter_by(id=product_id, teacher_id=teacher_profile.id).first()
+    if not product:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='作品不存在或无权操作')), 404
+    
+    product.verify_status = 'pending'
+    product.is_online = False
+    product.reject_reason = None
+    db.session.commit()
+    
+    return jsonify(success(data=product.to_dict(), msg='作品已提交审核，请等待管理员审核通过后上架'))
+
+@product_bp.route('/<int:product_id>/take-offline', methods=['POST'])
+@login_required
+def take_product_offline(product_id):
+    teacher_profile = get_current_teacher_profile()
+    if not teacher_profile:
+        return jsonify(error(code=ResponseCode.PERMISSION_DENIED, msg='您不是手作老师身份')), 403
+    
+    product = Product.query.filter_by(id=product_id, teacher_id=teacher_profile.id).first()
+    if not product:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='作品不存在或无权操作')), 404
+    
+    product.is_online = False
+    db.session.commit()
+    
+    return jsonify(success(data=product.to_dict(), msg='作品已下架'))

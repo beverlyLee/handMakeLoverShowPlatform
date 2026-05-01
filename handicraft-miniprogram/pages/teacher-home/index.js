@@ -1,5 +1,5 @@
 const { getTeacherPublicInfo, getTeacherPublicOrderStats, getUserInfo, updateTeacherInfo, updateUserInfo } = require('../../api/users');
-const { getProducts, createProduct: createProductApi, getCategories, updateProduct, deleteProduct } = require('../../api/products');
+const { getProducts, createProduct: createProductApi, getCategories, updateProduct, deleteProduct, submitProductReview, takeProductOffline } = require('../../api/products');
 const { getSpecialties } = require('../../api/specialties');
 const { uploadImages } = require('../../api/upload');
 const { 
@@ -1279,6 +1279,104 @@ Page({
         }
       }
     });
+  },
+
+  submitProductReview(e) {
+    const product = e.currentTarget.dataset.product;
+    if (!product) return;
+
+    const self = this;
+    wx.showModal({
+      title: '提交审核',
+      content: '确定要提交该作品上架审核吗？审核通过后作品将可被用户浏览和购买。',
+      success: async (res) => {
+        if (res.confirm) {
+          wx.showLoading({ title: '提交中...', mask: true });
+          try {
+            await submitProductReview(product.id);
+            
+            self.setData({
+              products: [],
+              productsPage: 1
+            });
+            
+            self.loadTeacherProducts();
+            wx.hideLoading();
+            showToast('已提交审核，请等待管理员审核', 'success');
+          } catch (error) {
+            wx.hideLoading();
+            console.error('提交审核失败:', error);
+            showToast('提交失败，请重试');
+          }
+        }
+      }
+    });
+  },
+
+  takeProductOffline(e) {
+    const product = e.currentTarget.dataset.product;
+    if (!product) return;
+
+    const self = this;
+    wx.showModal({
+      title: '下架作品',
+      content: '确定要下架该作品吗？下架后用户将无法浏览和购买该作品。',
+      success: async (res) => {
+        if (res.confirm) {
+          wx.showLoading({ title: '处理中...', mask: true });
+          try {
+            await takeProductOffline(product.id);
+            
+            self.setData({
+              products: [],
+              productsPage: 1
+            });
+            
+            self.loadTeacherProducts();
+            wx.hideLoading();
+            showToast('作品已下架', 'success');
+          } catch (error) {
+            wx.hideLoading();
+            console.error('下架作品失败:', error);
+            showToast('操作失败，请重试');
+          }
+        }
+      }
+    });
+  },
+
+  getProductStatusText(verifyStatus, isOnline) {
+    if (verifyStatus === 'pending') {
+      return '审核中';
+    }
+    if (verifyStatus === 'rejected') {
+      return '已拒绝';
+    }
+    if (isOnline) {
+      return '已上架';
+    }
+    return '已下架';
+  },
+
+  getProductStatusType(verifyStatus, isOnline) {
+    if (verifyStatus === 'pending') {
+      return 'warning';
+    }
+    if (verifyStatus === 'rejected') {
+      return 'error';
+    }
+    if (isOnline) {
+      return 'success';
+    }
+    return 'info';
+  },
+
+  canSubmitReview(verifyStatus, isOnline) {
+    return verifyStatus === 'rejected' || (verifyStatus === 'approved' && !isOnline) || verifyStatus === 'pending';
+  },
+
+  canTakeOffline(verifyStatus, isOnline) {
+    return verifyStatus === 'approved' && isOnline;
   },
 
   preventMove() {

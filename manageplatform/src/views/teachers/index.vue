@@ -45,7 +45,7 @@
                 <el-icon><User /></el-icon>
               </el-avatar>
               <div class="user-detail">
-                <div class="nickname">{{ scope.row.real_name || scope.row.user_info?.nickname || '未知' }}</div>
+                <div class="nickname">{{ scope.row.user_info?.nickname || scope.row.real_name || '未知' }}</div>
                 <div class="phone">{{ scope.row.phone || scope.row.user_info?.phone || '-' }}</div>
               </div>
             </div>

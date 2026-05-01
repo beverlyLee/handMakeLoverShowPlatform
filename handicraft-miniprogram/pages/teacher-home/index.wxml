@@ -370,7 +370,7 @@
             <view 
               wx:for="{{products}}" 
               wx:key="id" 
-              class="product-card"
+              class="product-card {{item.verify_status === 'pending' ? 'product-pending' : ''}} {{!item.is_online && item.verify_status !== 'pending' ? 'product-offline' : ''}}"
             >
               <view class="product-image-wrapper" catchtap="goToProductDetail" data-id="{{item.id}}">
                 <image class="product-image" src="{{item.cover_image}}" mode="aspectFill" />
@@ -379,6 +379,11 @@
                 </view>
                 <view class="product-stats" wx:if="{{item.sales_count > 0}}">
                   <text class="stat-text">已售{{item.sales_count}}</text>
+                </view>
+                <view class="product-status-overlay" wx:if="{{item.verify_status === 'pending' || !item.is_online}}">
+                  <text class="status-text {{item.verify_status === 'pending' ? 'status-pending' : 'status-offline'}}">
+                    {{item.verify_status === 'pending' ? '审核中' : (item.verify_status === 'rejected' ? '已拒绝' : '已下架')}}
+                  </text>
                 </view>
               </view>
               <view class="product-info">
@@ -406,6 +411,18 @@
                   <view class="action-btn" catchtap="openProductEdit" data-product="{{item}}">
                     <text class="action-icon">✏️</text>
                     <text class="action-text">编辑</text>
+                  </view>
+                  <view class="action-btn action-btn-submit" wx:if="{{(item.verify_status === 'rejected' || (item.verify_status === 'approved' && !item.is_online) || item.verify_status === 'pending') && item.verify_status !== 'pending'}}" catchtap="submitProductReview" data-product="{{item}}">
+                    <text class="action-icon">⬆️</text>
+                    <text class="action-text">上架</text>
+                  </view>
+                  <view class="action-btn action-btn-pending" wx:if="{{item.verify_status === 'pending'}}">
+                    <text class="action-icon">⏳</text>
+                    <text class="action-text">审核中</text>
+                  </view>
+                  <view class="action-btn action-btn-offline" wx:if="{{item.verify_status === 'approved' && item.is_online}}" catchtap="takeProductOffline" data-product="{{item}}">
+                    <text class="action-icon">⬇️</text>
+                    <text class="action-text">下架</text>
                   </view>
                   <view class="action-btn action-btn-delete" catchtap="deleteProduct" data-product="{{item}}">
                     <text class="action-icon">🗑️</text>
@@ -453,8 +470,15 @@
                   <view class="activity-tag-overlay">
                     <text class="activity-craft-tag">{{item.craft_type}}</text>
                   </view>
-                  <view class="activity-status-tag" wx:if="{{item.status}}">
-                    <text class="status-text">{{item.status === 'active' ? '进行中' : item.status === 'draft' ? '草稿' : '已结束'}}</text>
+                  <view class="activity-status-tag" wx:if="{{item.verify_status === 'pending' || item.status}}">
+                    <text class="status-text {{item.verify_status === 'pending' ? 'status-pending' : ''}}">
+                      {{item.verify_status === 'pending' ? '审核中' : (item.verify_status === 'rejected' ? '已拒绝' : (item.status === 'active' ? '进行中' : item.status === 'draft' ? '草稿' : '已结束'))}}
+                    </text>
+                  </view>
+                  <view class="activity-verify-overlay" wx:if="{{item.verify_status === 'pending' || item.verify_status === 'rejected'}}">
+                    <view class="verify-status-{{item.verify_status}}">
+                      <text class="verify-status-text">{{item.verify_status === 'pending' ? '审核中' : '已拒绝'}}</text>
+                    </view>
                   </view>
                 </view>
                 <view class="activity-info">

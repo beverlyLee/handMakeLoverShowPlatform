@@ -22,12 +22,12 @@
         clearable
         style="width: 140px;"
       >
-        <el-option label="线下课程" value="线下课程" />
-        <el-option label="线上直播" value="线上直播" />
-        <el-option label="线下体验" value="线下体验" />
-        <el-option label="比赛" value="比赛" />
-        <el-option label="展览" value="展览" />
-        <el-option label="其他" value="其他" />
+        <el-option
+          v-for="type in activityTypes"
+          :key="type"
+          :label="type"
+          :value="type"
+        />
       </el-select>
       <el-select
         v-model="queryParams.craft_type"
@@ -180,12 +180,12 @@
           <el-col :span="12">
             <el-form-item label="活动类型" prop="activity_type">
               <el-select v-model="officialForm.activity_type" placeholder="请选择活动类型" style="width: 100%;">
-                <el-option label="线下课程" value="线下课程" />
-                <el-option label="线上直播" value="线上直播" />
-                <el-option label="线下体验" value="线下体验" />
-                <el-option label="比赛" value="比赛" />
-                <el-option label="展览" value="展览" />
-                <el-option label="其他" value="其他" />
+                <el-option
+                  v-for="type in activityTypes"
+                  :key="type"
+                  :label="type"
+                  :value="type"
+                />
               </el-select>
             </el-form-item>
           </el-col>
@@ -263,24 +263,6 @@
             </el-form-item>
           </el-col>
         </el-row>
-        <el-form-item label="活动流程" prop="process">
-          <el-input
-            v-model="officialForm.process"
-            type="textarea"
-            :rows="3"
-            placeholder="请输入活动流程（至少20个字）"
-            maxlength="2000"
-            show-word-limit
-          />
-        </el-form-item>
-        <el-form-item label="报名方式" prop="registration_method">
-          <el-input
-            v-model="officialForm.registration_method"
-            type="textarea"
-            :rows="2"
-            placeholder="请输入报名方式"
-          />
-        </el-form-item>
         <el-form-item label="活动描述" prop="description">
           <el-input
             v-model="officialForm.description"
@@ -354,12 +336,12 @@
           <el-col :span="12">
             <el-form-item label="活动类型" prop="activity_type">
               <el-select v-model="editForm.activity_type" placeholder="请选择活动类型" style="width: 100%;">
-                <el-option label="线下课程" value="线下课程" />
-                <el-option label="线上直播" value="线上直播" />
-                <el-option label="线下体验" value="线下体验" />
-                <el-option label="比赛" value="比赛" />
-                <el-option label="展览" value="展览" />
-                <el-option label="其他" value="其他" />
+                <el-option
+                  v-for="type in activityTypes"
+                  :key="type"
+                  :label="type"
+                  :value="type"
+                />
               </el-select>
             </el-form-item>
           </el-col>
@@ -437,24 +419,6 @@
             </el-form-item>
           </el-col>
         </el-row>
-        <el-form-item label="活动流程" prop="process">
-          <el-input
-            v-model="editForm.process"
-            type="textarea"
-            :rows="3"
-            placeholder="请输入活动流程"
-            maxlength="2000"
-            show-word-limit
-          />
-        </el-form-item>
-        <el-form-item label="报名方式" prop="registration_method">
-          <el-input
-            v-model="editForm.registration_method"
-            type="textarea"
-            :rows="2"
-            placeholder="请输入报名方式"
-          />
-        </el-form-item>
         <el-form-item label="活动描述" prop="description">
           <el-input
             v-model="editForm.description"
@@ -594,6 +558,7 @@ const submitLoading = ref(false)
 const tableData = ref([])
 const total = ref(0)
 const craftTypes = ref([])
+const activityTypes = ref([])
 const officialVisible = ref(false)
 const editVisible = ref(false)
 const statsVisible = ref(false)
@@ -660,10 +625,6 @@ const officialRules = {
   craft_type: [
     { required: true, message: '请选择手工种类', trigger: 'change' }
   ],
-  process: [
-    { required: true, message: '请输入活动流程', trigger: 'blur' },
-    { min: 20, message: '活动流程不能少于20个字', trigger: 'blur' }
-  ],
   start_time: [
     { required: true, message: '请选择开始时间', trigger: 'change' }
   ],
@@ -716,9 +677,12 @@ const fetchTypes = async () => {
     const res = await getActivityTypes()
     if (res.code === 0) {
       craftTypes.value = res.data.craft_types || []
+      activityTypes.value = res.data.activity_types || []
     }
   } catch (e) {
+    console.error('获取活动类型失败:', e)
     craftTypes.value = ['编织', '陶艺', '纸艺', '刺绣', '木工', '皮革', '其他']
+    activityTypes.value = ['线下课程', '线上直播', '线下体验', '比赛', '展览']
   }
 }
 

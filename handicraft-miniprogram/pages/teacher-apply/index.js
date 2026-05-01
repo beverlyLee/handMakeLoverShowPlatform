@@ -156,10 +156,10 @@ Page({
       wx.hideLoading();
       
       wx.showModal({
-        title: '入驻成功',
-        content: '恭喜您成功成为手作老师！现在可以切换到老师身份查看订单了。',
+        title: '提交成功',
+        content: '您的老师入驻申请已提交，请等待管理员审核。审核通过后将获得老师身份。',
         showCancel: false,
-        confirmText: '去看看',
+        confirmText: '我知道了',
         success: () => {
           wx.switchTab({
             url: '/pages/user-center/index'

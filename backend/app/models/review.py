@@ -54,6 +54,7 @@ class Review(db.Model):
     reply_count = db.Column(db.Integer, default=0)
     reply_content = db.Column(db.Text)
     reply_time = db.Column(db.DateTime)
+    reply_role = db.Column(db.String(20))
     
     append_content = db.Column(db.Text)
     _append_images = db.Column('append_images', db.Text)
@@ -212,6 +213,7 @@ class Review(db.Model):
             'reply_content': self.reply_content,
             'reply': self.reply_content,
             'reply_time': self.reply_time.strftime('%Y-%m-%d %H:%M:%S') if self.reply_time else None,
+            'reply_role': self.reply_role,
             
             'append_content': self.append_content,
             'append_images': self.append_images,

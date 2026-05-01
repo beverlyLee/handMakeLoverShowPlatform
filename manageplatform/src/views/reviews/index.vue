@@ -258,7 +258,9 @@
       </div>
       
       <div v-if="currentReview?.reply_content" style="margin-top: 20px;">
-        <h4 style="margin-bottom: 12px; font-weight: 600;">老师回复</h4>
+        <h4 style="margin-bottom: 12px; font-weight: 600;">
+          {{ currentReview.reply_role === 'admin' ? '官方回复' : '老师回复' }}
+        </h4>
         <el-card shadow="never" style="background: #fafafa;">
           <div style="line-height: 1.6;">{{ currentReview.reply_content }}</div>
           <div style="text-align: right; margin-top: 8px; color: #999; font-size: 12px;">

@@ -667,6 +667,7 @@ def reply_review(review_id):
     
     review.reply_content = data.get('content')
     review.reply_time = datetime.utcnow()
+    review.reply_role = 'teacher'
     review.reply_count = (review.reply_count or 0) + 1
     review.updated_at = datetime.utcnow()
     
@@ -1128,10 +1129,12 @@ def update_review_reply(review_id):
     if content == '':
         review.reply_content = None
         review.reply_time = None
+        review.reply_role = None
         review.reply_count = max(0, (review.reply_count or 1) - 1)
     else:
         review.reply_content = content
         review.reply_time = datetime.utcnow()
+        review.reply_role = 'teacher'
         if not review.reply_content:
             review.reply_count = (review.reply_count or 0) + 1
     

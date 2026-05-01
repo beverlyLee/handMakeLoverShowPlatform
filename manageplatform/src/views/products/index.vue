@@ -71,7 +71,11 @@
     <div class="table-wrapper">
       <el-table :data="tableData" stripe style="width: 100%" v-loading="loading">
         <el-table-column prop="id" label="作品ID" width="80" />
-        <el-table-column prop="teacher_id" label="老师ID" width="80" />
+        <el-table-column prop="teacher_name" label="老师昵称" width="100">
+          <template #default="scope">
+            <span>{{ scope.row.teacher_name || '未知' }}</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="cover_image" label="封面" width="100">
           <template #default="scope">
             <el-image
