@@ -38,6 +38,52 @@
           <el-icon><ChatDotRound /></el-icon>
           <span>评价管理</span>
         </el-menu-item>
+        
+        <el-sub-menu index="basic-data">
+          <template #title>
+            <el-icon><Setting /></el-icon>
+            <span>基础数据</span>
+          </template>
+          <el-menu-item index="/basic-data/categories">
+            <el-icon><Collection /></el-icon>
+            <span>手工分类</span>
+          </el-menu-item>
+          <el-menu-item index="/basic-data/activity-types">
+            <el-icon><Menu /></el-icon>
+            <span>活动类型</span>
+          </el-menu-item>
+          <el-menu-item index="/basic-data/system-config">
+            <el-icon><Tools /></el-icon>
+            <span>系统参数</span>
+          </el-menu-item>
+        </el-sub-menu>
+        
+        <el-sub-menu index="stats">
+          <template #title>
+            <el-icon><DataAnalysis /></el-icon>
+            <span>数据统计</span>
+          </template>
+          <el-menu-item index="/stats/users">
+            <el-icon><User /></el-icon>
+            <span>用户统计</span>
+          </el-menu-item>
+          <el-menu-item index="/stats/teachers">
+            <el-icon><Avatar /></el-icon>
+            <span>老师统计</span>
+          </el-menu-item>
+          <el-menu-item index="/stats/products">
+            <el-icon><Goods /></el-icon>
+            <span>作品统计</span>
+          </el-menu-item>
+          <el-menu-item index="/stats/orders">
+            <el-icon><List /></el-icon>
+            <span>订单统计</span>
+          </el-menu-item>
+          <el-menu-item index="/stats/activities">
+            <el-icon><Calendar /></el-icon>
+            <span>活动统计</span>
+          </el-menu-item>
+        </el-sub-menu>
       </el-menu>
     </aside>
     
@@ -92,7 +138,9 @@ const currentRouteName = computed(() => {
 })
 
 const handleCommand = async (command) => {
-  if (command === 'logout') {
+  if (command === 'profile') {
+    router.push('/profile')
+  } else if (command === 'logout') {
     try {
       await ElMessageBox.confirm('确定要退出登录吗？', '提示', {
         confirmButtonText: '确定',

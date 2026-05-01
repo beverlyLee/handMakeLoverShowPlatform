@@ -6,7 +6,7 @@ from app.utils.response import success, error
 from app.common.auth import login_required
 from app.common.response_code import ResponseCode
 from app.database import db
-from app.models import User, Product, Order, Category, Activity, Review, TeacherProfile, OrderItem, Like, ActivityRegistration, CRAFT_TYPES, ACTIVITY_TYPES
+from app.models import User, Product, Order, Category, Activity, Review, TeacherProfile, OrderItem, Like, ActivityRegistration, CRAFT_TYPES, ACTIVITY_TYPES, ActivityType, SystemConfig
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -499,12 +499,12 @@ def get_teacher_stats():
         period_revenue = sum(o.pay_amount for o in period_completed) if period_completed else 0
         
         period_products = Product.query.filter(
-            Product.user_id == teacher_user.id,
+            Product.teacher_id == teacher.id,
             Product.created_at >= start,
             Product.created_at < end
         ).count()
         
-        total_products = Product.query.filter_by(user_id=teacher_user.id, status='active').count()
+        total_products = Product.query.filter_by(teacher_id=teacher.id, status='active').count()
         total_orders = Order.query.filter_by(teacher_id=teacher_user.id, status='completed').count()
         
         teacher_ranking.append({
@@ -582,12 +582,12 @@ def export_teacher_stats():
         period_revenue = sum(o.pay_amount for o in period_completed) if period_completed else 0
         
         period_products = Product.query.filter(
-            Product.user_id == teacher_user.id,
+            Product.teacher_id == teacher.id,
             Product.created_at >= start,
             Product.created_at < end
         ).count()
         
-        total_products = Product.query.filter_by(user_id=teacher_user.id, status='active').count()
+        total_products = Product.query.filter_by(teacher_id=teacher.id, status='active').count()
         total_orders = Order.query.filter_by(teacher_id=teacher_user.id, status='completed').count()
         
         teacher_list.append({
@@ -1548,6 +1548,356 @@ def update_user_roles(user_id):
     try:
         db.session.commit()
         return jsonify(success(data=user.to_dict(), msg='角色更新成功'))
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(error(code=ResponseCode.SYSTEM_ERROR, msg=f'更新失败: {str(e)}')), 500
+
+@admin_bp.route('/categories', methods=['GET'])
+@login_required
+def get_categories():
+    page = request.args.get('page', 1, type=int)
+    size = request.args.get('size', 100, type=int)
+    status = request.args.get('status', '')
+    
+    query = Category.query
+    
+    if status:
+        query = query.filter(Category.status == status)
+    
+    query = query.order_by(Category.sort.asc(), Category.id.asc())
+    
+    pagination = query.paginate(page=page, per_page=size, error_out=False)
+    
+    categories = []
+    for cat in pagination.items:
+        cat_dict = cat.to_dict()
+        cat_dict['product_count'] = Product.query.filter_by(category_id=cat.id, status='active').count()
+        cat_dict['activity_count'] = Activity.query.filter_by(craft_type=cat.name, status='active').count()
+        categories.append(cat_dict)
+    
+    return jsonify(success(data={
+        'list': categories,
+        'total': pagination.total,
+        'page': page,
+        'size': size
+    }))
+
+@admin_bp.route('/categories/all', methods=['GET'])
+@login_required
+def get_all_categories():
+    categories = Category.query.filter_by(status='active').order_by(Category.sort.asc()).all()
+    category_list = [cat.to_dict() for cat in categories]
+    return jsonify(success(data=category_list))
+
+@admin_bp.route('/categories/<int:category_id>', methods=['GET'])
+@login_required
+def get_category(category_id):
+    category = Category.query.get(category_id)
+    if not category:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='分类不存在')), 404
+    
+    cat_dict = category.to_dict()
+    cat_dict['product_count'] = Product.query.filter_by(category_id=category.id, status='active').count()
+    cat_dict['activity_count'] = Activity.query.filter_by(craft_type=category.name, status='active').count()
+    
+    return jsonify(success(data=cat_dict))
+
+@admin_bp.route('/categories', methods=['POST'])
+@login_required
+def create_category():
+    data = request.get_json()
+    
+    if not data or 'name' not in data:
+        return jsonify(error(code=ResponseCode.PARAM_MISSING, msg='分类名称不能为空')), 400
+    
+    name = data.get('name')
+    
+    existing = Category.query.filter_by(name=name).first()
+    if existing:
+        return jsonify(error(code=ResponseCode.DATA_EXISTS, msg='分类名称已存在')), 400
+    
+    category = Category(
+        name=name,
+        icon=data.get('icon', ''),
+        description=data.get('description', ''),
+        sort=data.get('sort', 0),
+        status=data.get('status', 'active')
+    )
+    
+    try:
+        db.session.add(category)
+        db.session.commit()
+        return jsonify(success(data=category.to_dict(), msg='分类创建成功'))
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(error(code=ResponseCode.SYSTEM_ERROR, msg=f'创建失败: {str(e)}')), 500
+
+@admin_bp.route('/categories/<int:category_id>', methods=['PUT'])
+@login_required
+def update_category(category_id):
+    category = Category.query.get(category_id)
+    if not category:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='分类不存在')), 404
+    
+    data = request.get_json()
+    
+    if 'name' in data:
+        existing = Category.query.filter(
+            Category.name == data['name'],
+            Category.id != category_id
+        ).first()
+        if existing:
+            return jsonify(error(code=ResponseCode.DATA_EXISTS, msg='分类名称已存在')), 400
+        category.name = data['name']
+    
+    if 'icon' in data:
+        category.icon = data['icon']
+    if 'description' in data:
+        category.description = data['description']
+    if 'sort' in data:
+        category.sort = data['sort']
+    if 'status' in data:
+        category.status = data['status']
+    
+    try:
+        db.session.commit()
+        return jsonify(success(data=category.to_dict(), msg='分类更新成功'))
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(error(code=ResponseCode.SYSTEM_ERROR, msg=f'更新失败: {str(e)}')), 500
+
+@admin_bp.route('/categories/<int:category_id>', methods=['DELETE'])
+@login_required
+def delete_category(category_id):
+    category = Category.query.get(category_id)
+    if not category:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='分类不存在')), 404
+    
+    product_count = Product.query.filter_by(category_id=category_id, status='active').count()
+    if product_count > 0:
+        return jsonify(error(code=ResponseCode.DATA_DELETE_FAILED, msg=f'该分类下有{product_count}个作品，无法删除')), 400
+    
+    activity_count = Activity.query.filter_by(craft_type=category.name, status='active').count()
+    if activity_count > 0:
+        return jsonify(error(code=ResponseCode.DATA_DELETE_FAILED, msg=f'该分类下有{activity_count}个活动，无法删除')), 400
+    
+    activity_type_count = ActivityType.query.filter_by(craft_type_id=category_id, status='active').count()
+    if activity_type_count > 0:
+        return jsonify(error(code=ResponseCode.DATA_DELETE_FAILED, msg=f'该分类下关联了{activity_type_count}个活动类型，无法删除')), 400
+    
+    try:
+        db.session.delete(category)
+        db.session.commit()
+        return jsonify(success(msg='分类删除成功'))
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(error(code=ResponseCode.SYSTEM_ERROR, msg=f'删除失败: {str(e)}')), 500
+
+@admin_bp.route('/activity-types', methods=['GET'])
+@login_required
+def get_activity_types():
+    page = request.args.get('page', 1, type=int)
+    size = request.args.get('size', 100, type=int)
+    status = request.args.get('status', '')
+    craft_type_id = request.args.get('craft_type_id', type=int)
+    
+    query = ActivityType.query
+    
+    if status:
+        query = query.filter(ActivityType.status == status)
+    if craft_type_id:
+        query = query.filter(ActivityType.craft_type_id == craft_type_id)
+    
+    query = query.order_by(ActivityType.sort.asc(), ActivityType.id.asc())
+    
+    pagination = query.paginate(page=page, per_page=size, error_out=False)
+    
+    activity_types = []
+    for at in pagination.items:
+        at_dict = at.to_dict()
+        at_dict['activity_count'] = Activity.query.filter_by(activity_type=at.name, status='active').count()
+        activity_types.append(at_dict)
+    
+    return jsonify(success(data={
+        'list': activity_types,
+        'total': pagination.total,
+        'page': page,
+        'size': size
+    }))
+
+@admin_bp.route('/activity-types/all', methods=['GET'])
+@login_required
+def get_all_activity_types():
+    craft_type_id = request.args.get('craft_type_id', type=int)
+    
+    query = ActivityType.query.filter_by(status='active')
+    if craft_type_id:
+        query = query.filter(ActivityType.craft_type_id == craft_type_id)
+    
+    activity_types = query.order_by(ActivityType.sort.asc()).all()
+    type_list = [at.to_dict() for at in activity_types]
+    return jsonify(success(data=type_list))
+
+@admin_bp.route('/activity-types/<int:type_id>', methods=['GET'])
+@login_required
+def get_activity_type(type_id):
+    activity_type = ActivityType.query.get(type_id)
+    if not activity_type:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='活动类型不存在')), 404
+    
+    at_dict = activity_type.to_dict()
+    at_dict['activity_count'] = Activity.query.filter_by(activity_type=activity_type.name, status='active').count()
+    
+    return jsonify(success(data=at_dict))
+
+@admin_bp.route('/activity-types', methods=['POST'])
+@login_required
+def create_activity_type():
+    data = request.get_json()
+    
+    if not data or 'name' not in data:
+        return jsonify(error(code=ResponseCode.PARAM_MISSING, msg='活动类型名称不能为空')), 400
+    
+    name = data.get('name')
+    
+    existing = ActivityType.query.filter_by(name=name).first()
+    if existing:
+        return jsonify(error(code=ResponseCode.DATA_EXISTS, msg='活动类型名称已存在')), 400
+    
+    activity_type = ActivityType(
+        name=name,
+        description=data.get('description', ''),
+        craft_type_id=data.get('craft_type_id'),
+        sort=data.get('sort', 0),
+        status=data.get('status', 'active')
+    )
+    
+    try:
+        db.session.add(activity_type)
+        db.session.commit()
+        return jsonify(success(data=activity_type.to_dict(), msg='活动类型创建成功'))
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(error(code=ResponseCode.SYSTEM_ERROR, msg=f'创建失败: {str(e)}')), 500
+
+@admin_bp.route('/activity-types/<int:type_id>', methods=['PUT'])
+@login_required
+def update_activity_type(type_id):
+    activity_type = ActivityType.query.get(type_id)
+    if not activity_type:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='活动类型不存在')), 404
+    
+    data = request.get_json()
+    
+    if 'name' in data:
+        existing = ActivityType.query.filter(
+            ActivityType.name == data['name'],
+            ActivityType.id != type_id
+        ).first()
+        if existing:
+            return jsonify(error(code=ResponseCode.DATA_EXISTS, msg='活动类型名称已存在')), 400
+        activity_type.name = data['name']
+    
+    if 'description' in data:
+        activity_type.description = data['description']
+    if 'craft_type_id' in data:
+        activity_type.craft_type_id = data['craft_type_id']
+    if 'sort' in data:
+        activity_type.sort = data['sort']
+    if 'status' in data:
+        activity_type.status = data['status']
+    
+    try:
+        db.session.commit()
+        return jsonify(success(data=activity_type.to_dict(), msg='活动类型更新成功'))
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(error(code=ResponseCode.SYSTEM_ERROR, msg=f'更新失败: {str(e)}')), 500
+
+@admin_bp.route('/activity-types/<int:type_id>', methods=['DELETE'])
+@login_required
+def delete_activity_type(type_id):
+    activity_type = ActivityType.query.get(type_id)
+    if not activity_type:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='活动类型不存在')), 404
+    
+    activity_count = Activity.query.filter_by(activity_type=activity_type.name, status='active').count()
+    if activity_count > 0:
+        return jsonify(error(code=ResponseCode.DATA_DELETE_FAILED, msg=f'该活动类型下有{activity_count}个活动，无法删除')), 400
+    
+    try:
+        db.session.delete(activity_type)
+        db.session.commit()
+        return jsonify(success(msg='活动类型删除成功'))
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(error(code=ResponseCode.SYSTEM_ERROR, msg=f'删除失败: {str(e)}')), 500
+
+@admin_bp.route('/system-configs', methods=['GET'])
+@login_required
+def get_system_configs():
+    group = request.args.get('group', '')
+    
+    query = SystemConfig.query
+    if group:
+        query = query.filter(SystemConfig.group == group)
+    
+    configs = query.order_by(SystemConfig.group.asc(), SystemConfig.id.asc()).all()
+    
+    config_dict = {}
+    for config in configs:
+        if config.group not in config_dict:
+            config_dict[config.group] = []
+        config_dict[config.group].append(config.to_dict())
+    
+    return jsonify(success(data=config_dict))
+
+@admin_bp.route('/system-configs/save', methods=['POST'])
+@login_required
+def save_system_configs():
+    data = request.get_json()
+    
+    if not data:
+        return jsonify(error(code=ResponseCode.PARAM_MISSING, msg='配置数据不能为空')), 400
+    
+    try:
+        for key, value in data.items():
+            config = SystemConfig.query.filter_by(key=key).first()
+            if config:
+                config.value = value
+            else:
+                config = SystemConfig(
+                    key=key,
+                    value=value,
+                    group='general'
+                )
+                db.session.add(config)
+        
+        db.session.commit()
+        return jsonify(success(msg='配置已同步'))
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(error(code=ResponseCode.SYSTEM_ERROR, msg=f'保存失败: {str(e)}')), 500
+
+@admin_bp.route('/system-configs/<int:config_id>', methods=['PUT'])
+@login_required
+def update_system_config(config_id):
+    config = SystemConfig.query.get(config_id)
+    if not config:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='配置不存在')), 404
+    
+    data = request.get_json()
+    
+    if 'value' in data:
+        config.value = data['value']
+    if 'description' in data:
+        config.description = data['description']
+    if 'group' in data:
+        config.group = data['group']
+    
+    try:
+        db.session.commit()
+        return jsonify(success(data=config.to_dict(), msg='配置更新成功'))
     except Exception as e:
         db.session.rollback()
         return jsonify(error(code=ResponseCode.SYSTEM_ERROR, msg=f'更新失败: {str(e)}')), 500

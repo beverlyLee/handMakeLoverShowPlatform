@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request, g
 from datetime import datetime
 from app.utils.response import success, error
 from app.utils.jwt_utils import generate_token
-from app.utils.password_utils import verify_password
+from app.utils.password_utils import verify_password, generate_password_hash, validate_password_strength
 from app.services.wechat_service import WeChatService
 from app.services.user_service import UserService
 from app.common.auth import login_required
@@ -111,18 +111,25 @@ def admin_login():
     
     username = data.get('username')
     password = data.get('password')
+    remember_me = data.get('remember_me', False)
     
     user = User.query.filter_by(username=username).first()
     
     if not user:
-        return jsonify(error(code=ResponseCode.USER_NOT_FOUND, msg='用户不存在')), 404
+        return jsonify(error(code=ResponseCode.USER_NOT_FOUND, msg='账号不存在')), 404
     
-    if user.password_hash and user.password_salt:
-        if not verify_password(password, user.password_hash, user.password_salt):
-            return jsonify(error(code=ResponseCode.USER_PASSWORD_ERROR, msg='密码错误')), 401
+    password_valid = False
+    if user.password_hash:
+        if user.password_salt:
+            password_valid = verify_password(password, user.password_hash, user.password_salt)
+        else:
+            password_valid = verify_password(password, user.password_hash)
     else:
-        if password != 'admin123':
-            return jsonify(error(code=ResponseCode.USER_PASSWORD_ERROR, msg='密码错误')), 401
+        if password == 'admin123':
+            password_valid = True
+    
+    if not password_valid:
+        return jsonify(error(code=ResponseCode.USER_PASSWORD_ERROR, msg='密码错误')), 401
     
     if 'admin' not in user.roles:
         return jsonify(error(code=ResponseCode.PERMISSION_DENIED, msg='您不是管理员，无权限登录')), 403
@@ -130,10 +137,118 @@ def admin_login():
     user.last_login_at = datetime.utcnow()
     db.session.commit()
     
-    token = generate_token(user.id)
+    expire_days = 7 if remember_me else None
+    token = generate_token(user.id, expire_days=expire_days)
     user_info = UserService.get_user_public_info(user.to_dict())
     
     return jsonify(success(data={
         'token': token,
         'user_info': user_info
     }, msg='登录成功'))
+
+@auth_bp.route('/admin/change-password', methods=['POST'])
+@login_required
+def admin_change_password():
+    user_id = g.get('user_id')
+    data = request.get_json()
+    
+    if not data or 'old_password' not in data or 'new_password' not in data or 'confirm_password' not in data:
+        return jsonify(error(code=ResponseCode.PARAM_MISSING, msg='参数不完整')), 400
+    
+    old_password = data.get('old_password')
+    new_password = data.get('new_password')
+    confirm_password = data.get('confirm_password')
+    
+    if new_password != confirm_password:
+        return jsonify(error(code=ResponseCode.PARAM_ERROR, msg='两次输入的新密码不一致')), 400
+    
+    is_valid, error_msg = validate_password_strength(new_password)
+    if not is_valid:
+        return jsonify(error(code=ResponseCode.PARAM_ERROR, msg=error_msg)), 400
+    
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify(error(code=ResponseCode.USER_NOT_FOUND, msg='用户不存在')), 404
+    
+    password_valid = False
+    if user.password_hash:
+        if user.password_salt:
+            password_valid = verify_password(old_password, user.password_hash, user.password_salt)
+        else:
+            password_valid = verify_password(old_password, user.password_hash)
+    else:
+        if old_password == 'admin123':
+            password_valid = True
+    
+    if not password_valid:
+        return jsonify(error(code=ResponseCode.USER_PASSWORD_ERROR, msg='旧密码错误')), 401
+    
+    new_pwd_data = generate_password_hash(new_password)
+    user.password_hash = new_pwd_data['password_hash']
+    user.password_salt = new_pwd_data['password_salt']
+    
+    try:
+        db.session.commit()
+        return jsonify(success(msg='密码修改成功，请重新登录'))
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(error(code=ResponseCode.SYSTEM_ERROR, msg=f'修改失败: {str(e)}')), 500
+
+@auth_bp.route('/admin/profile', methods=['GET'])
+@login_required
+def get_admin_profile():
+    user_id = g.get('user_id')
+    user = User.query.get(user_id)
+    
+    if not user:
+        return jsonify(error(code=ResponseCode.USER_NOT_FOUND, msg='用户不存在')), 404
+    
+    user_dict = user.to_dict()
+    
+    return jsonify(success(data={
+        'id': user_dict['id'],
+        'username': user_dict['username'],
+        'nickname': user_dict['nickname'],
+        'avatar': user_dict['avatar'],
+        'phone': user_dict['phone'],
+        'email': user_dict['email'],
+        'roles': user_dict['roles']
+    }))
+
+@auth_bp.route('/admin/profile', methods=['PUT'])
+@login_required
+def update_admin_profile():
+    user_id = g.get('user_id')
+    data = request.get_json()
+    
+    if not data:
+        return jsonify(error(code=ResponseCode.PARAM_MISSING, msg='请求数据不能为空')), 400
+    
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify(error(code=ResponseCode.USER_NOT_FOUND, msg='用户不存在')), 404
+    
+    if 'nickname' in data:
+        user.nickname = data['nickname']
+    if 'phone' in data:
+        user.phone = data['phone']
+    if 'avatar' in data:
+        user.avatar = data['avatar']
+    if 'email' in data:
+        user.email = data['email']
+    
+    try:
+        db.session.commit()
+        user_dict = user.to_dict()
+        return jsonify(success(data={
+            'id': user_dict['id'],
+            'username': user_dict['username'],
+            'nickname': user_dict['nickname'],
+            'avatar': user_dict['avatar'],
+            'phone': user_dict['phone'],
+            'email': user_dict['email'],
+            'roles': user_dict['roles']
+        }, msg='个人信息更新成功'))
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(error(code=ResponseCode.SYSTEM_ERROR, msg=f'更新失败: {str(e)}')), 500

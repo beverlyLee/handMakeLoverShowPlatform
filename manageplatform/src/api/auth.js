@@ -29,3 +29,26 @@ export function adminLogin(data) {
     data
   })
 }
+
+export function getAdminProfile() {
+  return request({
+    url: '/auth/admin/profile',
+    method: 'get'
+  })
+}
+
+export function updateAdminProfile(data) {
+  return request({
+    url: '/auth/admin/profile',
+    method: 'put',
+    data
+  })
+}
+
+export function changePassword(data) {
+  return request({
+    url: '/auth/admin/change-password',
+    method: 'post',
+    data
+  })
+}

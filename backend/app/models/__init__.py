@@ -8,5 +8,6 @@ from app.models.message import Message, Conversation, ChatMessage
 from app.models.review import Review, AppendReview, PRODUCT_DETAIL_ITEMS, TEACHER_DETAIL_ITEMS, LOGISTICS_DETAIL_ITEMS
 from app.models.like import Like
 from app.models.activity import Activity, ActivityRegistration, CRAFT_TYPES, ACTIVITY_TYPES
+from app.models.basic_data import ActivityType, SystemConfig
 
-__all__ = ['User', 'Address', 'TeacherProfile', 'Order', 'OrderItem', 'Logistics', 'LogisticsItem', 'Category', 'Product', 'Specialty', 'Coupon', 'UserCoupon', 'Image', 'Message', 'Conversation', 'ChatMessage', 'Review', 'AppendReview', 'PRODUCT_DETAIL_ITEMS', 'TEACHER_DETAIL_ITEMS', 'LOGISTICS_DETAIL_ITEMS', 'Like', 'Activity', 'ActivityRegistration', 'CRAFT_TYPES', 'ACTIVITY_TYPES']
+__all__ = ['User', 'Address', 'TeacherProfile', 'Order', 'OrderItem', 'Logistics', 'LogisticsItem', 'Category', 'Product', 'Specialty', 'Coupon', 'UserCoupon', 'Image', 'Message', 'Conversation', 'ChatMessage', 'Review', 'AppendReview', 'PRODUCT_DETAIL_ITEMS', 'TEACHER_DETAIL_ITEMS', 'LOGISTICS_DETAIL_ITEMS', 'Like', 'Activity', 'ActivityRegistration', 'CRAFT_TYPES', 'ACTIVITY_TYPES', 'ActivityType', 'SystemConfig']

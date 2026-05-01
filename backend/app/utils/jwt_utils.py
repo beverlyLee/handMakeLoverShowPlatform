@@ -3,10 +3,15 @@ from datetime import datetime, timedelta
 from flask import current_app
 from app.config.config import Config
 
-def generate_token(user_id):
+def generate_token(user_id, expire_days: int = None):
+    if expire_days:
+        expiration = timedelta(days=expire_days)
+    else:
+        expiration = timedelta(hours=Config.JWT_EXPIRE_HOURS)
+    
     payload = {
         'user_id': user_id,
-        'exp': datetime.utcnow() + timedelta(hours=Config.JWT_EXPIRE_HOURS),
+        'exp': datetime.utcnow() + expiration,
         'iat': datetime.utcnow()
     }
     token = jwt.encode(

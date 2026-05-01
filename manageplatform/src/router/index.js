@@ -48,6 +48,60 @@ const routes = [
         name: 'Reviews',
         component: () => import('@/views/reviews/index.vue'),
         meta: { title: '评价管理', icon: 'ChatDotRound' }
+      },
+      {
+        path: 'profile',
+        name: 'Profile',
+        component: () => import('@/views/profile/index.vue'),
+        meta: { title: '个人中心', icon: 'UserFilled' }
+      },
+      {
+        path: 'basic-data/categories',
+        name: 'Categories',
+        component: () => import('@/views/basic-data/categories.vue'),
+        meta: { title: '手工分类', icon: 'Collection' }
+      },
+      {
+        path: 'basic-data/activity-types',
+        name: 'ActivityTypes',
+        component: () => import('@/views/basic-data/activityTypes.vue'),
+        meta: { title: '活动类型', icon: 'Menu' }
+      },
+      {
+        path: 'basic-data/system-config',
+        name: 'SystemConfig',
+        component: () => import('@/views/basic-data/systemConfig.vue'),
+        meta: { title: '系统参数', icon: 'Setting' }
+      },
+      {
+        path: 'stats/users',
+        name: 'StatsUsers',
+        component: () => import('@/views/stats/users.vue'),
+        meta: { title: '用户统计', icon: 'User' }
+      },
+      {
+        path: 'stats/teachers',
+        name: 'StatsTeachers',
+        component: () => import('@/views/stats/teachers.vue'),
+        meta: { title: '老师统计', icon: 'Avatar' }
+      },
+      {
+        path: 'stats/products',
+        name: 'StatsProducts',
+        component: () => import('@/views/stats/products.vue'),
+        meta: { title: '作品统计', icon: 'Goods' }
+      },
+      {
+        path: 'stats/orders',
+        name: 'StatsOrders',
+        component: () => import('@/views/stats/orders.vue'),
+        meta: { title: '订单统计', icon: 'List' }
+      },
+      {
+        path: 'stats/activities',
+        name: 'StatsActivities',
+        component: () => import('@/views/stats/activities.vue'),
+        meta: { title: '活动统计', icon: 'Calendar' }
       }
     ]
   }
