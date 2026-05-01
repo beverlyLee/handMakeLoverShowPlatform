@@ -25,7 +25,14 @@ export function getReviewDetail(id) {
 
 export function deleteReview(id) {
   return request({
-    url: `/reviews/${id}`,
-    method: 'delete'
+    url: `/admin/reviews/${id}/delete`,
+    method: 'post'
+  })
+}
+
+export function markReviewRead(id) {
+  return request({
+    url: `/admin/reviews/${id}/mark-read`,
+    method: 'post'
   })
 }

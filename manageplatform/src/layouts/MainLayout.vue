@@ -36,18 +36,38 @@
             <span>入驻审核</span>
           </el-menu-item>
         </el-sub-menu>
-        <el-menu-item index="/products">
-          <el-icon><Goods /></el-icon>
-          <span>商品管理</span>
-        </el-menu-item>
+        <el-sub-menu index="products-manage">
+          <template #title>
+            <el-icon><Goods /></el-icon>
+            <span>作品管理</span>
+          </template>
+          <el-menu-item index="/products">
+            <el-icon><List /></el-icon>
+            <span>作品列表</span>
+          </el-menu-item>
+          <el-menu-item index="/products-verify">
+            <el-icon><DocumentChecked /></el-icon>
+            <span>作品审核</span>
+          </el-menu-item>
+        </el-sub-menu>
         <el-menu-item index="/orders">
           <el-icon><List /></el-icon>
           <span>订单管理</span>
         </el-menu-item>
-        <el-menu-item index="/activities">
-          <el-icon><Calendar /></el-icon>
-          <span>活动管理</span>
-        </el-menu-item>
+        <el-sub-menu index="activities-manage">
+          <template #title>
+            <el-icon><Calendar /></el-icon>
+            <span>活动管理</span>
+          </template>
+          <el-menu-item index="/activities">
+            <el-icon><List /></el-icon>
+            <span>活动列表</span>
+          </el-menu-item>
+          <el-menu-item index="/activities-verify">
+            <el-icon><DocumentChecked /></el-icon>
+            <span>活动审核</span>
+          </el-menu-item>
+        </el-sub-menu>
         <el-menu-item index="/reviews">
           <el-icon><ChatDotRound /></el-icon>
           <span>评价管理</span>

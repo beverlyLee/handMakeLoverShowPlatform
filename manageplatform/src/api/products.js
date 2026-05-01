@@ -76,3 +76,42 @@ export function getNewProducts(params) {
     params
   })
 }
+
+export function getPendingReviewProducts(params) {
+  return request({
+    url: '/admin/products/pending-review',
+    method: 'get',
+    params
+  })
+}
+
+export function reviewProduct(id, data) {
+  return request({
+    url: `/admin/products/${id}/review`,
+    method: 'post',
+    data
+  })
+}
+
+export function setProductOnline(id, is_online) {
+  return request({
+    url: `/admin/products/${id}/online`,
+    method: 'post',
+    data: { is_online }
+  })
+}
+
+export function adminEditProduct(id, data) {
+  return request({
+    url: `/admin/products/${id}/admin-edit`,
+    method: 'put',
+    data
+  })
+}
+
+export function adminDeleteProduct(id) {
+  return request({
+    url: `/admin/products/${id}/admin-delete`,
+    method: 'delete'
+  })
+}

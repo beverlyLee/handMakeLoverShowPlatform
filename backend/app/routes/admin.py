@@ -2,11 +2,12 @@ from flask import Blueprint, jsonify, request, g
 from datetime import datetime, timedelta
 from io import StringIO
 import csv
+import json
 from app.utils.response import success, error
 from app.common.auth import login_required
 from app.common.response_code import ResponseCode
 from app.database import db
-from app.models import User, Product, Order, Category, Activity, Review, TeacherProfile, OrderItem, Like, ActivityRegistration, CRAFT_TYPES, ACTIVITY_TYPES, ActivityType, SystemConfig
+from app.models import User, Product, Order, Category, Activity, Review, TeacherProfile, OrderItem, Like, ActivityRegistration, CRAFT_TYPES, ACTIVITY_TYPES, ActivityType, SystemConfig, AuditLog, REFUND_STATUS_NAMES, ABNORMAL_REASONS
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -23,6 +24,24 @@ STATUS_NAMES = {
     'rejected': '已拒绝',
     'deleted': '已删除'
 }
+
+def parse_datetime(datetime_str):
+    if not datetime_str:
+        return None
+    formats = [
+        '%Y-%m-%d %H:%M:%S',
+        '%Y-%m-%d %H:%M',
+        '%Y-%m-%d',
+        '%Y/%m/%d %H:%M:%S',
+        '%Y/%m/%d %H:%M',
+        '%Y/%m/%d'
+    ]
+    for fmt in formats:
+        try:
+            return datetime.strptime(datetime_str, fmt)
+        except ValueError:
+            continue
+    return None
 
 def get_date_range(period, start_date=None, end_date=None):
     now = datetime.utcnow()
@@ -712,7 +731,11 @@ def get_products_list():
     page = request.args.get('page', 1, type=int)
     size = request.args.get('size', 10, type=int)
     keyword = request.args.get('keyword', '')
+    product_id = request.args.get('product_id', '')
+    teacher_id = request.args.get('teacher_id', '')
     category_id = request.args.get('category', type=int)
+    verify_status = request.args.get('verify_status', '')
+    is_online = request.args.get('is_online', type=bool)
     status = request.args.get('status', '')
     sort = request.args.get('sort', 'newest')
     
@@ -726,8 +749,26 @@ def get_products_list():
             )
         )
     
+    if product_id:
+        try:
+            query = query.filter(Product.id == int(product_id))
+        except ValueError:
+            pass
+    
+    if teacher_id:
+        try:
+            query = query.filter(Product.teacher_id == int(teacher_id))
+        except ValueError:
+            pass
+    
     if category_id:
         query = query.filter(Product.category_id == category_id)
+    
+    if verify_status:
+        query = query.filter(Product.verify_status == verify_status)
+    
+    if is_online is not None:
+        query = query.filter(Product.is_online == is_online)
     
     if status:
         query = query.filter(Product.status == status)
@@ -977,6 +1018,12 @@ def get_orders_list():
     size = request.args.get('size', 10, type=int)
     keyword = request.args.get('keyword', '')
     status = request.args.get('status', '')
+    user_id = request.args.get('user_id', type=int)
+    teacher_id = request.args.get('teacher_id', type=int)
+    is_abnormal = request.args.get('is_abnormal', type=bool)
+    refund_status = request.args.get('refund_status', '')
+    start_date = request.args.get('start_date', '')
+    end_date = request.args.get('end_date', '')
     sort = request.args.get('sort', 'newest')
     
     query = Order.query.filter(Order.status != 'deleted')
@@ -1000,6 +1047,32 @@ def get_orders_list():
     if status:
         query = query.filter(Order.status == status)
     
+    if user_id:
+        query = query.filter(Order.user_id == user_id)
+    
+    if teacher_id:
+        query = query.filter(Order.teacher_id == teacher_id)
+    
+    if is_abnormal is not None:
+        query = query.filter(Order.is_abnormal == is_abnormal)
+    
+    if refund_status:
+        query = query.filter(Order.refund_status == refund_status)
+    
+    if start_date:
+        try:
+            start = datetime.strptime(start_date, '%Y-%m-%d')
+            query = query.filter(Order.created_at >= start)
+        except ValueError:
+            pass
+    
+    if end_date:
+        try:
+            end = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
+            query = query.filter(Order.created_at < end)
+        except ValueError:
+            pass
+    
     if sort == 'newest':
         query = query.order_by(Order.created_at.desc())
     elif sort == 'oldest':
@@ -1020,6 +1093,12 @@ def get_orders_list():
             order_dict['customer_nickname'] = customer.nickname or customer.username
             order_dict['customer_avatar'] = customer.avatar
         
+        if order.teacher_id:
+            teacher = User.query.get(order.teacher_id)
+            if teacher:
+                order_dict['teacher_nickname'] = teacher.nickname or teacher.username
+                order_dict['teacher_avatar'] = teacher.avatar
+        
         items = OrderItem.query.filter_by(order_id=order.id).all()
         order_dict['items'] = [item.to_dict() for item in items]
         order_dict['item_count'] = len(items)
@@ -1031,7 +1110,10 @@ def get_orders_list():
         'total': pagination.total,
         'page': page,
         'size': size,
-        'total_pages': pagination.pages
+        'total_pages': pagination.pages,
+        'status_names': STATUS_NAMES,
+        'refund_status_names': REFUND_STATUS_NAMES,
+        'abnormal_reasons': ABNORMAL_REASONS
     }))
 
 @admin_bp.route('/orders/<order_id>', methods=['GET'])
@@ -1064,12 +1146,14 @@ def get_order_detail(order_id):
 @admin_bp.route('/orders/<order_id>/status', methods=['PUT'])
 @login_required
 def update_order_status(order_id):
+    admin_id = g.get('user_id', 1)
     order = Order.query.get(order_id)
     if not order:
         return jsonify(error(code=ResponseCode.NOT_FOUND, msg='订单不存在')), 404
     
     data = request.get_json()
     new_status = data.get('status')
+    reason = data.get('reason', '')
     
     if not new_status:
         return jsonify(error(code=ResponseCode.PARAM_MISSING, msg='请提供新状态')), 400
@@ -1077,20 +1161,351 @@ def update_order_status(order_id):
     if new_status not in STATUS_NAMES:
         return jsonify(error(code=ResponseCode.PARAM_ERROR, msg='无效的订单状态')), 400
     
+    if new_status == 'cancelled':
+        if not reason or len(reason.strip()) < 10:
+            return jsonify(error(code=ResponseCode.PARAM_ERROR, msg='取消订单理由至少需要10个字符')), 400
+    
     old_status = order.status
+    old_order_data = json.dumps(order.to_dict(), ensure_ascii=False)
+    
     order.status = new_status
     
     if new_status == 'completed':
         order.complete_time = datetime.utcnow()
     elif new_status == 'cancelled':
         order.cancel_time = datetime.utcnow()
+        order.cancel_reason = reason
     
     try:
         db.session.commit()
+        
+        audit_log = AuditLog(
+            admin_id=admin_id,
+            target_type='order',
+            target_id=order.id if isinstance(order.id, int) else 0,
+            action=f'status_change_{old_status}_to_{new_status}',
+            reason=reason,
+            before_data=old_order_data,
+            after_data=json.dumps(order.to_dict(), ensure_ascii=False)
+        )
+        db.session.add(audit_log)
+        db.session.commit()
+        
         return jsonify(success(data=order.to_dict(), msg=f'订单状态已从{STATUS_NAMES.get(old_status, old_status)}更新为{STATUS_NAMES.get(new_status, new_status)}'))
     except Exception as e:
         db.session.rollback()
         return jsonify(error(code=ResponseCode.SYSTEM_ERROR, msg=f'更新失败: {str(e)}')), 500
+
+
+@admin_bp.route('/orders/<order_id>/abnormal', methods=['POST'])
+@login_required
+def mark_order_abnormal(order_id):
+    admin_id = g.get('user_id', 1)
+    order = Order.query.get(order_id)
+    if not order:
+        return jsonify(error(code=ResponseCode.NOT_FOUND, msg='订单不存在')), 404
+    
+    data = request.get_json()
+    reason = data.get('reason', '')
+    reason_code = data.get('reason_code', 'other')
+    
+    if not reason or len(reason.strip()) < 10:
+        return jsonify(error(code=ResponseCode.PARAM_ERROR, msg='异常订单理由至少需要10个字符')), 400
+    
+    old_order_data = json.dumps(order.to_dict(), ensure_ascii=False)
+    
+    order.is_abnormal = True
+    order.abnormal_reason = reason
+    order.abnormal_reason_code = reason_code
+    order.abnormal_time = datetime.utcnow()
+    order.updated_at = datetime.utcnow()
+    
+    try:
+        db.session.commit()
+        
+        audit_log = AuditLog(
+            admin_id=admin_id,
+            target_type='order',
+            target_id=order.id if isinstance(order.id, int) else 0,
+            action='mark_abnormal',
+            reason=reason,
+            before_data=old_order_data,
+            after_data=json.dumps(order.to_dict(), ensure_ascii=False)
+        )
+        db.session.add(audit_log)
+        db.session.commit()
+        
+        return jsonify(success(data=order.to_dict(), msg='订单已标记为异常'))
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(error(code=ResponseCode.SYSTEM_ERROR, msg=f'操作失败: {str(e)}')), 500
+
+
+@admin_bp.route('/orders/<order_id>/resolve-abnormal', methods=['POST'])
+@login_required
+def resolve_abnormal_order(order_id):
+    admin_id = g.get('user_id', 1)
+    order = Order.query.get(order_id)
+    if not order:
+        return jsonify(error(code=ResponseCode.NOT_FOUND, msg='订单不存在')), 404
+    
+    if not order.is_abnormal:
+        return jsonify(error(code=ResponseCode.OPERATION_FAILED, msg='该订单不是异常订单')), 400
+    
+    data = request.get_json()
+    resolution = data.get('resolution', '')
+    action = data.get('action', '')
+    
+    if not resolution or len(resolution.strip()) < 10:
+        return jsonify(error(code=ResponseCode.PARAM_ERROR, msg='处理方案至少需要10个字符')), 400
+    
+    old_order_data = json.dumps(order.to_dict(), ensure_ascii=False)
+    
+    order.is_abnormal = False
+    order.abnormal_resolved_at = datetime.utcnow()
+    order.abnormal_resolved_by = admin_id
+    order.updated_at = datetime.utcnow()
+    
+    try:
+        db.session.commit()
+        
+        audit_log = AuditLog(
+            admin_id=admin_id,
+            target_type='order',
+            target_id=order.id if isinstance(order.id, int) else 0,
+            action=f'resolve_abnormal_{action}',
+            reason=resolution,
+            before_data=old_order_data,
+            after_data=json.dumps(order.to_dict(), ensure_ascii=False)
+        )
+        db.session.add(audit_log)
+        db.session.commit()
+        
+        return jsonify(success(data=order.to_dict(), msg='异常订单已处理'))
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(error(code=ResponseCode.SYSTEM_ERROR, msg=f'操作失败: {str(e)}')), 500
+
+
+@admin_bp.route('/orders/<order_id>/update-logistics', methods=['PUT'])
+@login_required
+def update_order_logistics(order_id):
+    admin_id = g.get('user_id', 1)
+    order = Order.query.get(order_id)
+    if not order:
+        return jsonify(error(code=ResponseCode.NOT_FOUND, msg='订单不存在')), 404
+    
+    data = request.get_json()
+    shipping_company = data.get('shipping_company', '')
+    tracking_number = data.get('tracking_number', '')
+    reason = data.get('reason', '')
+    
+    if not shipping_company or not tracking_number:
+        return jsonify(error(code=ResponseCode.PARAM_MISSING, msg='请提供快递公司和物流单号')), 400
+    
+    old_order_data = json.dumps(order.to_dict(), ensure_ascii=False)
+    
+    order.shipping_company = shipping_company
+    order.tracking_number = tracking_number
+    order.updated_at = datetime.utcnow()
+    
+    try:
+        db.session.commit()
+        
+        audit_log = AuditLog(
+            admin_id=admin_id,
+            target_type='order',
+            target_id=order.id if isinstance(order.id, int) else 0,
+            action='update_logistics',
+            reason=reason,
+            before_data=old_order_data,
+            after_data=json.dumps(order.to_dict(), ensure_ascii=False)
+        )
+        db.session.add(audit_log)
+        db.session.commit()
+        
+        return jsonify(success(data=order.to_dict(), msg='物流信息已更新'))
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(error(code=ResponseCode.SYSTEM_ERROR, msg=f'操作失败: {str(e)}')), 500
+
+
+@admin_bp.route('/orders/<order_id>/refund', methods=['POST'])
+@login_required
+def process_order_refund(order_id):
+    admin_id = g.get('user_id', 1)
+    order = Order.query.get(order_id)
+    if not order:
+        return jsonify(error(code=ResponseCode.NOT_FOUND, msg='订单不存在')), 404
+    
+    data = request.get_json()
+    refund_status = data.get('refund_status', '')
+    refund_amount = data.get('refund_amount', order.pay_amount)
+    reason = data.get('reason', '')
+    
+    valid_refund_statuses = ['pending', 'approved', 'rejected', 'completed']
+    if refund_status not in valid_refund_statuses:
+        return jsonify(error(code=ResponseCode.PARAM_ERROR, msg='无效的退款状态')), 400
+    
+    if refund_status in ['approved', 'rejected']:
+        if not reason or len(reason.strip()) < 10:
+            return jsonify(error(code=ResponseCode.PARAM_ERROR, msg='退款处理理由至少需要10个字符')), 400
+    
+    old_order_data = json.dumps(order.to_dict(), ensure_ascii=False)
+    
+    order.refund_status = refund_status
+    order.refund_amount = refund_amount
+    order.refund_reason = reason
+    order.refund_approved_by = admin_id
+    order.refund_time = datetime.utcnow()
+    order.updated_at = datetime.utcnow()
+    
+    try:
+        db.session.commit()
+        
+        audit_log = AuditLog(
+            admin_id=admin_id,
+            target_type='order',
+            target_id=order.id if isinstance(order.id, int) else 0,
+            action=f'refund_{refund_status}',
+            reason=reason,
+            before_data=old_order_data,
+            after_data=json.dumps(order.to_dict(), ensure_ascii=False)
+        )
+        db.session.add(audit_log)
+        db.session.commit()
+        
+        return jsonify(success(data=order.to_dict(), msg='退款状态已更新'))
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(error(code=ResponseCode.SYSTEM_ERROR, msg=f'操作失败: {str(e)}')), 500
+
+
+@admin_bp.route('/orders/export', methods=['GET'])
+@login_required
+def export_orders():
+    keyword = request.args.get('keyword', '')
+    status = request.args.get('status', '')
+    user_id = request.args.get('user_id', type=int)
+    teacher_id = request.args.get('teacher_id', type=int)
+    is_abnormal = request.args.get('is_abnormal', type=bool)
+    refund_status = request.args.get('refund_status', '')
+    start_date = request.args.get('start_date', '')
+    end_date = request.args.get('end_date', '')
+    
+    export_fields = request.args.get('fields', 'id,customer_nickname,status,pay_amount,create_time')
+    fields = export_fields.split(',') if export_fields else []
+    
+    query = Order.query.filter(Order.status != 'deleted')
+    
+    if keyword:
+        users = User.query.filter(
+            db.or_(
+                User.nickname.contains(keyword),
+                User.username.contains(keyword)
+            )
+        ).all()
+        user_ids = [u.id for u in users]
+        
+        query = query.filter(
+            db.or_(
+                Order.id.contains(keyword),
+                Order.user_id.in_(user_ids)
+            )
+        )
+    
+    if status:
+        query = query.filter(Order.status == status)
+    
+    if user_id:
+        query = query.filter(Order.user_id == user_id)
+    
+    if teacher_id:
+        query = query.filter(Order.teacher_id == teacher_id)
+    
+    if is_abnormal is not None:
+        query = query.filter(Order.is_abnormal == is_abnormal)
+    
+    if refund_status:
+        query = query.filter(Order.refund_status == refund_status)
+    
+    if start_date:
+        try:
+            start = datetime.strptime(start_date, '%Y-%m-%d')
+            query = query.filter(Order.created_at >= start)
+        except ValueError:
+            pass
+    
+    if end_date:
+        try:
+            end = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
+            query = query.filter(Order.created_at < end)
+        except ValueError:
+            pass
+    
+    query = query.order_by(Order.created_at.desc())
+    orders = query.all()
+    
+    all_available_fields = {
+        'id': '订单号',
+        'customer_nickname': '用户昵称',
+        'teacher_nickname': '老师昵称',
+        'status_name': '订单状态',
+        'pay_amount': '实付金额',
+        'total_amount': '商品金额',
+        'discount_amount': '优惠金额',
+        'shipping_fee': '运费',
+        'pay_method_name': '支付方式',
+        'is_abnormal': '是否异常',
+        'refund_status_name': '退款状态',
+        'refund_amount': '退款金额',
+        'create_time': '下单时间',
+        'pay_time': '支付时间',
+        'ship_time': '发货时间',
+        'complete_time': '完成时间'
+    }
+    
+    selected_fields = []
+    headers = []
+    for field in fields:
+        if field in all_available_fields:
+            selected_fields.append(field)
+            headers.append(all_available_fields[field])
+    
+    if not selected_fields:
+        selected_fields = ['id', 'customer_nickname', 'status_name', 'pay_amount', 'create_time']
+        headers = ['订单号', '用户昵称', '订单状态', '实付金额', '下单时间']
+    
+    data = []
+    for order in orders:
+        order_dict = order.to_dict()
+        
+        customer = User.query.get(order.user_id)
+        if customer:
+            order_dict['customer_nickname'] = customer.nickname or customer.username
+        
+        if order.teacher_id:
+            teacher = User.query.get(order.teacher_id)
+            if teacher:
+                order_dict['teacher_nickname'] = teacher.nickname or teacher.username
+        
+        row = []
+        for field in selected_fields:
+            if field == 'is_abnormal':
+                value = '是' if order_dict.get(field) else '否'
+            else:
+                value = order_dict.get(field, '')
+            row.append(value)
+        data.append(row)
+    
+    csv_content = generate_csv(data, headers, 'orders.csv')
+    
+    return jsonify(success(data={
+        'csv_content': csv_content,
+        'filename': f'orders_{datetime.now().strftime("%Y%m%d%H%M%S")}.csv',
+        'total': len(data),
+        'available_fields': all_available_fields
+    }))
 
 @admin_bp.route('/activities/stats', methods=['GET'])
 @login_required
@@ -1239,12 +1654,16 @@ def export_activity_stats():
 @admin_bp.route('/activities/list', methods=['GET'])
 @login_required
 def get_activities_list():
+    from datetime import datetime
+    
     page = request.args.get('page', 1, type=int)
     size = request.args.get('size', 10, type=int)
     keyword = request.args.get('keyword', '')
     status = request.args.get('status', '')
     craft_type = request.args.get('craft_type', '')
     activity_type = request.args.get('activity_type', '')
+    publisher_type = request.args.get('publisher_type', '')
+    computed_status = request.args.get('computed_status', '')
     sort = request.args.get('sort', 'newest')
     
     query = Activity.query
@@ -1265,6 +1684,35 @@ def get_activities_list():
     
     if activity_type:
         query = query.filter(Activity.activity_type == activity_type)
+    
+    if publisher_type == 'official':
+        query = query.filter(Activity.is_official == True)
+    elif publisher_type == 'teacher':
+        query = query.filter(Activity.is_official == False)
+    
+    now = datetime.utcnow()
+    if computed_status == 'pending_review':
+        query = query.filter(Activity.verify_status == 'pending')
+    elif computed_status == 'not_started':
+        query = query.filter(Activity.verify_status == 'approved').filter(
+            db.or_(
+                Activity.start_time == None,
+                Activity.start_time > now
+            )
+        )
+    elif computed_status == 'in_progress':
+        query = query.filter(Activity.verify_status == 'approved').filter(
+            Activity.start_time <= now
+        ).filter(
+            db.or_(
+                Activity.end_time == None,
+                Activity.end_time >= now
+            )
+        )
+    elif computed_status == 'ended':
+        query = query.filter(Activity.verify_status == 'approved').filter(
+            Activity.end_time < now
+        )
     
     if sort == 'newest':
         query = query.order_by(Activity.created_at.desc())
@@ -1377,7 +1825,15 @@ def get_reviews_list():
     page = request.args.get('page', 1, type=int)
     size = request.args.get('size', 10, type=int)
     keyword = request.args.get('keyword', '')
-    rating = request.args.get('rating', type=int)
+    rating = request.args.get('rating', type=float)
+    product_id = request.args.get('product_id', type=int)
+    teacher_id = request.args.get('teacher_id', type=int)
+    order_id = request.args.get('order_id', '')
+    user_id = request.args.get('user_id', type=int)
+    is_read = request.args.get('is_read', type=bool)
+    has_reply = request.args.get('has_reply', type=bool)
+    start_date = request.args.get('start_date', '')
+    end_date = request.args.get('end_date', '')
     sort = request.args.get('sort', 'newest')
     
     query = Review.query
@@ -1386,21 +1842,58 @@ def get_reviews_list():
         query = query.filter(
             db.or_(
                 Review.content.contains(keyword),
-                Review.reply.contains(keyword)
+                Review.reply_content.contains(keyword)
             )
         )
     
-    if rating:
-        query = query.filter(Review.rating == rating)
+    if rating is not None:
+        query = query.filter(Review.overall_rating == rating)
+    
+    if product_id:
+        query = query.filter(Review.product_id == product_id)
+    
+    if teacher_id:
+        query = query.filter(Review.teacher_id == teacher_id)
+    
+    if order_id:
+        query = query.filter(Review.order_id == order_id)
+    
+    if user_id:
+        query = query.filter(Review.user_id == user_id)
+    
+    if is_read is not None:
+        query = query.filter(Review.is_read == is_read)
+    
+    if has_reply is not None:
+        if has_reply:
+            query = query.filter(Review.reply_content.isnot(None))
+        else:
+            query = query.filter(Review.reply_content.is_(None))
+    
+    if start_date:
+        try:
+            start = datetime.strptime(start_date, '%Y-%m-%d')
+            query = query.filter(Review.created_at >= start)
+        except ValueError:
+            pass
+    
+    if end_date:
+        try:
+            end = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
+            query = query.filter(Review.created_at < end)
+        except ValueError:
+            pass
     
     if sort == 'newest':
         query = query.order_by(Review.created_at.desc())
     elif sort == 'oldest':
         query = query.order_by(Review.created_at.asc())
     elif sort == 'rating_desc':
-        query = query.order_by(Review.rating.desc())
+        query = query.order_by(Review.overall_rating.desc())
     elif sort == 'rating_asc':
-        query = query.order_by(Review.rating.asc())
+        query = query.order_by(Review.overall_rating.asc())
+    elif sort == 'unread_first':
+        query = query.order_by(Review.is_read.asc(), Review.created_at.desc())
     
     pagination = query.paginate(page=page, per_page=size, error_out=False)
     
@@ -1421,6 +1914,8 @@ def get_reviews_list():
         order = Order.query.get(review.order_id)
         if order:
             rev_dict['order_id'] = order.id
+            rev_dict['order_status'] = order.status
+            rev_dict['order_status_name'] = order.status_name
         
         teacher = User.query.get(review.teacher_id)
         if teacher:
@@ -1436,30 +1931,137 @@ def get_reviews_list():
         'total_pages': pagination.pages
     }))
 
-@admin_bp.route('/reviews/<int:review_id>/reply', methods=['POST'])
+
+@admin_bp.route('/reviews/<int:review_id>/mark-read', methods=['POST'])
 @login_required
-def reply_review(review_id):
+def mark_review_read(review_id):
+    review = Review.query.get(review_id)
+    if not review:
+        return jsonify(error(code=ResponseCode.NOT_FOUND, msg='评价不存在')), 404
+    
+    review.is_read = True
+    review.read_at = datetime.utcnow()
+    
+    try:
+        db.session.commit()
+        return jsonify(success(data=review.to_dict(), msg='已标记为已读'))
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(error(code=ResponseCode.SYSTEM_ERROR, msg=f'操作失败: {str(e)}')), 500
+
+
+@admin_bp.route('/reviews/<int:review_id>/delete', methods=['POST'])
+@login_required
+def delete_review(review_id):
+    admin_id = g.get('user_id', 1)
+    review = Review.query.get(review_id)
+    if not review:
+        return jsonify(error(code=ResponseCode.NOT_FOUND, msg='评价不存在')), 404
+    
+    old_review_data = json.dumps(review.to_dict(), ensure_ascii=False)
+    
+    review.is_hidden = True
+    review.updated_at = datetime.utcnow()
+    
+    try:
+        db.session.commit()
+        
+        audit_log = AuditLog(
+            admin_id=admin_id,
+            target_type='review',
+            target_id=review_id,
+            action='delete_malicious',
+            reason='管理员删除恶意评价',
+            before_data=old_review_data,
+            after_data=json.dumps(review.to_dict(), ensure_ascii=False)
+        )
+        db.session.add(audit_log)
+        db.session.commit()
+        
+        return jsonify(success(data=review.to_dict(), msg='评价已删除'))
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(error(code=ResponseCode.SYSTEM_ERROR, msg=f'操作失败: {str(e)}')), 500
+
+
+@admin_bp.route('/reviews/<int:review_id>/reply', methods=['POST', 'PUT'])
+@login_required
+def admin_reply_review(review_id):
+    admin_id = g.get('user_id', 1)
     review = Review.query.get(review_id)
     if not review:
         return jsonify(error(code=ResponseCode.NOT_FOUND, msg='评价不存在')), 404
     
     data = request.get_json()
-    reply = data.get('reply', '')
+    reply_content = data.get('content', '')
+    is_undo = data.get('is_undo', False)
     
-    review.reply = reply
+    if is_undo:
+        if not review.reply_content:
+            return jsonify(error(code=ResponseCode.OPERATION_FAILED, msg='该评价暂无回复，无法撤销')), 400
+        
+        old_reply_data = json.dumps(review.to_dict(), ensure_ascii=False)
+        
+        review.reply_content = None
+        review.reply_time = None
+        review.updated_at = datetime.utcnow()
+        
+        try:
+            db.session.commit()
+            
+            audit_log = AuditLog(
+                admin_id=admin_id,
+                target_type='review',
+                target_id=review_id,
+                action='undo_reply',
+                reason='管理员撤销回复',
+                before_data=old_reply_data,
+                after_data=json.dumps(review.to_dict(), ensure_ascii=False)
+            )
+            db.session.add(audit_log)
+            db.session.commit()
+            
+            return jsonify(success(data=review.to_dict(), msg='回复已撤销'))
+        except Exception as e:
+            db.session.rollback()
+            return jsonify(error(code=ResponseCode.SYSTEM_ERROR, msg=f'操作失败: {str(e)}')), 500
+    
+    if not reply_content or len(reply_content.strip()) == 0:
+        return jsonify(error(code=ResponseCode.PARAM_MISSING, msg='回复内容不能为空')), 400
+    
+    if len(reply_content) > 200:
+        return jsonify(error(code=ResponseCode.PARAM_ERROR, msg='回复内容不能超过200个字符')), 400
+    
+    old_review_data = json.dumps(review.to_dict(), ensure_ascii=False)
+    
+    review.reply_content = reply_content
     review.reply_time = datetime.utcnow()
+    review.updated_at = datetime.utcnow()
     
     try:
         db.session.commit()
+        
+        audit_log = AuditLog(
+            admin_id=admin_id,
+            target_type='review',
+            target_id=review_id,
+            action='admin_reply',
+            reason=f'管理员代老师回复: {reply_content[:50]}...' if len(reply_content) > 50 else f'管理员代老师回复: {reply_content}',
+            before_data=old_review_data,
+            after_data=json.dumps(review.to_dict(), ensure_ascii=False)
+        )
+        db.session.add(audit_log)
+        db.session.commit()
+        
         return jsonify(success(data=review.to_dict(), msg='回复成功'))
     except Exception as e:
         db.session.rollback()
-        return jsonify(error(code=ResponseCode.SYSTEM_ERROR, msg=f'回复失败: {str(e)}')), 500
+        return jsonify(error(code=ResponseCode.SYSTEM_ERROR, msg=f'操作失败: {str(e)}')), 500
 
 @admin_bp.route('/categories/list', methods=['GET'])
 @login_required
 def get_categories_list():
-    categories = Category.query.filter(Category.status == 'active').order_by(Category.sort_order.asc()).all()
+    categories = Category.query.filter(Category.status == 'active').order_by(Category.sort.asc()).all()
     
     category_list = []
     for cat in categories:
@@ -2539,3 +3141,633 @@ def get_all_specialties():
     specialties = Specialty.query.filter_by(is_active=True).order_by(Specialty.sort_order.asc()).all()
     specialty_list = [s.to_dict() for s in specialties]
     return jsonify(success(data=specialty_list))
+
+
+def create_audit_log(admin_id, target_type, target_id, action, reason=None, before_data=None, after_data=None):
+    from app.models import AuditLog
+    import json
+    
+    audit_log = AuditLog(
+        admin_id=admin_id,
+        target_type=target_type,
+        target_id=target_id,
+        action=action,
+        reason=reason,
+        before_data=json.dumps(before_data, ensure_ascii=False) if before_data else None,
+        after_data=json.dumps(after_data, ensure_ascii=False) if after_data else None
+    )
+    db.session.add(audit_log)
+    db.session.commit()
+    return audit_log
+
+
+@admin_bp.route('/products/pending-review', methods=['GET'])
+@login_required
+def get_pending_review_products():
+    page = request.args.get('page', 1, type=int)
+    size = request.args.get('size', 10, type=int)
+    keyword = request.args.get('keyword', '', type=str)
+    
+    query = Product.query.filter(Product.verify_status == 'pending')
+    
+    if keyword:
+        query = query.filter(
+            db.or_(
+                Product.title.contains(keyword),
+                Product.description.contains(keyword)
+            )
+        )
+    
+    query = query.order_by(Product.created_at.asc())
+    pagination = query.paginate(page=page, per_page=size, error_out=False)
+    
+    products = []
+    for p in pagination.items:
+        product_dict = p.to_dict(include_teacher=True)
+        if p.teacher_profile and p.teacher_profile.user:
+            product_dict['teacher_name'] = p.teacher_profile.user.nickname or p.teacher_profile.user.username
+        products.append(product_dict)
+    
+    return jsonify(success(data={
+        'list': products,
+        'total': pagination.total,
+        'page': page,
+        'size': size,
+        'total_pages': pagination.pages
+    }))
+
+
+@admin_bp.route('/products/<int:product_id>/review', methods=['POST'])
+@login_required
+def review_product(product_id):
+    admin_id = g.get('user_id')
+    
+    product = Product.query.get(product_id)
+    if not product:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='作品不存在')), 404
+    
+    if product.verify_status != 'pending':
+        return jsonify(error(code=ResponseCode.OPERATION_FAILED, msg='该作品已审核，无需重复审核')), 400
+    
+    data = request.get_json()
+    action = data.get('action')
+    reason = data.get('reason', '')
+    
+    before_data = product.to_dict()
+    
+    if action == 'approve':
+        product.verify_status = 'approved'
+        product.verify_time = datetime.utcnow()
+        product.verify_admin_id = admin_id
+        product.reject_reason = None
+        message = '作品审核通过'
+        
+    elif action == 'reject':
+        if not reason or len(reason.strip()) < 10:
+            return jsonify(error(code=ResponseCode.PARAM_ERROR, msg='拒绝理由不能少于10个字')), 400
+        
+        product.verify_status = 'rejected'
+        product.verify_time = datetime.utcnow()
+        product.verify_admin_id = admin_id
+        product.reject_reason = reason
+        product.is_online = False
+        message = '作品审核已拒绝'
+    else:
+        return jsonify(error(code=ResponseCode.PARAM_ERROR, msg='无效的操作类型')), 400
+    
+    try:
+        db.session.commit()
+        
+        after_data = product.to_dict()
+        create_audit_log(
+            admin_id=admin_id,
+            target_type='product',
+            target_id=product_id,
+            action=action,
+            reason=reason,
+            before_data=before_data,
+            after_data=after_data
+        )
+        
+        return jsonify(success(data=product.to_dict(), msg=message))
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(error(code=ResponseCode.SYSTEM_ERROR, msg=f'操作失败: {str(e)}')), 500
+
+
+@admin_bp.route('/products/<int:product_id>/online', methods=['POST'])
+@login_required
+def set_product_online(product_id):
+    admin_id = g.get('user_id')
+    data = request.get_json()
+    is_online = data.get('is_online', True)
+    
+    product = Product.query.get(product_id)
+    if not product:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='作品不存在')), 404
+    
+    if product.verify_status != 'approved':
+        return jsonify(error(code=ResponseCode.OPERATION_FAILED, msg='仅已审核通过的作品才能上下架')), 400
+    
+    before_data = product.to_dict()
+    product.is_online = is_online
+    
+    try:
+        db.session.commit()
+        
+        after_data = product.to_dict()
+        create_audit_log(
+            admin_id=admin_id,
+            target_type='product',
+            target_id=product_id,
+            action='online' if is_online else 'offline',
+            before_data=before_data,
+            after_data=after_data
+        )
+        
+        status_text = '上架' if is_online else '下架'
+        return jsonify(success(data=product.to_dict(), msg=f'作品已{status_text}'))
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(error(code=ResponseCode.SYSTEM_ERROR, msg=f'操作失败: {str(e)}')), 500
+
+
+@admin_bp.route('/products/<int:product_id>/admin-edit', methods=['PUT'])
+@login_required
+def admin_edit_product(product_id):
+    admin_id = g.get('user_id')
+    
+    product = Product.query.get(product_id)
+    if not product:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='作品不存在')), 404
+    
+    if product.verify_status != 'approved':
+        return jsonify(error(code=ResponseCode.OPERATION_FAILED, msg='仅已审核通过的作品才能编辑')), 400
+    
+    if not product.is_online:
+        return jsonify(error(code=ResponseCode.OPERATION_FAILED, msg='仅已上架的作品才能编辑')), 400
+    
+    data = request.get_json()
+    if not data:
+        return jsonify(error(code=ResponseCode.PARAM_MISSING, msg='请求数据不能为空')), 400
+    
+    before_data = product.to_dict()
+    
+    errors = []
+    
+    if 'price' in data:
+        price = data.get('price')
+        if not isinstance(price, (int, float)) or price <= 0:
+            errors.append('价格必须是大于0的数字')
+        else:
+            product.price = float(price)
+    
+    if 'title' in data and data.get('title'):
+        product.title = data.get('title')
+    
+    if 'description' in data:
+        product.description = data.get('description')
+    
+    if 'category_id' in data:
+        product.category_id = data.get('category_id')
+    
+    if 'images' in data:
+        images = data.get('images')
+        if images and isinstance(images, list):
+            product.images = images
+            if len(images) > 0 and not data.get('cover_image'):
+                product.cover_image = images[0]
+    
+    if 'cover_image' in data:
+        product.cover_image = data.get('cover_image')
+    
+    if errors:
+        return jsonify(error(code=ResponseCode.PARAM_ERROR, msg='; '.join(errors))), 400
+    
+    try:
+        db.session.commit()
+        
+        after_data = product.to_dict()
+        create_audit_log(
+            admin_id=admin_id,
+            target_type='product',
+            target_id=product_id,
+            action='edit',
+            before_data=before_data,
+            after_data=after_data
+        )
+        
+        return jsonify(success(data=product.to_dict(), msg='作品更新成功'))
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(error(code=ResponseCode.SYSTEM_ERROR, msg=f'更新失败: {str(e)}')), 500
+
+
+@admin_bp.route('/products/<int:product_id>/admin-delete', methods=['DELETE'])
+@login_required
+def admin_delete_product(product_id):
+    admin_id = g.get('user_id')
+    
+    product = Product.query.get(product_id)
+    if not product:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='作品不存在')), 404
+    
+    order_count = OrderItem.query.filter_by(product_id=product_id).count()
+    if order_count > 0:
+        return jsonify(error(
+            code=ResponseCode.DATA_DELETE_FAILED,
+            msg=f'该作品有{order_count}个关联订单，无法删除'
+        )), 400
+    
+    review_count = Review.query.filter_by(product_id=product_id).count()
+    if review_count > 0:
+        return jsonify(error(
+            code=ResponseCode.DATA_DELETE_FAILED,
+            msg=f'该作品有{review_count}个关联评价，无法删除'
+        )), 400
+    
+    like_count = Like.query.filter_by(product_id=product_id).count()
+    if like_count > 0:
+        return jsonify(error(
+            code=ResponseCode.DATA_DELETE_FAILED,
+            msg=f'该作品有{like_count}个关联点赞，无法删除'
+        )), 400
+    
+    before_data = product.to_dict()
+    
+    try:
+        db.session.delete(product)
+        db.session.commit()
+        
+        create_audit_log(
+            admin_id=admin_id,
+            target_type='product',
+            target_id=product_id,
+            action='delete',
+            before_data=before_data
+        )
+        
+        return jsonify(success(msg='作品已删除'))
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(error(code=ResponseCode.SYSTEM_ERROR, msg=f'删除失败: {str(e)}')), 500
+
+
+@admin_bp.route('/activities/pending-review', methods=['GET'])
+@login_required
+def get_pending_review_activities():
+    page = request.args.get('page', 1, type=int)
+    size = request.args.get('size', 10, type=int)
+    keyword = request.args.get('keyword', '', type=str)
+    
+    query = Activity.query.filter(Activity.verify_status == 'pending')
+    
+    if keyword:
+        query = query.filter(
+            db.or_(
+                Activity.title.contains(keyword),
+                Activity.description.contains(keyword)
+            )
+        )
+    
+    query = query.order_by(Activity.created_at.asc())
+    pagination = query.paginate(page=page, per_page=size, error_out=False)
+    
+    activities = []
+    for act in pagination.items:
+        act_dict = act.to_dict(include_teacher=True)
+        if act.teacher_profile and act.teacher_profile.user:
+            act_dict['teacher_name'] = act.teacher_profile.user.nickname or act.teacher_profile.user.username
+        activities.append(act_dict)
+    
+    return jsonify(success(data={
+        'list': activities,
+        'total': pagination.total,
+        'page': page,
+        'size': size,
+        'total_pages': pagination.pages
+    }))
+
+
+@admin_bp.route('/activities/<int:activity_id>/review', methods=['POST'])
+@login_required
+def review_activity(activity_id):
+    admin_id = g.get('user_id')
+    
+    activity = Activity.query.get(activity_id)
+    if not activity:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='活动不存在')), 404
+    
+    if activity.verify_status != 'pending':
+        return jsonify(error(code=ResponseCode.OPERATION_FAILED, msg='该活动已审核，无需重复审核')), 400
+    
+    data = request.get_json()
+    action = data.get('action')
+    reason = data.get('reason', '')
+    
+    before_data = activity.to_dict()
+    
+    if action == 'approve':
+        activity.verify_status = 'approved'
+        activity.verify_time = datetime.utcnow()
+        activity.verify_admin_id = admin_id
+        activity.reject_reason = None
+        message = '活动审核通过'
+        
+    elif action == 'reject':
+        if not reason or len(reason.strip()) < 10:
+            return jsonify(error(code=ResponseCode.PARAM_ERROR, msg='拒绝理由不能少于10个字')), 400
+        
+        activity.verify_status = 'rejected'
+        activity.verify_time = datetime.utcnow()
+        activity.verify_admin_id = admin_id
+        activity.reject_reason = reason
+        activity.status = 'inactive'
+        message = '活动审核已拒绝'
+    else:
+        return jsonify(error(code=ResponseCode.PARAM_ERROR, msg='无效的操作类型')), 400
+    
+    try:
+        db.session.commit()
+        
+        after_data = activity.to_dict()
+        create_audit_log(
+            admin_id=admin_id,
+            target_type='activity',
+            target_id=activity_id,
+            action=action,
+            reason=reason,
+            before_data=before_data,
+            after_data=after_data
+        )
+        
+        return jsonify(success(data=activity.to_dict(), msg=message))
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(error(code=ResponseCode.SYSTEM_ERROR, msg=f'操作失败: {str(e)}')), 500
+
+
+@admin_bp.route('/activities/official-create', methods=['POST'])
+@login_required
+def create_official_activity():
+    admin_id = g.get('user_id')
+    
+    data = request.get_json()
+    if not data:
+        return jsonify(error(code=ResponseCode.PARAM_MISSING, msg='请求数据不能为空')), 400
+    
+    title = data.get('title', '').strip()
+    if not title or len(title) < 5:
+        return jsonify(error(code=ResponseCode.PARAM_ERROR, msg='活动标题不能少于5个字')), 400
+    
+    process = data.get('process', '').strip()
+    if not process or len(process) < 20:
+        return jsonify(error(code=ResponseCode.PARAM_ERROR, msg='活动流程不能少于20个字')), 400
+    
+    images = data.get('images', [])
+    if not images or len(images) < 1:
+        return jsonify(error(code=ResponseCode.PARAM_ERROR, msg='请至少上传1张活动图片')), 400
+    
+    activity = Activity(
+        teacher_id=1,
+        title=title,
+        description=data.get('description', ''),
+        craft_type=data.get('craft_type', '其他'),
+        activity_type=data.get('activity_type', '其他'),
+        start_time=parse_datetime(data.get('start_time')),
+        end_time=parse_datetime(data.get('end_time')),
+        registration_start_time=parse_datetime(data.get('registration_start_time')),
+        registration_deadline=parse_datetime(data.get('registration_deadline')),
+        location=data.get('location'),
+        address=data.get('address'),
+        city=data.get('city'),
+        price=float(data.get('price', 0)),
+        original_price=float(data.get('original_price', 0)) if data.get('original_price') else float(data.get('price', 0)),
+        max_participants=int(data.get('max_participants', 999)),
+        current_participants=0,
+        process=process,
+        registration_method=data.get('registration_method'),
+        status='active',
+        verify_status='approved',
+        verify_time=datetime.utcnow(),
+        verify_admin_id=admin_id,
+        is_official=True,
+        view_count=0,
+        favorite_count=0,
+        registration_count=0
+    )
+    
+    if images and isinstance(images, list):
+        activity.images = images
+        if len(images) > 0:
+            activity.cover_image = images[0]
+    
+    if data.get('cover_image'):
+        activity.cover_image = data.get('cover_image')
+    
+    if data.get('tags'):
+        activity.tags = data.get('tags')
+    
+    try:
+        db.session.add(activity)
+        db.session.commit()
+        
+        create_audit_log(
+            admin_id=admin_id,
+            target_type='activity',
+            target_id=activity.id,
+            action='official_create',
+            after_data=activity.to_dict()
+        )
+        
+        return jsonify(success(data=activity.to_dict(), msg='官方活动创建成功'))
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(error(code=ResponseCode.SYSTEM_ERROR, msg=f'创建失败: {str(e)}')), 500
+
+
+@admin_bp.route('/activities/<int:activity_id>/admin-edit', methods=['PUT'])
+@login_required
+def admin_edit_activity(activity_id):
+    admin_id = g.get('user_id')
+    
+    activity = Activity.query.get(activity_id)
+    if not activity:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='活动不存在')), 404
+    
+    if activity.verify_status != 'approved':
+        return jsonify(error(code=ResponseCode.OPERATION_FAILED, msg='仅已审核通过的活动才能编辑')), 400
+    
+    now = datetime.utcnow()
+    if activity.end_time and activity.end_time < now:
+        return jsonify(error(code=ResponseCode.OPERATION_FAILED, msg='活动已结束，无法编辑')), 400
+    
+    data = request.get_json()
+    if not data:
+        return jsonify(error(code=ResponseCode.PARAM_MISSING, msg='请求数据不能为空')), 400
+    
+    before_data = activity.to_dict()
+    
+    if 'title' in data:
+        activity.title = data.get('title')
+    if 'description' in data:
+        activity.description = data.get('description')
+    if 'craft_type' in data:
+        activity.craft_type = data.get('craft_type')
+    if 'activity_type' in data:
+        activity.activity_type = data.get('activity_type')
+    if 'start_time' in data:
+        activity.start_time = parse_datetime(data.get('start_time'))
+    if 'end_time' in data:
+        activity.end_time = parse_datetime(data.get('end_time'))
+    if 'registration_start_time' in data:
+        activity.registration_start_time = parse_datetime(data.get('registration_start_time'))
+    if 'registration_deadline' in data:
+        activity.registration_deadline = parse_datetime(data.get('registration_deadline'))
+    if 'location' in data:
+        activity.location = data.get('location')
+    if 'address' in data:
+        activity.address = data.get('address')
+    if 'city' in data:
+        activity.city = data.get('city')
+    if 'price' in data:
+        activity.price = float(data.get('price'))
+    if 'original_price' in data:
+        activity.original_price = float(data.get('original_price'))
+    if 'max_participants' in data:
+        activity.max_participants = int(data.get('max_participants'))
+    if 'process' in data:
+        activity.process = data.get('process')
+    if 'registration_method' in data:
+        activity.registration_method = data.get('registration_method')
+    if 'cover_image' in data:
+        activity.cover_image = data.get('cover_image')
+    
+    if 'images' in data:
+        images = data.get('images')
+        if images and isinstance(images, list):
+            activity.images = images
+            if len(images) > 0 and not data.get('cover_image'):
+                activity.cover_image = images[0]
+    
+    if 'tags' in data:
+        activity.tags = data.get('tags')
+    
+    try:
+        db.session.commit()
+        
+        after_data = activity.to_dict()
+        create_audit_log(
+            admin_id=admin_id,
+            target_type='activity',
+            target_id=activity_id,
+            action='edit',
+            before_data=before_data,
+            after_data=after_data
+        )
+        
+        return jsonify(success(data=activity.to_dict(), msg='活动更新成功'))
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(error(code=ResponseCode.SYSTEM_ERROR, msg=f'更新失败: {str(e)}')), 500
+
+
+@admin_bp.route('/activities/<int:activity_id>/admin-delete', methods=['DELETE'])
+@login_required
+def admin_delete_activity(activity_id):
+    admin_id = g.get('user_id')
+    
+    activity = Activity.query.get(activity_id)
+    if not activity:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='活动不存在')), 404
+    
+    registration_count = ActivityRegistration.query.filter_by(activity_id=activity_id).count()
+    if registration_count > 0:
+        return jsonify(error(
+            code=ResponseCode.DATA_DELETE_FAILED,
+            msg=f'该活动已有{registration_count}人报名，无法删除'
+        )), 400
+    
+    before_data = activity.to_dict()
+    
+    try:
+        db.session.delete(activity)
+        db.session.commit()
+        
+        create_audit_log(
+            admin_id=admin_id,
+            target_type='activity',
+            target_id=activity_id,
+            action='delete',
+            before_data=before_data
+        )
+        
+        return jsonify(success(msg='活动已删除'))
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(error(code=ResponseCode.SYSTEM_ERROR, msg=f'删除失败: {str(e)}')), 500
+
+
+@admin_bp.route('/activities/<int:activity_id>/stats', methods=['GET'])
+@login_required
+def get_activity_detail_stats(activity_id):
+    activity = Activity.query.get(activity_id)
+    if not activity:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='活动不存在')), 404
+    
+    registrations = ActivityRegistration.query.filter_by(activity_id=activity_id).order_by(
+        ActivityRegistration.created_at.desc()
+    ).all()
+    
+    registration_list = []
+    for reg in registrations:
+        reg_dict = reg.to_dict()
+        user = User.query.get(reg.user_id)
+        if user:
+            reg_dict['user_nickname'] = user.nickname or user.username
+            reg_dict['user_avatar'] = user.avatar
+        registration_list.append(reg_dict)
+    
+    return jsonify(success(data={
+        'activity': activity.to_dict(),
+        'registration_count': len(registration_list),
+        'view_count': activity.view_count,
+        'registrations': registration_list
+    }))
+
+
+@admin_bp.route('/audit-logs', methods=['GET'])
+@login_required
+def get_audit_logs():
+    page = request.args.get('page', 1, type=int)
+    size = request.args.get('size', 20, type=int)
+    target_type = request.args.get('target_type', '', type=str)
+    action = request.args.get('action', '', type=str)
+    
+    from app.models import AuditLog
+    
+    query = AuditLog.query
+    
+    if target_type:
+        query = query.filter(AuditLog.target_type == target_type)
+    if action:
+        query = query.filter(AuditLog.action == action)
+    
+    query = query.order_by(AuditLog.created_at.desc())
+    pagination = query.paginate(page=page, per_page=size, error_out=False)
+    
+    logs = []
+    for log in pagination.items:
+        log_dict = log.to_dict()
+        admin = User.query.get(log.admin_id)
+        if admin:
+            log_dict['admin_nickname'] = admin.nickname or admin.username
+        logs.append(log_dict)
+    
+    return jsonify(success(data={
+        'list': logs,
+        'total': pagination.total,
+        'page': page,
+        'size': size,
+        'total_pages': pagination.pages
+    }))

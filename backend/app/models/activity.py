@@ -45,6 +45,15 @@ class Activity(db.Model):
     favorite_count = db.Column(db.Integer, default=0)
     registration_count = db.Column(db.Integer, default=0)
     
+    verify_status = db.Column(db.String(20), default='pending')
+    verify_time = db.Column(db.DateTime)
+    verify_admin_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    reject_reason = db.Column(db.String(500))
+    
+    is_official = db.Column(db.Boolean, default=False)
+    process = db.Column(db.Text)
+    registration_method = db.Column(db.String(500))
+    
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -95,6 +104,20 @@ class Activity(db.Model):
             return False
         return True
 
+    @property
+    def computed_status(self):
+        now = datetime.utcnow()
+        if self.verify_status != 'approved':
+            return 'pending_review'
+        if not self.start_time or not self.end_time:
+            return 'not_started'
+        if now < self.start_time:
+            return 'not_started'
+        elif self.start_time <= now <= self.end_time:
+            return 'in_progress'
+        else:
+            return 'ended'
+
     def to_dict(self, include_teacher=False):
         result = {
             'id': self.id,
@@ -123,8 +146,18 @@ class Activity(db.Model):
             'favorite_count': self.favorite_count,
             'registration_count': self.registration_count,
             'is_registration_open': self.is_registration_open,
+            'verify_status': self.verify_status,
+            'verify_time': self.verify_time.strftime('%Y-%m-%d %H:%M:%S') if self.verify_time else None,
+            'verify_admin_id': self.verify_admin_id,
+            'reject_reason': self.reject_reason,
+            'is_official': self.is_official,
+            'process': self.process,
+            'registration_method': self.registration_method,
+            'computed_status': self.computed_status,
             'create_time': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None,
-            'update_time': self.updated_at.strftime('%Y-%m-%d %H:%M:%S') if self.updated_at else None
+            'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None,
+            'update_time': self.updated_at.strftime('%Y-%m-%d %H:%M:%S') if self.updated_at else None,
+            'updated_at': self.updated_at.strftime('%Y-%m-%d %H:%M:%S') if self.updated_at else None
         }
         
         if include_teacher and self.teacher_profile:
@@ -172,7 +205,12 @@ class ActivityRegistration(db.Model):
             'remark': self.remark,
             'status': self.status,
             'create_time': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None,
-            'update_time': self.updated_at.strftime('%Y-%m-%d %H:%M:%S') if self.updated_at else None
+            'update_time': self.updated_at.strftime('%Y-%m-%d %H:%M:%S') if self.updated_at else None,
+            'contact_name': self.name,
+            'contact_phone': self.phone,
+            'special_requests': self.remark,
+            'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None,
+            'number_of_people': 1
         }
 
     def __repr__(self):

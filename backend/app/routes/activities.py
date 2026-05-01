@@ -65,7 +65,8 @@ def get_latest_activities():
     limit = request.args.get('limit', 3, type=int)
     
     activities = Activity.query.filter_by(
-        status='active'
+        status='active',
+        verify_status='approved'
     ).order_by(
         Activity.created_at.desc()
     ).limit(limit).all()
@@ -93,6 +94,8 @@ def get_activities():
     
     if status:
         query = query.filter(Activity.status == status)
+    
+    query = query.filter(Activity.verify_status == 'approved')
     
     if craft_type and craft_type != '全部':
         query = query.filter(Activity.craft_type == craft_type)
@@ -140,6 +143,9 @@ def get_activity_detail(activity_id):
     
     if not activity:
         return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='活动不存在')), 404
+    
+    if activity.verify_status != 'approved' and activity.status != 'active':
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='活动不存在或已下线')), 404
     
     activity.view_count = (activity.view_count or 0) + 1
     db.session.commit()

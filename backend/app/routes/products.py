@@ -42,6 +42,9 @@ def get_products():
     if status:
         query = query.filter(Product.status == status)
     
+    query = query.filter(Product.verify_status == 'approved')
+    query = query.filter(Product.is_online == True)
+    
     if category_id:
         query = query.filter(Product.category_id == category_id)
     
@@ -93,6 +96,9 @@ def get_product_detail(product_id):
     if not product:
         return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='作品不存在')), 404
     
+    if product.verify_status != 'approved' or not product.is_online or product.status != 'active':
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='作品不存在或已下架')), 404
+    
     product.view_count = (product.view_count or 0) + 1
     product.update_heat_score()
     db.session.commit()
@@ -139,6 +145,8 @@ def get_categories_with_hot_products():
         
         products = Product.query.filter_by(
             status='active', 
+            verify_status='approved',
+            is_online=True,
             category_id=category.id
         ).order_by(
             Product.heat_score.desc(),
@@ -170,7 +178,11 @@ def get_categories_with_hot_products():
 def get_hot_products():
     limit = request.args.get('limit', 10, type=int)
     
-    products = Product.query.filter_by(status='active').order_by(
+    products = Product.query.filter_by(
+        status='active',
+        verify_status='approved',
+        is_online=True
+    ).order_by(
         Product.sales_count.desc(),
         Product.favorite_count.desc()
     ).limit(limit).all()
@@ -195,7 +207,11 @@ def get_hot_products():
 def get_new_products():
     limit = request.args.get('limit', 10, type=int)
     
-    products = Product.query.filter_by(status='active').order_by(
+    products = Product.query.filter_by(
+        status='active',
+        verify_status='approved',
+        is_online=True
+    ).order_by(
         Product.created_at.desc()
     ).limit(limit).all()
     
@@ -219,7 +235,11 @@ def get_new_products():
 def get_recommend_products():
     limit = request.args.get('limit', 10, type=int)
     
-    products = Product.query.filter_by(status='active').order_by(
+    products = Product.query.filter_by(
+        status='active',
+        verify_status='approved',
+        is_online=True
+    ).order_by(
         Product.rating.desc(),
         Product.favorite_count.desc()
     ).limit(limit).all()

@@ -4,22 +4,60 @@
       <span class="page-title">订单管理</span>
     </div>
     
+    <el-tabs v-model="activeTab" @tab-change="handleTabChange">
+      <el-tab-pane label="全部订单" name="all" />
+      <el-tab-pane label="异常订单" name="abnormal">
+        <template #label>
+          <span>异常订单</span>
+          <el-tag v-if="abnormalCount > 0" type="danger" size="small" style="margin-left: 4px;">
+            {{ abnormalCount }}
+          </el-tag>
+        </template>
+      </el-tab-pane>
+    </el-tabs>
+    
     <div class="filter-bar">
       <el-input
         v-model="queryParams.keyword"
-        placeholder="搜索订单号/用户"
+        placeholder="搜索订单号/用户昵称"
         clearable
         style="width: 200px;"
         @keyup.enter="handleSearch"
+      />
+      <el-input
+        v-model="queryParams.user_id"
+        placeholder="用户ID"
+        clearable
+        style="width: 120px;"
+      />
+      <el-input
+        v-model="queryParams.teacher_id"
+        placeholder="老师ID"
+        clearable
+        style="width: 120px;"
       />
       <el-select
         v-model="queryParams.status"
         placeholder="订单状态"
         clearable
-        style="width: 160px;"
+        style="width: 140px;"
       >
         <el-option
           v-for="(name, key) in statusOptions"
+          :key="key"
+          :label="name"
+          :value="key"
+        />
+      </el-select>
+      <el-select
+        v-model="queryParams.refund_status"
+        placeholder="退款状态"
+        clearable
+        style="width: 140px;"
+        v-if="activeTab === 'abnormal'"
+      >
+        <el-option
+          v-for="(name, key) in refundStatusOptions"
           :key="key"
           :label="name"
           :value="key"
@@ -41,20 +79,43 @@
         <el-icon><Refresh /></el-icon>
         重置
       </el-button>
+      <el-button type="success" @click="showExportDialog">
+        <el-icon><Download /></el-icon>
+        导出
+      </el-button>
     </div>
     
     <div class="table-wrapper">
       <el-table :data="tableData" stripe style="width: 100%" v-loading="loading">
-        <el-table-column prop="id" label="订单号" width="180" />
-        <el-table-column prop="customer_nickname" label="用户" width="100" />
-        <el-table-column prop="status_name" label="订单状态" width="100">
+        <el-table-column prop="id" label="订单号" width="160">
           <template #default="scope">
-            <el-tag :type="getStatusType(scope.row.status)">
-              {{ scope.row.status_name }}
-            </el-tag>
+            <span class="order-id">{{ scope.row.id }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="商品信息" min-width="200">
+        <el-table-column prop="customer_nickname" label="用户" width="100" />
+        <el-table-column prop="teacher_nickname" label="老师" width="100">
+          <template #default="scope">
+            {{ scope.row.teacher_nickname || '-' }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="status_name" label="订单状态" width="120">
+          <template #default="scope">
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <el-tag :type="getStatusType(scope.row.status)" size="small">
+                {{ scope.row.status_name }}
+              </el-tag>
+              <div v-if="scope.row.is_abnormal">
+                <el-tag type="danger" size="small" effect="dark">异常</el-tag>
+              </div>
+              <div v-if="scope.row.refund_status && scope.row.refund_status !== 'none'">
+                <el-tag :type="getRefundStatusType(scope.row.refund_status)" size="small">
+                  {{ scope.row.refund_status_name }}
+                </el-tag>
+              </div>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="商品信息" min-width="180">
           <template #default="scope">
             <div v-if="scope.row.items?.length">
               <div
@@ -86,16 +147,15 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="pay_amount" label="实付金额" width="120">
+        <el-table-column prop="pay_amount" label="实付金额" width="100">
           <template #default="scope">
             <span style="color: #ff6b35; font-weight: bold;">
               ¥{{ scope.row.pay_amount?.toFixed(2) }}
             </span>
           </template>
         </el-table-column>
-        <el-table-column prop="pay_method_name" label="支付方式" width="100" />
-        <el-table-column prop="create_time" label="下单时间" width="180" />
-        <el-table-column label="操作" fixed="right" width="200">
+        <el-table-column prop="create_time" label="下单时间" width="160" />
+        <el-table-column label="操作" fixed="right" width="280">
           <template #default="scope">
             <div class="operation-btns">
               <el-button type="primary" link @click="handleView(scope.row)">
@@ -117,6 +177,27 @@
               >
                 发货
               </el-button>
+              <el-button
+                v-if="scope.row.status !== 'completed' && scope.row.status !== 'cancelled'"
+                type="danger"
+                link
+                @click="handleCancel(scope.row)"
+              >
+                取消
+              </el-button>
+              <el-dropdown v-if="scope.row.is_abnormal" @command="(cmd) => handleAbnormalAction(cmd, scope.row)">
+                <el-button type="warning" link>
+                  异常操作
+                  <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+                </el-button>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item command="updateLogistics">修改物流</el-dropdown-item>
+                    <el-dropdown-item command="refund">退款处理</el-dropdown-item>
+                    <el-dropdown-item command="resolve">解除异常</el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
             </div>
           </template>
         </el-table-column>
@@ -135,16 +216,31 @@
       />
     </div>
     
-    <el-dialog v-model="detailVisible" title="订单详情" width="700px">
+    <el-dialog v-model="detailVisible" title="订单详情" width="800px">
       <el-descriptions :column="2" border v-if="currentOrder">
         <el-descriptions-item label="订单号">{{ currentOrder.id }}</el-descriptions-item>
         <el-descriptions-item label="订单状态">
-          <el-tag :type="getStatusType(currentOrder.status)">
-            {{ currentOrder.status_name }}
-          </el-tag>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <el-tag :type="getStatusType(currentOrder.status)">
+              {{ currentOrder.status_name }}
+            </el-tag>
+            <el-tag v-if="currentOrder.is_abnormal" type="danger" effect="dark">
+              异常订单
+            </el-tag>
+            <el-tag 
+              v-if="currentOrder.refund_status && currentOrder.refund_status !== 'none'"
+              :type="getRefundStatusType(currentOrder.refund_status)"
+            >
+              {{ currentOrder.refund_status_name }}
+            </el-tag>
+          </div>
         </el-descriptions-item>
         <el-descriptions-item label="用户">{{ currentOrder.customer_nickname }}</el-descriptions-item>
+        <el-descriptions-item label="老师">
+          {{ currentOrder.teacher_nickname || '-' }}
+        </el-descriptions-item>
         <el-descriptions-item label="下单时间">{{ currentOrder.create_time }}</el-descriptions-item>
+        <el-descriptions-item label="支付时间">{{ currentOrder.pay_time || '-' }}</el-descriptions-item>
         <el-descriptions-item label="商品金额">¥{{ currentOrder.total_amount?.toFixed(2) }}</el-descriptions-item>
         <el-descriptions-item label="优惠金额">¥{{ currentOrder.discount_amount?.toFixed(2) }}</el-descriptions-item>
         <el-descriptions-item label="运费">¥{{ currentOrder.shipping_fee?.toFixed(2) }}</el-descriptions-item>
@@ -154,15 +250,74 @@
           </span>
         </el-descriptions-item>
         <el-descriptions-item label="支付方式">{{ currentOrder.pay_method_name || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="支付时间">{{ currentOrder.pay_time || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="收货地址" :span="2">
-          {{ currentOrder.address?.name }} {{ currentOrder.address?.phone }}<br />
-          {{ currentOrder.address?.province }}{{ currentOrder.address?.city }}{{ currentOrder.address?.district }}{{ currentOrder.address?.detail }}
-        </el-descriptions-item>
-        <el-descriptions-item label="备注" :span="2">
-          {{ currentOrder.remark || '无' }}
-        </el-descriptions-item>
+        <el-descriptions-item label="发货时间">{{ currentOrder.ship_time || '-' }}</el-descriptions-item>
       </el-descriptions>
+      
+      <div style="margin-top: 20px;">
+        <h4 style="margin-bottom: 12px; font-weight: 600;">收货信息</h4>
+        <el-descriptions :column="1" border>
+          <el-descriptions-item label="收货人">
+            {{ currentOrder.address?.name }} {{ currentOrder.address?.phone }}
+          </el-descriptions-item>
+          <el-descriptions-item label="收货地址">
+            {{ currentOrder.address?.province }}{{ currentOrder.address?.city }}
+            {{ currentOrder.address?.district }}{{ currentOrder.address?.detail }}
+          </el-descriptions-item>
+        </el-descriptions>
+      </div>
+      
+      <div v-if="currentOrder.shipping_company || currentOrder.tracking_number" style="margin-top: 20px;">
+        <h4 style="margin-bottom: 12px; font-weight: 600;">物流信息</h4>
+        <el-descriptions :column="2" border>
+          <el-descriptions-item label="快递公司">
+            {{ currentOrder.shipping_company || '-' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="物流单号">
+            {{ currentOrder.tracking_number || '-' }}
+          </el-descriptions-item>
+        </el-descriptions>
+      </div>
+      
+      <div v-if="currentOrder.is_abnormal" style="margin-top: 20px;">
+        <h4 style="margin-bottom: 12px; font-weight: 600;">异常信息</h4>
+        <el-descriptions :column="2" border>
+          <el-descriptions-item label="异常原因">
+            {{ currentOrder.abnormal_reason_name || currentOrder.abnormal_reason }}
+          </el-descriptions-item>
+          <el-descriptions-item label="异常时间">
+            {{ currentOrder.abnormal_time || '-' }}
+          </el-descriptions-item>
+        </el-descriptions>
+      </div>
+      
+      <div v-if="currentOrder.refund_status && currentOrder.refund_status !== 'none'" style="margin-top: 20px;">
+        <h4 style="margin-bottom: 12px; font-weight: 600;">退款信息</h4>
+        <el-descriptions :column="2" border>
+          <el-descriptions-item label="退款状态">
+            <el-tag :type="getRefundStatusType(currentOrder.refund_status)">
+              {{ currentOrder.refund_status_name }}
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="退款金额">
+            ¥{{ currentOrder.refund_amount?.toFixed(2) || '0.00' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="退款原因" :span="2">
+            {{ currentOrder.refund_reason || '-' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="退款时间">
+            {{ currentOrder.refund_time || '-' }}
+          </el-descriptions-item>
+        </el-descriptions>
+      </div>
+      
+      <div v-if="currentOrder.remark" style="margin-top: 20px;">
+        <h4 style="margin-bottom: 12px; font-weight: 600;">用户备注</h4>
+        <el-descriptions :column="1" border>
+          <el-descriptions-item label="备注内容">
+            {{ currentOrder.remark }}
+          </el-descriptions-item>
+        </el-descriptions>
+      </div>
       
       <div v-if="currentOrder?.items?.length" style="margin-top: 20px;">
         <h4 style="margin-bottom: 12px; font-weight: 600;">商品列表</h4>
@@ -182,20 +337,256 @@
         <el-button @click="detailVisible = false">关闭</el-button>
       </template>
     </el-dialog>
+    
+    <el-dialog v-model="cancelDialogVisible" title="取消订单" width="500px">
+      <el-form :model="cancelForm" label-width="80px">
+        <el-form-item label="取消理由" required>
+          <el-input
+            v-model="cancelForm.reason"
+            type="textarea"
+            :rows="4"
+            placeholder="请输入取消理由（至少10个字符）"
+          />
+          <div style="font-size: 12px; color: #999; margin-top: 4px;">
+            已输入 {{ cancelForm.reason.length }} 个字符
+          </div>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="cancelDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="confirmCancel" :disabled="cancelForm.reason.length < 10">
+          确认取消
+        </el-button>
+      </template>
+    </el-dialog>
+    
+    <el-dialog v-model="shipDialogVisible" title="发货" width="500px">
+      <el-form :model="shipForm" label-width="80px">
+        <el-form-item label="快递公司" required>
+          <el-select v-model="shipForm.shipping_company" placeholder="请选择快递公司" style="width: 100%;">
+            <el-option label="顺丰速运" value="顺丰速运" />
+            <el-option label="中通快递" value="中通快递" />
+            <el-option label="圆通速递" value="圆通速递" />
+            <el-option label="申通快递" value="申通快递" />
+            <el-option label="韵达速递" value="韵达速递" />
+            <el-option label="京东物流" value="京东物流" />
+            <el-option label="邮政EMS" value="邮政EMS" />
+            <el-option label="其他" value="其他" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="物流单号" required>
+          <el-input v-model="shipForm.tracking_number" placeholder="请输入物流单号" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="shipDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="confirmShip" :disabled="!shipForm.shipping_company || !shipForm.tracking_number">
+          确认发货
+        </el-button>
+      </template>
+    </el-dialog>
+    
+    <el-dialog v-model="logisticsDialogVisible" title="修改物流信息" width="500px">
+      <el-form :model="logisticsForm" label-width="80px">
+        <el-form-item label="快递公司" required>
+          <el-select v-model="logisticsForm.shipping_company" placeholder="请选择快递公司" style="width: 100%;">
+            <el-option label="顺丰速运" value="顺丰速运" />
+            <el-option label="中通快递" value="中通快递" />
+            <el-option label="圆通速递" value="圆通速递" />
+            <el-option label="申通快递" value="申通快递" />
+            <el-option label="韵达速递" value="韵达速递" />
+            <el-option label="京东物流" value="京东物流" />
+            <el-option label="邮政EMS" value="邮政EMS" />
+            <el-option label="其他" value="其他" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="物流单号" required>
+          <el-input v-model="logisticsForm.tracking_number" placeholder="请输入物流单号" />
+        </el-form-item>
+        <el-form-item label="修改理由">
+          <el-input
+            v-model="logisticsForm.reason"
+            type="textarea"
+            :rows="3"
+            placeholder="请输入修改理由（选填）"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="logisticsDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="confirmUpdateLogistics" :disabled="!logisticsForm.shipping_company || !logisticsForm.tracking_number">
+          确认修改
+        </el-button>
+      </template>
+    </el-dialog>
+    
+    <el-dialog v-model="refundDialogVisible" title="退款处理" width="500px">
+      <el-form :model="refundForm" label-width="80px">
+        <el-form-item label="退款状态" required>
+          <el-radio-group v-model="refundForm.refund_status">
+            <el-radio value="approved">同意退款</el-radio>
+            <el-radio value="rejected">拒绝退款</el-radio>
+            <el-radio value="completed">退款完成</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item label="退款金额">
+          <el-input-number
+            v-model="refundForm.refund_amount"
+            :min="0"
+            :precision="2"
+            :disabled="refundForm.refund_status === 'rejected'"
+          />
+        </el-form-item>
+        <el-form-item label="处理理由" required>
+          <el-input
+            v-model="refundForm.reason"
+            type="textarea"
+            :rows="4"
+            placeholder="请输入处理理由（至少10个字符）"
+          />
+          <div style="font-size: 12px; color: #999; margin-top: 4px;">
+            已输入 {{ refundForm.reason.length }} 个字符
+          </div>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="refundDialogVisible = false">取消</el-button>
+        <el-button
+          type="primary"
+          @click="confirmRefund"
+          :disabled="!refundForm.refund_status || refundForm.reason.length < 10"
+        >
+          确认处理
+        </el-button>
+      </template>
+    </el-dialog>
+    
+    <el-dialog v-model="resolveDialogVisible" title="解除异常" width="500px">
+      <el-form :model="resolveForm" label-width="80px">
+        <el-form-item label="处理方式">
+          <el-radio-group v-model="resolveForm.action">
+            <el-radio value="resolve">仅解除异常</el-radio>
+            <el-radio value="reopen">恢复订单流转</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item label="处理方案" required>
+          <el-input
+            v-model="resolveForm.resolution"
+            type="textarea"
+            :rows="4"
+            placeholder="请输入处理方案（至少10个字符）"
+          />
+          <div style="font-size: 12px; color: #999; margin-top: 4px;">
+            已输入 {{ resolveForm.resolution.length }} 个字符
+          </div>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="resolveDialogVisible = false">取消</el-button>
+        <el-button
+          type="primary"
+          @click="confirmResolve"
+          :disabled="resolveForm.resolution.length < 10"
+        >
+          确认解除
+        </el-button>
+      </template>
+    </el-dialog>
+    
+    <el-dialog v-model="exportDialogVisible" title="导出订单" width="600px">
+      <el-form :model="exportForm" label-width="100px">
+        <el-form-item label="时间范围">
+          <el-date-picker
+            v-model="exportForm.dateRange"
+            type="daterange"
+            range-separator="至"
+            start-placeholder="开始日期"
+            end-placeholder="结束日期"
+            style="width: 100%;"
+          />
+        </el-form-item>
+        <el-form-item label="订单状态">
+          <el-select
+            v-model="exportForm.status"
+            placeholder="全部状态"
+            clearable
+            style="width: 100%;"
+          >
+            <el-option
+              v-for="(name, key) in statusOptions"
+              :key="key"
+              :label="name"
+              :value="key"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="导出字段">
+          <el-checkbox-group v-model="exportForm.fields">
+            <el-checkbox
+              v-for="(name, key) in exportFields"
+              :key="key"
+              :label="key"
+            >
+              {{ name }}
+            </el-checkbox>
+          </el-checkbox-group>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="exportDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="confirmExport" :disabled="exportForm.fields.length === 0">
+          确认导出
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { reactive, ref, onMounted } from 'vue'
+import { reactive, ref, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getOrders } from '@/api/orders'
+import {
+  getOrders,
+  getOrderDetail,
+  updateOrderStatus,
+  markOrderAbnormal,
+  resolveAbnormalOrder,
+  updateOrderLogistics,
+  processOrderRefund,
+  exportOrders
+} from '@/api/orders'
 
 const loading = ref(false)
 const tableData = ref([])
 const total = ref(0)
+const abnormalCount = ref(0)
+const activeTab = ref('all')
+const dateRange = ref([])
+
 const detailVisible = ref(false)
 const currentOrder = ref(null)
-const dateRange = ref([])
+
+const cancelDialogVisible = ref(false)
+const cancelForm = reactive({ reason: '' })
+
+const shipDialogVisible = ref(false)
+const shipForm = reactive({ shipping_company: '', tracking_number: '' })
+
+const logisticsDialogVisible = ref(false)
+const logisticsForm = reactive({ shipping_company: '', tracking_number: '', reason: '' })
+
+const refundDialogVisible = ref(false)
+const refundForm = reactive({ refund_status: '', refund_amount: 0, reason: '' })
+
+const resolveDialogVisible = ref(false)
+const resolveForm = reactive({ action: 'resolve', resolution: '' })
+
+const exportDialogVisible = ref(false)
+const exportForm = reactive({
+  dateRange: [],
+  status: '',
+  fields: ['id', 'customer_nickname', 'status_name', 'pay_amount', 'create_time']
+})
 
 const statusOptions = {
   pending: '待付款',
@@ -210,11 +601,43 @@ const statusOptions = {
   rejected: '已拒绝'
 }
 
+const refundStatusOptions = {
+  pending: '待处理',
+  approved: '已同意',
+  rejected: '已拒绝',
+  completed: '已完成'
+}
+
+const exportFields = {
+  id: '订单号',
+  customer_nickname: '用户昵称',
+  teacher_nickname: '老师昵称',
+  status_name: '订单状态',
+  pay_amount: '实付金额',
+  total_amount: '商品金额',
+  discount_amount: '优惠金额',
+  shipping_fee: '运费',
+  pay_method_name: '支付方式',
+  is_abnormal: '是否异常',
+  refund_status_name: '退款状态',
+  refund_amount: '退款金额',
+  create_time: '下单时间',
+  pay_time: '支付时间',
+  ship_time: '发货时间',
+  complete_time: '完成时间'
+}
+
 const queryParams = reactive({
   page: 1,
   size: 10,
   keyword: '',
-  status: ''
+  status: '',
+  user_id: '',
+  teacher_id: '',
+  is_abnormal: null,
+  refund_status: '',
+  start_date: '',
+  end_date: ''
 })
 
 const getStatusType = (status) => {
@@ -233,6 +656,16 @@ const getStatusType = (status) => {
   return statusMap[status] || 'info'
 }
 
+const getRefundStatusType = (status) => {
+  const statusMap = {
+    pending: 'warning',
+    approved: 'primary',
+    rejected: 'danger',
+    completed: 'success'
+  }
+  return statusMap[status] || 'info'
+}
+
 const fetchData = async () => {
   loading.value = true
   try {
@@ -240,7 +673,16 @@ const fetchData = async () => {
       page: queryParams.page,
       size: queryParams.size
     }
+    if (queryParams.keyword) params.keyword = queryParams.keyword
     if (queryParams.status) params.status = queryParams.status
+    if (queryParams.user_id) params.user_id = queryParams.user_id
+    if (queryParams.teacher_id) params.teacher_id = queryParams.teacher_id
+    if (queryParams.refund_status) params.refund_status = queryParams.refund_status
+    if (queryParams.is_abnormal !== null) params.is_abnormal = queryParams.is_abnormal
+    if (dateRange.value && dateRange.value.length === 2) {
+      params.start_date = dateRange.value[0]?.toISOString().split('T')[0]
+      params.end_date = dateRange.value[1]?.toISOString().split('T')[0]
+    }
     
     const res = await getOrders(params)
     if (res.code === 0) {
@@ -248,89 +690,33 @@ const fetchData = async () => {
       total.value = res.data.total || 0
     }
   } catch (e) {
-    tableData.value = [
-      {
-        id: 'ORD20240430100001',
-        customer_nickname: '手作爱好者',
-        status: 'completed',
-        status_name: '已完成',
-        total_amount: 299.00,
-        discount_amount: 0,
-        shipping_fee: 0,
-        pay_amount: 299.00,
-        pay_method: 'wechat',
-        pay_method_name: '微信支付',
-        create_time: '2024-04-30 10:30:00',
-        pay_time: '2024-04-30 10:35:00',
-        remark: '请尽快发货',
-        address: { name: '张三', phone: '138****8888', province: '广东省', city: '深圳市', district: '南山区', detail: '科技园南区A栋1001室' },
-        items: [
-          { product_title: '手工编织羊毛围巾', product_image: '', price: 299.00, quantity: 1, total_price: 299.00 }
-        ]
-      },
-      {
-        id: 'ORD20240430091500',
-        customer_nickname: 'DIY达人',
-        status: 'paid',
-        status_name: '待发货',
-        total_amount: 158.00,
-        discount_amount: 0,
-        shipping_fee: 10,
-        pay_amount: 168.00,
-        pay_method: 'alipay',
-        pay_method_name: '支付宝',
-        create_time: '2024-04-30 09:15:00',
-        pay_time: '2024-04-30 09:20:00',
-        remark: '',
-        address: { name: '王五', phone: '137****7777', province: '北京市', city: '北京市', district: '朝阳区', detail: '建国路88号SOHO现代城C座503室' },
-        items: [
-          { product_title: '手工折纸千纸鹤', product_image: '', price: 59.00, quantity: 2, total_price: 118.00 },
-          { product_title: '手工刺绣香囊', product_image: '', price: 40.00, quantity: 1, total_price: 40.00 }
-        ]
-      },
-      {
-        id: 'ORD20240429164500',
-        customer_nickname: '编织女王',
-        status: 'in_progress',
-        status_name: '制作中',
-        total_amount: 420.00,
-        discount_amount: 20,
-        shipping_fee: 0,
-        pay_amount: 400.00,
-        pay_method: 'wechat',
-        pay_method_name: '微信支付',
-        create_time: '2024-04-29 16:45:00',
-        pay_time: '2024-04-29 16:50:00',
-        remark: '请用精美包装',
-        address: { name: '赵六', phone: '134****4444', province: '浙江省', city: '杭州市', district: '西湖区', detail: '文三路90号东部软件园12号楼' },
-        items: [
-          { product_title: '手工陶瓷茶杯套装', product_image: '', price: 420.00, quantity: 1, total_price: 420.00 }
-        ]
-      },
-      {
-        id: 'ORD20240429143000',
-        customer_nickname: '纸艺小匠',
-        status: 'pending_accept',
-        status_name: '待接单',
-        total_amount: 88.00,
-        discount_amount: 0,
-        shipping_fee: 8,
-        pay_amount: 96.00,
-        pay_method: 'wechat',
-        pay_method_name: '微信支付',
-        create_time: '2024-04-29 14:30:00',
-        pay_time: '2024-04-29 14:35:00',
-        remark: '',
-        address: { name: '李四', phone: '139****9999', province: '广东省', city: '广州市', district: '天河区', detail: '体育西路天河城B座2002室' },
-        items: [
-          { product_title: '手工刺绣香囊', product_image: '', price: 88.00, quantity: 1, total_price: 88.00 }
-        ]
-      }
-    ]
-    total.value = 4
+    console.error('获取订单列表失败:', e)
+    ElMessage.error('获取订单列表失败')
   } finally {
     loading.value = false
   }
+}
+
+const fetchAbnormalCount = async () => {
+  try {
+    const params = { page: 1, size: 1, is_abnormal: true }
+    const res = await getOrders(params)
+    if (res.code === 0) {
+      abnormalCount.value = res.data.total || 0
+    }
+  } catch (e) {
+    console.error('获取异常订单数量失败:', e)
+  }
+}
+
+const handleTabChange = (tab) => {
+  if (tab === 'abnormal') {
+    queryParams.is_abnormal = true
+  } else {
+    queryParams.is_abnormal = null
+  }
+  queryParams.page = 1
+  fetchData()
 }
 
 const handleSearch = () => {
@@ -342,13 +728,25 @@ const resetQuery = () => {
   queryParams.page = 1
   queryParams.keyword = ''
   queryParams.status = ''
+  queryParams.user_id = ''
+  queryParams.teacher_id = ''
+  queryParams.refund_status = ''
+  queryParams.is_abnormal = activeTab.value === 'abnormal' ? true : null
   dateRange.value = []
   fetchData()
 }
 
-const handleView = (row) => {
-  currentOrder.value = row
-  detailVisible.value = true
+const handleView = async (row) => {
+  try {
+    const res = await getOrderDetail(row.id)
+    if (res.code === 0) {
+      currentOrder.value = res.data
+      detailVisible.value = true
+    }
+  } catch (e) {
+    currentOrder.value = row
+    detailVisible.value = true
+  }
 }
 
 const handleAccept = async (row) => {
@@ -358,18 +756,231 @@ const handleAccept = async (row) => {
       cancelButtonText: '取消',
       type: 'success'
     })
-    ElMessage.success('接单成功')
-    fetchData()
+    const res = await updateOrderStatus(row.id, { status: 'accepted' })
+    if (res.code === 0) {
+      ElMessage.success('接单成功')
+      fetchData()
+    }
   } catch {
     // 用户取消
   }
 }
 
 const handleShip = (row) => {
-  ElMessage.info('发货功能开发中')
+  currentOrder.value = row
+  shipForm.shipping_company = ''
+  shipForm.tracking_number = ''
+  shipDialogVisible.value = true
+}
+
+const confirmShip = async () => {
+  try {
+    const res = await updateOrderStatus(currentOrder.value.id, {
+      status: 'shipped',
+      shipping_company: shipForm.shipping_company,
+      tracking_number: shipForm.tracking_number
+    })
+    if (res.code === 0) {
+      ElMessage.success('发货成功')
+      shipDialogVisible.value = false
+      fetchData()
+    }
+  } catch (e) {
+    ElMessage.error('发货失败')
+  }
+}
+
+const handleCancel = (row) => {
+  currentOrder.value = row
+  cancelForm.reason = ''
+  cancelDialogVisible.value = true
+}
+
+const confirmCancel = async () => {
+  if (cancelForm.reason.length < 10) {
+    ElMessage.warning('取消理由至少需要10个字符')
+    return
+  }
+  try {
+    const res = await updateOrderStatus(currentOrder.value.id, {
+      status: 'cancelled',
+      reason: cancelForm.reason
+    })
+    if (res.code === 0) {
+      ElMessage.success('订单已取消')
+      cancelDialogVisible.value = false
+      fetchData()
+    }
+  } catch (e) {
+    ElMessage.error('取消失败')
+  }
+}
+
+const handleAbnormalAction = (cmd, row) => {
+  currentOrder.value = row
+  switch (cmd) {
+    case 'updateLogistics':
+      logisticsForm.shipping_company = row.shipping_company || ''
+      logisticsForm.tracking_number = row.tracking_number || ''
+      logisticsForm.reason = ''
+      logisticsDialogVisible.value = true
+      break
+    case 'refund':
+      refundForm.refund_status = ''
+      refundForm.refund_amount = row.pay_amount || 0
+      refundForm.reason = ''
+      refundDialogVisible.value = true
+      break
+    case 'resolve':
+      resolveForm.action = 'resolve'
+      resolveForm.resolution = ''
+      resolveDialogVisible.value = true
+      break
+  }
+}
+
+const confirmUpdateLogistics = async () => {
+  try {
+    const res = await updateOrderLogistics(currentOrder.value.id, {
+      shipping_company: logisticsForm.shipping_company,
+      tracking_number: logisticsForm.tracking_number,
+      reason: logisticsForm.reason
+    })
+    if (res.code === 0) {
+      ElMessage.success('物流信息已更新')
+      logisticsDialogVisible.value = false
+      fetchData()
+    }
+  } catch (e) {
+    ElMessage.error('更新失败')
+  }
+}
+
+const confirmRefund = async () => {
+  if (refundForm.reason.length < 10) {
+    ElMessage.warning('处理理由至少需要10个字符')
+    return
+  }
+  try {
+    const res = await processOrderRefund(currentOrder.value.id, {
+      refund_status: refundForm.refund_status,
+      refund_amount: refundForm.refund_amount,
+      reason: refundForm.reason
+    })
+    if (res.code === 0) {
+      ElMessage.success('退款处理成功')
+      refundDialogVisible.value = false
+      fetchData()
+    }
+  } catch (e) {
+    ElMessage.error('处理失败')
+  }
+}
+
+const confirmResolve = async () => {
+  if (resolveForm.resolution.length < 10) {
+    ElMessage.warning('处理方案至少需要10个字符')
+    return
+  }
+  try {
+    const res = await resolveAbnormalOrder(currentOrder.value.id, {
+      resolution: resolveForm.resolution,
+      action: resolveForm.action
+    })
+    if (res.code === 0) {
+      ElMessage.success('异常已解除')
+      resolveDialogVisible.value = false
+      fetchData()
+      fetchAbnormalCount()
+    }
+  } catch (e) {
+    ElMessage.error('解除失败')
+  }
+}
+
+const showExportDialog = () => {
+  exportForm.dateRange = dateRange.value || []
+  exportForm.status = queryParams.status
+  exportDialogVisible.value = true
+}
+
+const confirmExport = async () => {
+  try {
+    const params = {}
+    if (exportForm.dateRange && exportForm.dateRange.length === 2) {
+      params.start_date = exportForm.dateRange[0]?.toISOString().split('T')[0]
+      params.end_date = exportForm.dateRange[1]?.toISOString().split('T')[0]
+    }
+    if (exportForm.status) params.status = exportForm.status
+    params.fields = exportForm.fields.join(',')
+    
+    const res = await exportOrders(params)
+    if (res.code === 0) {
+      const { csv_content, filename } = res.data
+      const blob = new Blob(['\ufeff' + csv_content], { type: 'text/csv;charset=utf-8;' })
+      const link = document.createElement('a')
+      link.href = URL.createObjectURL(blob)
+      link.download = filename
+      link.click()
+      ElMessage.success('导出成功')
+      exportDialogVisible.value = false
+    }
+  } catch (e) {
+    ElMessage.error('导出失败')
+  }
 }
 
 onMounted(() => {
   fetchData()
+  fetchAbnormalCount()
 })
 </script>
+
+<style scoped>
+.page-card {
+  padding: 20px;
+}
+
+.page-header {
+  margin-bottom: 20px;
+}
+
+.page-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+  align-items: center;
+}
+
+.table-wrapper {
+  margin-bottom: 20px;
+}
+
+.pagination-wrapper {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.operation-btns {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.order-id {
+  font-family: monospace;
+  color: #409eff;
+  cursor: pointer;
+}
+
+.order-id:hover {
+  text-decoration: underline;
+}
+</style>

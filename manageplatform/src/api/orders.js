@@ -68,3 +68,43 @@ export function deleteOrder(id) {
     method: 'delete'
   })
 }
+
+export function markOrderAbnormal(id, data) {
+  return request({
+    url: `/admin/orders/${id}/abnormal`,
+    method: 'post',
+    data
+  })
+}
+
+export function resolveAbnormalOrder(id, data) {
+  return request({
+    url: `/admin/orders/${id}/resolve-abnormal`,
+    method: 'post',
+    data
+  })
+}
+
+export function updateOrderLogistics(id, data) {
+  return request({
+    url: `/admin/orders/${id}/update-logistics`,
+    method: 'put',
+    data
+  })
+}
+
+export function processOrderRefund(id, data) {
+  return request({
+    url: `/admin/orders/${id}/refund`,
+    method: 'post',
+    data
+  })
+}
+
+export function exportOrders(params) {
+  return request({
+    url: '/admin/orders/export',
+    method: 'get',
+    params
+  })
+}

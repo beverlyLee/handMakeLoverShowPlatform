@@ -28,6 +28,30 @@ SHIPPING_COMPANIES = {
     'other': '其他'
 }
 
+REFUND_STATUS_PENDING = 'pending'
+REFUND_STATUS_APPROVED = 'approved'
+REFUND_STATUS_REJECTED = 'rejected'
+REFUND_STATUS_COMPLETED = 'completed'
+
+REFUND_STATUS_NAMES = {
+    'pending': '待审核',
+    'approved': '已同意',
+    'rejected': '已拒绝',
+    'completed': '退款完成'
+}
+
+ABNORMAL_REASONS = {
+    'user_complaint': '用户投诉',
+    'logistics_delay': '物流延迟',
+    'quality_issue': '质量问题',
+    'damaged_in_transit': '运输损坏',
+    'wrong_item': '发错商品',
+    'teacher_refusal': '老师拒单',
+    'system_error': '系统异常',
+    'other': '其他原因'
+}
+
+
 class Order(db.Model):
     __tablename__ = 'orders'
     
@@ -73,6 +97,19 @@ class Order(db.Model):
     address_city = db.Column(db.String(50))
     address_district = db.Column(db.String(50))
     address_detail = db.Column(db.String(200))
+    
+    is_abnormal = db.Column(db.Boolean, default=False)
+    abnormal_reason = db.Column(db.String(500))
+    abnormal_reason_code = db.Column(db.String(50))
+    abnormal_time = db.Column(db.DateTime)
+    abnormal_resolved_at = db.Column(db.DateTime)
+    abnormal_resolved_by = db.Column(db.Integer, db.ForeignKey('users.id'))
+    
+    refund_status = db.Column(db.String(20))
+    refund_amount = db.Column(db.Float, default=0.0)
+    refund_reason = db.Column(db.String(500))
+    refund_time = db.Column(db.DateTime)
+    refund_approved_by = db.Column(db.Integer, db.ForeignKey('users.id'))
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -122,6 +159,16 @@ class Order(db.Model):
     @property
     def shipping_method_name(self):
         return SHIPPING_METHODS.get(self.shipping_method, self.shipping_method or '')
+
+    @property
+    def refund_status_name(self):
+        return REFUND_STATUS_NAMES.get(self.refund_status, self.refund_status or '')
+
+    @property
+    def abnormal_reason_name(self):
+        if self.abnormal_reason_code:
+            return ABNORMAL_REASONS.get(self.abnormal_reason_code, self.abnormal_reason_code)
+        return None
 
     def calculate_estimated_arrival(self):
         if self.shipping_method == 'express' or self.shipping_method == 'sf':
@@ -186,7 +233,20 @@ class Order(db.Model):
             },
             'items': [item.to_dict() for item in self.items],
             'create_time': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None,
-            'update_time': self.updated_at.strftime('%Y-%m-%d %H:%M:%S') if self.updated_at else None
+            'update_time': self.updated_at.strftime('%Y-%m-%d %H:%M:%S') if self.updated_at else None,
+            'is_abnormal': self.is_abnormal,
+            'abnormal_reason': self.abnormal_reason,
+            'abnormal_reason_code': self.abnormal_reason_code,
+            'abnormal_reason_name': self.abnormal_reason_name,
+            'abnormal_time': self.abnormal_time.strftime('%Y-%m-%d %H:%M:%S') if self.abnormal_time else None,
+            'abnormal_resolved_at': self.abnormal_resolved_at.strftime('%Y-%m-%d %H:%M:%S') if self.abnormal_resolved_at else None,
+            'abnormal_resolved_by': self.abnormal_resolved_by,
+            'refund_status': self.refund_status,
+            'refund_status_name': self.refund_status_name,
+            'refund_amount': self.refund_amount,
+            'refund_reason': self.refund_reason,
+            'refund_time': self.refund_time.strftime('%Y-%m-%d %H:%M:%S') if self.refund_time else None,
+            'refund_approved_by': self.refund_approved_by
         }
         
         if include_detail:

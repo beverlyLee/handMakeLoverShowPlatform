@@ -60,3 +60,49 @@ export function getActivityTypes() {
     method: 'get'
   })
 }
+
+export function getPendingReviewActivities(params) {
+  return request({
+    url: '/admin/activities/pending-review',
+    method: 'get',
+    params
+  })
+}
+
+export function reviewActivity(id, data) {
+  return request({
+    url: `/admin/activities/${id}/review`,
+    method: 'post',
+    data
+  })
+}
+
+export function createOfficialActivity(data) {
+  return request({
+    url: '/admin/activities/official-create',
+    method: 'post',
+    data
+  })
+}
+
+export function adminEditActivity(id, data) {
+  return request({
+    url: `/admin/activities/${id}/admin-edit`,
+    method: 'put',
+    data
+  })
+}
+
+export function adminDeleteActivity(id) {
+  return request({
+    url: `/admin/activities/${id}/admin-delete`,
+    method: 'delete'
+  })
+}
+
+export function getActivityDetailStats(id) {
+  return request({
+    url: `/admin/activities/${id}/stats`,
+    method: 'get'
+  })
+}

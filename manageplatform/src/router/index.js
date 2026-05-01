@@ -44,6 +44,12 @@ const routes = [
         meta: { title: '商品管理', icon: 'Goods' }
       },
       {
+        path: 'products-verify',
+        name: 'ProductsVerify',
+        component: () => import('@/views/products/verify.vue'),
+        meta: { title: '作品审核', icon: 'DocumentChecked' }
+      },
+      {
         path: 'orders',
         name: 'Orders',
         component: () => import('@/views/orders/index.vue'),
@@ -54,6 +60,12 @@ const routes = [
         name: 'Activities',
         component: () => import('@/views/activities/index.vue'),
         meta: { title: '活动管理', icon: 'Calendar' }
+      },
+      {
+        path: 'activities-verify',
+        name: 'ActivitiesVerify',
+        component: () => import('@/views/activities/verify.vue'),
+        meta: { title: '活动审核', icon: 'DocumentChecked' }
       },
       {
         path: 'reviews',

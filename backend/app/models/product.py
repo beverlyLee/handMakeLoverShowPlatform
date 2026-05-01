@@ -65,6 +65,13 @@ class Product(db.Model):
     
     _tags = db.Column('tags', db.Text)
     
+    verify_status = db.Column(db.String(20), default='pending')
+    verify_time = db.Column(db.DateTime)
+    verify_admin_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    reject_reason = db.Column(db.String(500))
+    
+    is_online = db.Column(db.Boolean, default=False)
+    
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -138,8 +145,15 @@ class Product(db.Model):
             'heat_score': self.heat_score,
             'popularity_score': self.popularity_score,
             'tags': self.tags,
+            'verify_status': self.verify_status,
+            'verify_time': self.verify_time.strftime('%Y-%m-%d %H:%M:%S') if self.verify_time else None,
+            'verify_admin_id': self.verify_admin_id,
+            'reject_reason': self.reject_reason,
+            'is_online': self.is_online,
             'create_time': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None,
-            'update_time': self.updated_at.strftime('%Y-%m-%d %H:%M:%S') if self.updated_at else None
+            'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None,
+            'update_time': self.updated_at.strftime('%Y-%m-%d %H:%M:%S') if self.updated_at else None,
+            'updated_at': self.updated_at.strftime('%Y-%m-%d %H:%M:%S') if self.updated_at else None
         }
         
         if include_teacher and self.teacher_profile:
