@@ -810,3 +810,113 @@ def edit_order(order_id):
     db.session.commit()
     
     return jsonify(success(data=order.to_dict(), msg='订单修改成功'))
+
+
+@order_bp.route('/<order_id>/refund', methods=['POST'])
+@login_required
+def apply_refund(order_id):
+    user_dict, user_id = get_current_user()
+    order = Order.query.get(order_id)
+    
+    if not order:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='订单不存在')), 404
+    
+    if order.user_id != user_id:
+        return jsonify(error(code=ResponseCode.PERMISSION_DENIED, msg='无权操作此订单')), 403
+    
+    if order.refund_status in ['pending', 'approved']:
+        return jsonify(error(code=ResponseCode.OPERATION_FAILED, msg='已有退款申请正在处理中')), 400
+    
+    can_refund_statuses = ['pending_accept', 'in_progress', 'paid', 'shipped', 'delivered']
+    if order.status not in can_refund_statuses:
+        return jsonify(error(code=ResponseCode.OPERATION_FAILED, msg='当前订单状态不支持退款申请')), 400
+    
+    data = request.get_json() or {}
+    refund_reason = data.get('refund_reason', '')
+    refund_proofs = data.get('refund_proofs', [])
+    refund_amount = data.get('refund_amount')
+    
+    if not refund_reason or len(refund_reason.strip()) == 0:
+        return jsonify(error(code=ResponseCode.PARAM_MISSING, msg='请填写退款理由')), 400
+    
+    if len(refund_reason) > 200:
+        return jsonify(error(code=ResponseCode.PARAM_ERROR, msg='退款理由不能超过200个字符')), 400
+    
+    if refund_proofs and len(refund_proofs) > 3:
+        return jsonify(error(code=ResponseCode.PARAM_ERROR, msg='退款凭证最多上传3张')), 400
+    
+    if refund_amount is not None:
+        if refund_amount <= 0 or refund_amount > order.pay_amount:
+            return jsonify(error(code=ResponseCode.PARAM_ERROR, msg=f'退款金额必须大于0且不超过订单金额¥{order.pay_amount}')), 400
+        order.refund_amount = refund_amount
+    else:
+        order.refund_amount = order.pay_amount
+    
+    order.refund_status = 'pending'
+    order.refund_reason = refund_reason
+    order.refund_proofs = refund_proofs if isinstance(refund_proofs, list) else []
+    order.refund_time = datetime.utcnow()
+    order.updated_at = datetime.utcnow()
+    
+    db.session.commit()
+    
+    try:
+        MessageService.send_refund_notification(order, 'pending', order.refund_amount, refund_reason)
+    except Exception as e:
+        print(f'发送退款申请通知失败: {e}')
+    
+    return jsonify(success(data=order.to_dict(), msg='退款申请已提交'))
+
+
+@order_bp.route('/<order_id>/refund', methods=['GET'])
+@login_required
+def get_refund_detail(order_id):
+    user_dict, user_id = get_current_user()
+    order = Order.query.get(order_id)
+    
+    if not order:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='订单不存在')), 404
+    
+    if order.user_id != user_id and order.teacher_id != user_id:
+        return jsonify(error(code=ResponseCode.PERMISSION_DENIED, msg='无权查看此订单')), 403
+    
+    refund_info = {
+        'order_id': order.id,
+        'refund_status': order.refund_status,
+        'refund_status_name': order.refund_status_name,
+        'refund_amount': order.refund_amount,
+        'refund_reason': order.refund_reason,
+        'refund_proofs': order.refund_proofs,
+        'refund_time': order.refund_time.strftime('%Y-%m-%d %H:%M:%S') if order.refund_time else None,
+        'pay_amount': order.pay_amount,
+        'status': order.status,
+        'status_name': order.status_name
+    }
+    
+    return jsonify(success(data=refund_info))
+
+
+@order_bp.route('/<order_id>/refund/cancel', methods=['POST'])
+@login_required
+def cancel_refund(order_id):
+    user_dict, user_id = get_current_user()
+    order = Order.query.get(order_id)
+    
+    if not order:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='订单不存在')), 404
+    
+    if order.user_id != user_id:
+        return jsonify(error(code=ResponseCode.PERMISSION_DENIED, msg='无权操作此订单')), 403
+    
+    if order.refund_status != 'pending':
+        return jsonify(error(code=ResponseCode.OPERATION_FAILED, msg='只有待审核状态的退款可以取消')), 400
+    
+    order.refund_status = None
+    order.refund_reason = None
+    order.refund_proofs = []
+    order.refund_time = None
+    order.updated_at = datetime.utcnow()
+    
+    db.session.commit()
+    
+    return jsonify(success(data=order.to_dict(), msg='退款申请已取消'))

@@ -8,6 +8,8 @@ from app.common.auth import login_required
 from app.common.response_code import ResponseCode
 from app.database import db
 from app.models import User, Product, Order, Category, Activity, Review, TeacherProfile, OrderItem, Like, ActivityRegistration, CRAFT_TYPES, ACTIVITY_TYPES, ActivityType, SystemConfig, AuditLog, REFUND_STATUS_NAMES, ABNORMAL_REASONS
+from app.models.message import Message, Conversation, MESSAGE_TYPES, ANNOUNCEMENT_SUBTYPES, RECIPIENT_TYPES
+from app.services.message_service import MessageService
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -3776,4 +3778,1082 @@ def get_audit_logs():
         'page': page,
         'size': size,
         'total_pages': pagination.pages
+    }))
+
+
+@admin_bp.route('/messages/list', methods=['GET'])
+@login_required
+def get_admin_messages():
+    page = request.args.get('page', 1, type=int)
+    size = request.args.get('size', 10, type=int)
+    msg_type = request.args.get('type', '')
+    subtype = request.args.get('subtype', '')
+    recipient_type = request.args.get('recipient_type', '')
+    is_read = request.args.get('is_read', type=bool)
+    is_announcement = request.args.get('is_announcement', type=bool)
+    is_expired = request.args.get('is_expired', type=bool)
+    keyword = request.args.get('keyword', '')
+    start_date = request.args.get('start_date', '')
+    end_date = request.args.get('end_date', '')
+    sort = request.args.get('sort', 'newest')
+    
+    query = Message.query
+    
+    if msg_type and msg_type in MESSAGE_TYPES:
+        query = query.filter(Message.type == msg_type)
+    
+    if subtype:
+        query = query.filter(Message.subtype == subtype)
+    
+    if recipient_type:
+        query = query.filter(Message.recipient_type == recipient_type)
+    
+    if is_read is not None:
+        query = query.filter(Message.is_read == is_read)
+    
+    if is_announcement is not None:
+        query = query.filter(Message.is_announcement == is_announcement)
+    
+    if is_expired is not None:
+        if is_expired:
+            query = query.filter(Message.expire_time < datetime.utcnow())
+        else:
+            query = query.filter(
+                db.or_(
+                    Message.expire_time == None,
+                    Message.expire_time >= datetime.utcnow()
+                )
+            )
+    
+    if keyword:
+        query = query.filter(
+            db.or_(
+                Message.title.contains(keyword),
+                Message.content.contains(keyword)
+            )
+        )
+    
+    if start_date:
+        try:
+            start = datetime.strptime(start_date, '%Y-%m-%d')
+            query = query.filter(Message.created_at >= start)
+        except ValueError:
+            pass
+    
+    if end_date:
+        try:
+            end = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
+            query = query.filter(Message.created_at < end)
+        except ValueError:
+            pass
+    
+    if sort == 'newest':
+        query = query.order_by(Message.created_at.desc())
+    elif sort == 'oldest':
+        query = query.order_by(Message.created_at.asc())
+    elif sort == 'expire_asc':
+        query = query.order_by(Message.expire_time.asc().nullslast())
+    elif sort == 'expire_desc':
+        query = query.order_by(Message.expire_time.desc().nullslast())
+    
+    total = query.count()
+    pagination = query.paginate(page=page, per_page=size, error_out=False)
+    
+    messages = []
+    for msg in pagination.items:
+        msg_dict = msg.to_dict()
+        
+        user = User.query.get(msg.user_id)
+        if user:
+            msg_dict['user_nickname'] = user.nickname or user.username
+            msg_dict['user_avatar'] = user.avatar
+        
+        messages.append(msg_dict)
+    
+    return jsonify(success(data={
+        'list': messages,
+        'total': total,
+        'page': page,
+        'size': size,
+        'total_pages': pagination.pages,
+        'message_types': MESSAGE_TYPES,
+        'announcement_subtypes': ANNOUNCEMENT_SUBTYPES,
+        'recipient_types': RECIPIENT_TYPES
+    }))
+
+
+@admin_bp.route('/messages/<int:message_id>', methods=['GET'])
+@login_required
+def get_admin_message_detail(message_id):
+    message = Message.query.get(message_id)
+    if not message:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='消息不存在')), 404
+    
+    msg_dict = message.to_dict()
+    
+    user = User.query.get(message.user_id)
+    if user:
+        msg_dict['user_info'] = {
+            'id': user.id,
+            'nickname': user.nickname or user.username,
+            'avatar': user.avatar
+        }
+    
+    return jsonify(success(data=msg_dict))
+
+
+@admin_bp.route('/messages/announcements', methods=['POST'])
+@login_required
+def create_announcement():
+    admin_id = g.get('user_id', 1)
+    
+    data = request.get_json()
+    if not data:
+        return jsonify(error(code=ResponseCode.PARAM_MISSING, msg='请求数据不能为空')), 400
+    
+    title = data.get('title', '').strip()
+    content = data.get('content', '').strip()
+    subtype = data.get('subtype', 'system')
+    recipient_type = data.get('recipient_type', 'all')
+    target_user_ids = data.get('target_user_ids', [])
+    expire_time_str = data.get('expire_time')
+    
+    if not title or len(title) < 5:
+        return jsonify(error(code=ResponseCode.PARAM_ERROR, msg='公告标题不能少于5个字')), 400
+    
+    if not content or len(content) < 20:
+        return jsonify(error(code=ResponseCode.PARAM_ERROR, msg='公告内容不能少于20个字')), 400
+    
+    expire_time = None
+    if expire_time_str:
+        expire_time = parse_datetime(expire_time_str)
+    
+    target_users = []
+    
+    if recipient_type == 'all':
+        target_users = User.query.filter(User.is_active == True).all()
+    elif recipient_type == 'customer':
+        target_users = User.query.filter(
+            User.is_active == True,
+            User._roles.contains('"customer"')
+        ).all()
+    elif recipient_type == 'teacher':
+        target_users = User.query.filter(
+            User.is_active == True,
+            User._roles.contains('"teacher"')
+        ).all()
+    elif recipient_type == 'specific' and target_user_ids:
+        if not isinstance(target_user_ids, list):
+            target_user_ids = []
+        target_users = User.query.filter(
+            User.id.in_(target_user_ids),
+            User.is_active == True
+        ).all()
+    
+    if not target_users:
+        return jsonify(error(code=ResponseCode.PARAM_ERROR, msg='没有找到匹配的接收用户')), 400
+    
+    try:
+        now = datetime.utcnow()
+        messages_created = []
+        
+        for user in target_users:
+            message = Message(
+                user_id=user.id,
+                type='announcement',
+                subtype=subtype,
+                title=title,
+                content=content,
+                sender='管理员',
+                recipient_type=recipient_type,
+                recipient_role='customer' if recipient_type == 'customer' else ('teacher' if recipient_type == 'teacher' else 'customer'),
+                target_user_ids=[u.id for u in target_users] if recipient_type == 'specific' else [],
+                expire_time=expire_time,
+                is_announcement=True,
+                is_read=False,
+                created_at=now,
+                updated_at=now
+            )
+            db.session.add(message)
+            messages_created.append(message)
+        
+        db.session.commit()
+        
+        create_audit_log(
+            admin_id=admin_id,
+            target_type='announcement',
+            target_id=messages_created[0].id if messages_created else 0,
+            action='create',
+            reason=f'发布公告: {title[:50]}...' if len(title) > 50 else f'发布公告: {title}',
+            after_data={
+                'title': title,
+                'subtype': subtype,
+                'recipient_type': recipient_type,
+                'recipient_count': len(target_users),
+                'expire_time': expire_time_str
+            }
+        )
+        
+        return jsonify(success(data={
+            'message_count': len(messages_created),
+            'title': title,
+            'recipient_type': recipient_type,
+            'recipient_count': len(target_users)
+        }, msg='公告发布成功'))
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(error(code=ResponseCode.SYSTEM_ERROR, msg=f'发布失败: {str(e)}')), 500
+
+
+@admin_bp.route('/messages/<int:message_id>/delete', methods=['POST'])
+@login_required
+def delete_admin_message(message_id):
+    admin_id = g.get('user_id', 1)
+    
+    message = Message.query.get(message_id)
+    if not message:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='消息不存在')), 404
+    
+    before_data = message.to_dict()
+    
+    try:
+        db.session.delete(message)
+        db.session.commit()
+        
+        create_audit_log(
+            admin_id=admin_id,
+            target_type='message',
+            target_id=message_id,
+            action='delete',
+            before_data=before_data
+        )
+        
+        return jsonify(success(msg='消息已删除'))
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(error(code=ResponseCode.SYSTEM_ERROR, msg=f'删除失败: {str(e)}')), 500
+
+
+@admin_bp.route('/messages/batch-delete', methods=['POST'])
+@login_required
+def batch_delete_admin_messages():
+    admin_id = g.get('user_id', 1)
+    
+    data = request.get_json()
+    if not data or 'message_ids' not in data:
+        return jsonify(error(code=ResponseCode.PARAM_MISSING, msg='message_ids参数不能为空')), 400
+    
+    message_ids = data.get('message_ids', [])
+    if not isinstance(message_ids, list) or len(message_ids) == 0:
+        return jsonify(error(code=ResponseCode.PARAM_ERROR, msg='message_ids必须是非空数组')), 400
+    
+    try:
+        deleted_count = Message.query.filter(Message.id.in_(message_ids)).delete(synchronize_session=False)
+        db.session.commit()
+        
+        create_audit_log(
+            admin_id=admin_id,
+            target_type='message',
+            target_id=message_ids[0] if message_ids else 0,
+            action='batch_delete',
+            reason=f'批量删除{deleted_count}条消息'
+        )
+        
+        return jsonify(success(data={'deleted_count': deleted_count}, msg=f'已删除{deleted_count}条消息'))
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(error(code=ResponseCode.SYSTEM_ERROR, msg=f'删除失败: {str(e)}')), 500
+
+
+@admin_bp.route('/messages/stats', methods=['GET'])
+@login_required
+def get_message_stats():
+    period = request.args.get('period', 'week')
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    msg_type = request.args.get('type', '')
+    is_announcement = request.args.get('is_announcement', type=bool)
+    
+    start, end = get_date_range(period, start_date, end_date)
+    
+    query = Message.query.filter(
+        Message.created_at >= start,
+        Message.created_at < end
+    )
+    
+    if msg_type:
+        query = query.filter(Message.type == msg_type)
+    
+    if is_announcement is not None:
+        query = query.filter(Message.is_announcement == is_announcement)
+    
+    total = query.count()
+    read_count = query.filter(Message.is_read == True).count()
+    unread_count = total - read_count
+    
+    type_stats = {}
+    for msg_type_val, type_name in MESSAGE_TYPES.items():
+        type_count = Message.query.filter(
+            Message.type == msg_type_val,
+            Message.created_at >= start,
+            Message.created_at < end
+        ).count()
+        type_stats[msg_type_val] = {
+            'name': type_name,
+            'count': type_count
+        }
+    
+    daily_data = []
+    if (end - start).days <= 30:
+        current = start
+        while current < end:
+            next_day = current + timedelta(days=1)
+            
+            day_query = Message.query.filter(
+                Message.created_at >= current,
+                Message.created_at < next_day
+            )
+            
+            day_total = day_query.count()
+            day_read = day_query.filter(Message.is_read == True).count()
+            
+            daily_data.append({
+                'date': current.strftime('%Y-%m-%d'),
+                'total': day_total,
+                'read': day_read,
+                'unread': day_total - day_read
+            })
+            current = next_day
+    
+    return jsonify(success(data={
+        'summary': {
+            'total': total,
+            'read': read_count,
+            'unread': unread_count,
+            'read_rate': round(read_count / total * 100, 2) if total > 0 else 0
+        },
+        'type_stats': type_stats,
+        'daily_data': daily_data,
+        'period_start': start.strftime('%Y-%m-%d'),
+        'period_end': (end - timedelta(days=1)).strftime('%Y-%m-%d')
+    }))
+
+
+@admin_bp.route('/messages/stats/export', methods=['GET'])
+@login_required
+def export_message_stats():
+    period = request.args.get('period', 'week')
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    msg_type = request.args.get('type', '')
+    
+    start, end = get_date_range(period, start_date, end_date)
+    
+    query = Message.query.filter(
+        Message.created_at >= start,
+        Message.created_at < end
+    )
+    
+    if msg_type:
+        query = query.filter(Message.type == msg_type)
+    
+    query = query.order_by(Message.created_at.desc())
+    messages = query.all()
+    
+    headers = ['ID', '消息类型', '子类型', '标题', '接收用户', '发送者', '是否已读', '是否公告', '是否过期', '创建时间']
+    data = []
+    
+    for msg in messages:
+        user = User.query.get(msg.user_id)
+        user_name = user.nickname or user.username if user else '-'
+        
+        data.append([
+            msg.id,
+            MESSAGE_TYPES.get(msg.type, msg.type),
+            ANNOUNCEMENT_SUBTYPES.get(msg.subtype, msg.subtype) if msg.subtype else '-',
+            msg.title,
+            user_name,
+            msg.sender or '系统',
+            '是' if msg.is_read else '否',
+            '是' if msg.is_announcement else '否',
+            '是' if (msg.expire_time and datetime.utcnow() > msg.expire_time) else '否',
+            msg.created_at.strftime('%Y-%m-%d %H:%M:%S') if msg.created_at else '-'
+        ])
+    
+    csv_content = generate_csv(data, headers, 'message_stats.csv')
+    
+    return jsonify(success(data={
+        'csv_content': csv_content,
+        'filename': f'message_stats_{datetime.now().strftime("%Y%m%d%H%M%S")}.csv',
+        'total': len(data)
+    }))
+
+
+@admin_bp.route('/messages/conversations', methods=['GET'])
+@login_required
+def get_admin_conversations():
+    page = request.args.get('page', 1, type=int)
+    size = request.args.get('size', 10, type=int)
+    keyword = request.args.get('keyword', '')
+    
+    from app.models.message import Conversation
+    
+    query = Conversation.query
+    
+    if keyword:
+        user_ids = []
+        users = User.query.filter(
+            db.or_(
+                User.nickname.contains(keyword),
+                User.username.contains(keyword)
+            )
+        ).all()
+        user_ids = [u.id for u in users]
+        
+        if user_ids:
+            query = query.filter(
+                db.or_(
+                    Conversation.user1_id.in_(user_ids),
+                    Conversation.user2_id.in_(user_ids)
+                )
+            )
+    
+    query = query.order_by(Conversation.updated_at.desc())
+    total = query.count()
+    pagination = query.paginate(page=page, per_page=size, error_out=False)
+    
+    conversations = []
+    for conv in pagination.items:
+        conv_dict = conv.to_dict()
+        
+        user1 = User.query.get(conv.user1_id)
+        user2 = User.query.get(conv.user2_id)
+        
+        if user1:
+            conv_dict['user1_info'] = {
+                'id': user1.id,
+                'nickname': user1.nickname or user1.username,
+                'avatar': user1.avatar
+            }
+        if user2:
+            conv_dict['user2_info'] = {
+                'id': user2.id,
+                'nickname': user2.nickname or user2.username,
+                'avatar': user2.avatar
+            }
+        
+        conversations.append(conv_dict)
+    
+    return jsonify(success(data={
+        'list': conversations,
+        'total': total,
+        'page': page,
+        'size': size,
+        'total_pages': pagination.pages
+    }))
+
+
+@admin_bp.route('/refunds/list', methods=['GET'])
+@login_required
+def get_refund_list():
+    page = request.args.get('page', 1, type=int)
+    size = request.args.get('size', 10, type=int)
+    refund_status = request.args.get('refund_status', '')
+    is_abnormal = request.args.get('is_abnormal', type=bool)
+    keyword = request.args.get('keyword', '')
+    start_date = request.args.get('start_date', '')
+    end_date = request.args.get('end_date', '')
+    sort = request.args.get('sort', 'newest')
+    
+    query = Order.query.filter(
+        db.or_(
+            Order.refund_status.isnot(None),
+            Order.refund_status != ''
+        )
+    )
+    
+    if refund_status:
+        query = query.filter(Order.refund_status == refund_status)
+    
+    if is_abnormal is not None:
+        query = query.filter(Order.is_abnormal == is_abnormal)
+    
+    if keyword:
+        users = User.query.filter(
+            db.or_(
+                User.nickname.contains(keyword),
+                User.username.contains(keyword)
+            )
+        ).all()
+        user_ids = [u.id for u in users]
+        
+        query = query.filter(
+            db.or_(
+                Order.id.contains(keyword),
+                Order.user_id.in_(user_ids)
+            )
+        )
+    
+    if start_date:
+        try:
+            start = datetime.strptime(start_date, '%Y-%m-%d')
+            query = query.filter(Order.refund_time >= start)
+        except ValueError:
+            pass
+    
+    if end_date:
+        try:
+            end = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
+            query = query.filter(Order.refund_time < end)
+        except ValueError:
+            pass
+    
+    if sort == 'newest':
+        query = query.order_by(Order.refund_time.desc(), Order.created_at.desc())
+    elif sort == 'oldest':
+        query = query.order_by(Order.refund_time.asc().nullslast(), Order.created_at.asc())
+    elif sort == 'amount_desc':
+        query = query.order_by(Order.refund_amount.desc())
+    
+    total = query.count()
+    pagination = query.paginate(page=page, per_page=size, error_out=False)
+    
+    refunds = []
+    for order in pagination.items:
+        refund_dict = order.to_dict()
+        
+        customer = User.query.get(order.user_id)
+        if customer:
+            refund_dict['customer_nickname'] = customer.nickname or customer.username
+            refund_dict['customer_avatar'] = customer.avatar
+        
+        if order.teacher_id:
+            teacher = User.query.get(order.teacher_id)
+            if teacher:
+                refund_dict['teacher_nickname'] = teacher.nickname or teacher.username
+                refund_dict['teacher_avatar'] = teacher.avatar
+        
+        if order.created_at:
+            hours_since_created = (datetime.utcnow() - order.created_at).total_seconds() / 3600
+            refund_dict['is_teacher_overdue'] = order.status == 'pending_accept' and hours_since_created > 24
+        
+        items = OrderItem.query.filter_by(order_id=order.id).all()
+        refund_dict['items'] = [item.to_dict() for item in items]
+        
+        refunds.append(refund_dict)
+    
+    return jsonify(success(data={
+        'list': refunds,
+        'total': total,
+        'page': page,
+        'size': size,
+        'total_pages': pagination.pages,
+        'refund_status_names': REFUND_STATUS_NAMES,
+        'abnormal_reasons': ABNORMAL_REASONS
+    }))
+
+
+@admin_bp.route('/refunds/pending', methods=['GET'])
+@login_required
+def get_pending_refunds():
+    page = request.args.get('page', 1, type=int)
+    size = request.args.get('size', 10, type=int)
+    keyword = request.args.get('keyword', '')
+    
+    query = Order.query.filter(
+        Order.refund_status == 'pending',
+        Order.is_abnormal == False
+    )
+    
+    if keyword:
+        users = User.query.filter(
+            db.or_(
+                User.nickname.contains(keyword),
+                User.username.contains(keyword)
+            )
+        ).all()
+        user_ids = [u.id for u in users]
+        
+        query = query.filter(
+            db.or_(
+                Order.id.contains(keyword),
+                Order.user_id.in_(user_ids)
+            )
+        )
+    
+    query = query.order_by(Order.created_at.desc())
+    total = query.count()
+    pagination = query.paginate(page=page, per_page=size, error_out=False)
+    
+    refunds = []
+    for order in pagination.items:
+        refund_dict = order.to_dict()
+        
+        customer = User.query.get(order.user_id)
+        if customer:
+            refund_dict['customer_nickname'] = customer.nickname or customer.username
+            refund_dict['customer_avatar'] = customer.avatar
+        
+        if order.teacher_id:
+            teacher = User.query.get(order.teacher_id)
+            if teacher:
+                refund_dict['teacher_nickname'] = teacher.nickname or teacher.username
+        
+        if order.created_at:
+            hours_since_created = (datetime.utcnow() - order.created_at).total_seconds() / 3600
+            refund_dict['is_teacher_overdue'] = hours_since_created > 24
+        
+        items = OrderItem.query.filter_by(order_id=order.id).all()
+        refund_dict['items'] = [item.to_dict() for item in items]
+        
+        refunds.append(refund_dict)
+    
+    return jsonify(success(data={
+        'list': refunds,
+        'total': total,
+        'page': page,
+        'size': size,
+        'total_pages': pagination.pages
+    }))
+
+
+@admin_bp.route('/refunds/abnormal', methods=['GET'])
+@login_required
+def get_abnormal_refunds():
+    page = request.args.get('page', 1, type=int)
+    size = request.args.get('size', 10, type=int)
+    keyword = request.args.get('keyword', '')
+    abnormal_reason_code = request.args.get('abnormal_reason_code', '')
+    
+    query = Order.query.filter(
+        db.or_(
+            db.and_(
+                Order.refund_status.isnot(None),
+                Order.refund_status != '',
+                Order.is_abnormal == True
+            ),
+            db.and_(
+                Order.refund_status.in_(['approved', 'rejected']),
+                Order.is_abnormal == False,
+                Order.status.in_(['pending', 'pending_accept', 'accepted', 'in_progress', 'paid', 'shipped', 'delivered'])
+            )
+        )
+    )
+    
+    if keyword:
+        users = User.query.filter(
+            db.or_(
+                User.nickname.contains(keyword),
+                User.username.contains(keyword)
+            )
+        ).all()
+        user_ids = [u.id for u in users]
+        
+        query = query.filter(
+            db.or_(
+                Order.id.contains(keyword),
+                Order.user_id.in_(user_ids)
+            )
+        )
+    
+    if abnormal_reason_code:
+        query = query.filter(Order.abnormal_reason_code == abnormal_reason_code)
+    
+    query = query.order_by(Order.abnormal_time.desc().nullslast(), Order.created_at.desc())
+    total = query.count()
+    pagination = query.paginate(page=page, per_page=size, error_out=False)
+    
+    refunds = []
+    for order in pagination.items:
+        refund_dict = order.to_dict()
+        
+        customer = User.query.get(order.user_id)
+        if customer:
+            refund_dict['customer_nickname'] = customer.nickname or customer.username
+            refund_dict['customer_avatar'] = customer.avatar
+        
+        if order.teacher_id:
+            teacher = User.query.get(order.teacher_id)
+            if teacher:
+                refund_dict['teacher_nickname'] = teacher.nickname or teacher.username
+        
+        items = OrderItem.query.filter_by(order_id=order.id).all()
+        refund_dict['items'] = [item.to_dict() for item in items]
+        
+        refunds.append(refund_dict)
+    
+    return jsonify(success(data={
+        'list': refunds,
+        'total': total,
+        'page': page,
+        'size': size,
+        'total_pages': pagination.pages,
+        'abnormal_reasons': ABNORMAL_REASONS
+    }))
+
+
+@admin_bp.route('/refunds/<order_id>/audit', methods=['POST'])
+@login_required
+def audit_refund(order_id):
+    admin_id = g.get('user_id', 1)
+    
+    order = Order.query.get(order_id)
+    if not order:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='订单不存在')), 404
+    
+    if order.refund_status not in ['pending', 'approved']:
+        return jsonify(error(code=ResponseCode.OPERATION_FAILED, msg='该退款不在可审核状态')), 400
+    
+    data = request.get_json()
+    if not data:
+        return jsonify(error(code=ResponseCode.PARAM_MISSING, msg='请求数据不能为空')), 400
+    
+    action = data.get('action')
+    reason = data.get('reason', '')
+    refund_amount = data.get('refund_amount', order.pay_amount or 0)
+    
+    if action not in ['approve', 'reject']:
+        return jsonify(error(code=ResponseCode.PARAM_ERROR, msg='无效的操作类型')), 400
+    
+    if action == 'reject':
+        if not reason or len(reason.strip()) < 10:
+            return jsonify(error(code=ResponseCode.PARAM_ERROR, msg='拒绝理由不能少于10个字')), 400
+    
+    if refund_amount <= 0 or refund_amount > order.pay_amount:
+        return jsonify(error(code=ResponseCode.PARAM_ERROR, msg=f'退款金额必须大于0且不超过订单金额{order.pay_amount}')), 400
+    
+    before_data = order.to_dict()
+    old_status = order.refund_status
+    
+    try:
+        if action == 'approve':
+            order.refund_status = 'approved'
+            order.status = 'refunding'
+            order.refund_amount = refund_amount
+            order.refund_approved_by = admin_id
+            order.refund_time = datetime.utcnow()
+            message = '退款已同意'
+            
+            try:
+                MessageService.send_refund_notification(
+                    order, 'approved', refund_amount, '管理员已同意退款申请'
+                )
+            except Exception as e:
+                print(f'发送退款通知失败: {e}')
+        
+        elif action == 'reject':
+            order.refund_status = 'rejected'
+            order.refund_amount = 0
+            order.refund_reason = reason
+            order.refund_approved_by = admin_id
+            order.refund_time = datetime.utcnow()
+            message = '退款已拒绝'
+            
+            try:
+                MessageService.send_refund_notification(
+                    order, 'rejected', 0, reason
+                )
+            except Exception as e:
+                print(f'发送退款通知失败: {e}')
+        
+        order.updated_at = datetime.utcnow()
+        db.session.commit()
+        
+        after_data = order.to_dict()
+        create_audit_log(
+            admin_id=admin_id,
+            target_type='refund',
+            target_id=order.id if isinstance(order.id, int) else 0,
+            action=action,
+            reason=reason,
+            before_data=before_data,
+            after_data=after_data
+        )
+        
+        return jsonify(success(data=order.to_dict(), msg=message))
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(error(code=ResponseCode.SYSTEM_ERROR, msg=f'操作失败: {str(e)}')), 500
+
+
+@admin_bp.route('/refunds/<order_id>/force-handle', methods=['POST'])
+@login_required
+def force_handle_refund(order_id):
+    admin_id = g.get('user_id', 1)
+    
+    order = Order.query.get(order_id)
+    if not order:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='订单不存在')), 404
+    
+    data = request.get_json()
+    if not data:
+        return jsonify(error(code=ResponseCode.PARAM_MISSING, msg='请求数据不能为空')), 400
+    
+    target_status = data.get('target_status')
+    reason = data.get('reason', '')
+    order_status = data.get('order_status')
+    
+    if not reason or len(reason.strip()) < 10:
+        return jsonify(error(code=ResponseCode.PARAM_ERROR, msg='处理理由不能少于10个字')), 400
+    
+    valid_refund_statuses = ['approved', 'rejected', 'completed']
+    valid_order_statuses = ['cancelled', 'completed', 'refunding']
+    
+    if target_status and target_status not in valid_refund_statuses:
+        return jsonify(error(code=ResponseCode.PARAM_ERROR, msg=f'无效的退款状态，可选值: {valid_refund_statuses}')), 400
+    
+    if order_status and order_status not in valid_order_statuses:
+        return jsonify(error(code=ResponseCode.PARAM_ERROR, msg=f'无效的订单状态，可选值: {valid_order_statuses}')), 400
+    
+    before_data = order.to_dict()
+    
+    try:
+        if target_status:
+            order.refund_status = target_status
+            order.refund_approved_by = admin_id
+            order.refund_time = datetime.utcnow()
+        
+        if order_status:
+            order.status = order_status
+            if order_status == 'completed':
+                order.complete_time = datetime.utcnow()
+            elif order_status == 'cancelled':
+                order.cancel_time = datetime.utcnow()
+                order.cancel_reason = reason
+        
+        if not order.is_abnormal:
+            order.is_abnormal = True
+            order.abnormal_reason = reason
+            order.abnormal_reason_code = 'system_error'
+            order.abnormal_time = datetime.utcnow()
+        
+        order.abnormal_resolved_at = datetime.utcnow()
+        order.abnormal_resolved_by = admin_id
+        order.updated_at = datetime.utcnow()
+        db.session.commit()
+        
+        after_data = order.to_dict()
+        create_audit_log(
+            admin_id=admin_id,
+            target_type='refund',
+            target_id=order.id if isinstance(order.id, int) else 0,
+            action='force_handle',
+            reason=reason,
+            before_data=before_data,
+            after_data=after_data
+        )
+        
+        try:
+            from app.models.message import Message
+            message_title = '退款处理通知'
+            message_content = f'您的订单 {order.id} 退款状态已由管理员更新。\n\n'
+            message_content += f'处理说明：{reason}\n'
+            if target_status:
+                message_content += f'退款状态：{REFUND_STATUS_NAMES.get(target_status, target_status)}\n'
+            if order_status:
+                message_content += f'订单状态：{STATUS_NAMES.get(order_status, order_status)}\n'
+            
+            MessageService.send_announcement(
+                user_id=order.user_id,
+                subtype='refund',
+                title=message_title,
+                content=message_content,
+                related_id=order.id,
+                related_type='order',
+                sender='管理员',
+                recipient_role='customer'
+            )
+        except Exception as e:
+            print(f'发送退款处理通知失败: {e}')
+        
+        return jsonify(success(data=order.to_dict(), msg='异常退款已处理'))
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(error(code=ResponseCode.SYSTEM_ERROR, msg=f'处理失败: {str(e)}')), 500
+
+
+@admin_bp.route('/refunds/<order_id>/mark-abnormal', methods=['POST'])
+@login_required
+def mark_refund_as_abnormal(order_id):
+    admin_id = g.get('user_id', 1)
+    
+    order = Order.query.get(order_id)
+    if not order:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='订单不存在')), 404
+    
+    data = request.get_json()
+    reason = data.get('reason', '')
+    reason_code = data.get('reason_code', 'system_error')
+    
+    if not reason or len(reason.strip()) < 10:
+        return jsonify(error(code=ResponseCode.PARAM_ERROR, msg='标记异常理由不能少于10个字')), 400
+    
+    before_data = order.to_dict()
+    
+    try:
+        order.is_abnormal = True
+        order.abnormal_reason = reason
+        order.abnormal_reason_code = reason_code
+        order.abnormal_time = datetime.utcnow()
+        order.updated_at = datetime.utcnow()
+        db.session.commit()
+        
+        after_data = order.to_dict()
+        create_audit_log(
+            admin_id=admin_id,
+            target_type='order',
+            target_id=order.id if isinstance(order.id, int) else 0,
+            action='mark_abnormal',
+            reason=reason,
+            before_data=before_data,
+            after_data=after_data
+        )
+        
+        return jsonify(success(data=order.to_dict(), msg='订单已标记为异常'))
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(error(code=ResponseCode.SYSTEM_ERROR, msg=f'操作失败: {str(e)}')), 500
+
+
+@admin_bp.route('/refunds/stats', methods=['GET'])
+@login_required
+def get_refund_stats():
+    period = request.args.get('period', 'week')
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    
+    start, end = get_date_range(period, start_date, end_date)
+    
+    query = Order.query.filter(
+        Order.refund_status.isnot(None),
+        Order.refund_status != '',
+        Order.refund_time >= start,
+        Order.refund_time < end
+    )
+    
+    total = query.count()
+    
+    status_stats = {}
+    for status, name in REFUND_STATUS_NAMES.items():
+        count = Order.query.filter(
+            Order.refund_status == status,
+            Order.refund_time >= start,
+            Order.refund_time < end
+        ).count()
+        status_stats[status] = {
+            'name': name,
+            'count': count
+        }
+    
+    total_amount = db.session.query(
+        db.func.sum(Order.refund_amount)
+    ).filter(
+        Order.refund_status.in_(['approved', 'completed']),
+        Order.refund_time >= start,
+        Order.refund_time < end
+    ).scalar() or 0
+    
+    abnormal_count = Order.query.filter(
+        Order.refund_status.isnot(None),
+        Order.refund_status != '',
+        Order.is_abnormal == True,
+        Order.refund_time >= start,
+        Order.refund_time < end
+    ).count()
+    
+    daily_data = []
+    if (end - start).days <= 30:
+        current = start
+        while current < end:
+            next_day = current + timedelta(days=1)
+            
+            day_query = Order.query.filter(
+                Order.refund_time >= current,
+                Order.refund_time < next_day,
+                Order.refund_status.isnot(None),
+                Order.refund_status != ''
+            )
+            
+            day_total = day_query.count()
+            day_approved = day_query.filter(Order.refund_status.in_(['approved', 'completed'])).count()
+            day_amount = db.session.query(
+                db.func.sum(Order.refund_amount)
+            ).filter(
+                Order.refund_status.in_(['approved', 'completed']),
+                Order.refund_time >= current,
+                Order.refund_time < next_day
+            ).scalar() or 0
+            
+            daily_data.append({
+                'date': current.strftime('%Y-%m-%d'),
+                'total': day_total,
+                'approved': day_approved,
+                'amount': round(day_amount, 2)
+            })
+            current = next_day
+    
+    return jsonify(success(data={
+        'summary': {
+            'total': total,
+            'approved': status_stats.get('approved', {}).get('count', 0) + status_stats.get('completed', {}).get('count', 0),
+            'rejected': status_stats.get('rejected', {}).get('count', 0),
+            'pending': status_stats.get('pending', {}).get('count', 0),
+            'total_amount': round(total_amount, 2),
+            'abnormal_count': abnormal_count
+        },
+        'status_stats': status_stats,
+        'daily_data': daily_data,
+        'period_start': start.strftime('%Y-%m-%d'),
+        'period_end': (end - timedelta(days=1)).strftime('%Y-%m-%d')
+    }))
+
+
+@admin_bp.route('/refunds/stats/export', methods=['GET'])
+@login_required
+def export_refund_stats():
+    period = request.args.get('period', 'week')
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    refund_status = request.args.get('refund_status', '')
+    
+    start, end = get_date_range(period, start_date, end_date)
+    
+    query = Order.query.filter(
+        Order.refund_status.isnot(None),
+        Order.refund_status != '',
+        Order.refund_time >= start,
+        Order.refund_time < end
+    )
+    
+    if refund_status:
+        query = query.filter(Order.refund_status == refund_status)
+    
+    query = query.order_by(Order.refund_time.desc())
+    refunds = query.all()
+    
+    headers = ['订单号', '用户', '老师', '订单金额', '退款金额', '退款状态', '是否异常', '申请时间', '处理时间']
+    data = []
+    
+    for order in refunds:
+        customer = User.query.get(order.user_id)
+        teacher = User.query.get(order.teacher_id)
+        
+        data.append([
+            order.id,
+            customer.nickname or customer.username if customer else '-',
+            teacher.nickname or teacher.username if teacher else '-',
+            order.pay_amount or 0,
+            order.refund_amount or 0,
+            REFUND_STATUS_NAMES.get(order.refund_status, order.refund_status),
+            '是' if order.is_abnormal else '否',
+            order.created_at.strftime('%Y-%m-%d %H:%M:%S') if order.created_at else '-',
+            order.refund_time.strftime('%Y-%m-%d %H:%M:%S') if order.refund_time else '-'
+        ])
+    
+    csv_content = generate_csv(data, headers, 'refund_stats.csv')
+    
+    return jsonify(success(data={
+        'csv_content': csv_content,
+        'filename': f'refund_stats_{datetime.now().strftime("%Y%m%d%H%M%S")}.csv',
+        'total': len(data)
     }))

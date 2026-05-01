@@ -56,6 +56,18 @@ const routes = [
         meta: { title: '订单管理', icon: 'List' }
       },
       {
+        path: 'messages',
+        name: 'Messages',
+        component: () => import('@/views/messages/index.vue'),
+        meta: { title: '消息管理', icon: 'ChatDotRound' }
+      },
+      {
+        path: 'refunds',
+        name: 'Refunds',
+        component: () => import('@/views/refunds/index.vue'),
+        meta: { title: '退款管理', icon: 'Money' }
+      },
+      {
         path: 'activities',
         name: 'Activities',
         component: () => import('@/views/activities/index.vue'),

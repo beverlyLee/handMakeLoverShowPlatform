@@ -11,7 +11,10 @@ const {
   shipOrder,
   getTeacherOrderStats,
   completeMakingOrder,
-  editOrder
+  editOrder,
+  applyRefund,
+  getRefundDetail,
+  cancelRefund
 } = require('../../api/orders');
 const { contactThroughOrder } = require('../../api/messages');
 const { getOrderReview } = require('../../api/reviews');
@@ -119,7 +122,15 @@ Page({
     defaultImage: DEFAULT_IMAGE,
     
     orderReviews: {},
-    loadingReviews: {}
+    loadingReviews: {},
+
+    showRefundDialog: false,
+    showRefundDetailDialog: false,
+    refundReason: '',
+    refundAmount: '',
+    refundProofs: [],
+    refundProofTempFiles: [],
+    currentRefund: null
   },
 
   onLoad(options) {
@@ -984,5 +995,232 @@ Page({
         formattedOrders: formattedOrders
       });
     }
+  },
+
+  showRefundDialog(e) {
+    const orderId = e.currentTarget.dataset.id;
+    const order = this.data.orders.find(o => o.id === orderId);
+
+    if (order) {
+      this.setData({
+        selectedOrder: order,
+        showRefundDialog: true,
+        refundReason: '',
+        refundAmount: order.pay_amount ? order.pay_amount.toString() : '',
+        refundProofs: [],
+        refundProofTempFiles: []
+      });
+    }
+  },
+
+  closeRefundDialog() {
+    this.setData({
+      showRefundDialog: false,
+      selectedOrder: null,
+      refundReason: '',
+      refundAmount: '',
+      refundProofs: [],
+      refundProofTempFiles: []
+    });
+  },
+
+  onRefundReasonInput(e) {
+    this.setData({
+      refundReason: e.detail.value
+    });
+  },
+
+  onRefundAmountInput(e) {
+    this.setData({
+      refundAmount: e.detail.value
+    });
+  },
+
+  chooseRefundProof() {
+    const { refundProofTempFiles } = this.data;
+    const maxCount = 3 - refundProofTempFiles.length;
+    
+    if (maxCount <= 0) {
+      showToast('最多只能上传3张凭证');
+      return;
+    }
+
+    wx.chooseMedia({
+      count: maxCount,
+      mediaType: ['image'],
+      sourceType: ['album', 'camera'],
+      success: (res) => {
+        const tempFiles = res.tempFiles.map(f => f.tempFilePath);
+        const newProofs = [...refundProofTempFiles, ...tempFiles].slice(0, 3);
+        this.setData({
+          refundProofTempFiles: newProofs
+        });
+      }
+    });
+  },
+
+  removeRefundProof(e) {
+    const index = e.currentTarget.dataset.index;
+    const { refundProofTempFiles } = this.data;
+    const newProofs = refundProofTempFiles.filter((_, i) => i !== index);
+    this.setData({
+      refundProofTempFiles: newProofs
+    });
+  },
+
+  async submitRefund() {
+    const { selectedOrder, refundReason, refundAmount, refundProofTempFiles } = this.data;
+
+    if (!refundReason || refundReason.trim().length === 0) {
+      showToast('请填写退款理由');
+      return;
+    }
+
+    if (refundReason.length > 200) {
+      showToast('退款理由不能超过200个字符');
+      return;
+    }
+
+    const amount = parseFloat(refundAmount);
+    if (!amount || amount <= 0) {
+      showToast('请输入有效的退款金额');
+      return;
+    }
+
+    if (amount > selectedOrder.pay_amount) {
+      showToast(`退款金额不能超过订单金额¥${selectedOrder.pay_amount}`);
+      return;
+    }
+
+    wx.showLoading({ title: '提交中...', mask: true });
+
+    try {
+      let uploadedUrls = [];
+      
+      if (refundProofTempFiles.length > 0) {
+        const uploadPromises = refundProofTempFiles.map(tempPath => {
+          return new Promise((resolve, reject) => {
+            wx.uploadFile({
+              url: getApp().globalData.baseUrl + '/upload/image',
+              filePath: tempPath,
+              name: 'file',
+              header: {
+                'Authorization': 'Bearer ' + storage.getToken()
+              },
+              success: (res) => {
+                const data = JSON.parse(res.data);
+                if (data.code === 0 && data.data) {
+                  resolve(data.data.url || data.data);
+                } else {
+                  reject(new Error(data.msg || '上传失败'));
+                }
+              },
+              fail: (err) => {
+                reject(err);
+              }
+            });
+          });
+        });
+
+        try {
+          uploadedUrls = await Promise.all(uploadPromises);
+        } catch (uploadErr) {
+          console.error('上传凭证失败:', uploadErr);
+          wx.hideLoading();
+          showToast('凭证上传失败，请重试');
+          return;
+        }
+      }
+
+      const result = await applyRefund(selectedOrder.id, {
+        refund_reason: refundReason.trim(),
+        refund_amount: amount,
+        refund_proofs: uploadedUrls
+      });
+
+      wx.hideLoading();
+
+      if (result.code === 0) {
+        showToast('退款申请已提交', 'success');
+        this.closeRefundDialog();
+        
+        this.setData({ page: 1, orders: [], hasMore: true });
+        await this.loadOrders();
+      } else {
+        showToast(result.msg || '提交失败');
+      }
+    } catch (error) {
+      wx.hideLoading();
+      console.error('提交退款申请失败:', error);
+      showToast(error.msg || '提交失败，请重试');
+    }
+  },
+
+  async showRefundDetailDialog(e) {
+    const orderId = e.currentTarget.dataset.id;
+    const order = this.data.orders.find(o => o.id === orderId);
+
+    if (order) {
+      wx.showLoading({ title: '加载中...' });
+
+      try {
+        const result = await getRefundDetail(orderId);
+        wx.hideLoading();
+
+        if (result.code === 0) {
+          this.setData({
+            currentRefund: result.data,
+            showRefundDetailDialog: true
+          });
+        } else {
+          showToast(result.msg || '加载失败');
+        }
+      } catch (error) {
+        wx.hideLoading();
+        console.error('加载退款详情失败:', error);
+        showToast('加载失败，请重试');
+      }
+    }
+  },
+
+  closeRefundDetailDialog() {
+    this.setData({
+      showRefundDetailDialog: false,
+      currentRefund: null
+    });
+  },
+
+  async cancelRefundApp() {
+    const { currentRefund } = this.data;
+    if (!currentRefund) return;
+
+    wx.showModal({
+      title: '提示',
+      content: '确定要取消退款申请吗？',
+      success: async (res) => {
+        if (res.confirm) {
+          wx.showLoading({ title: '取消中...' });
+
+          try {
+            const result = await cancelRefund(currentRefund.order_id);
+            wx.hideLoading();
+
+            if (result.code === 0) {
+              showToast('已取消退款申请', 'success');
+              this.closeRefundDetailDialog();
+              
+              this.setData({ page: 1, orders: [], hasMore: true });
+              await this.loadOrders();
+            } else {
+              showToast(result.msg || '取消失败');
+            }
+          } catch (error) {
+            wx.hideLoading();
+            console.error('取消退款申请失败:', error);
+            showToast('取消失败，请重试');
+          }
+        }
+      }
+    });
   }
 });

@@ -54,6 +54,14 @@
           <el-icon><List /></el-icon>
           <span>订单管理</span>
         </el-menu-item>
+        <el-menu-item index="/messages">
+          <el-icon><ChatDotRound /></el-icon>
+          <span>消息管理</span>
+        </el-menu-item>
+        <el-menu-item index="/refunds">
+          <el-icon><Money /></el-icon>
+          <span>退款管理</span>
+        </el-menu-item>
         <el-sub-menu index="activities-manage">
           <template #title>
             <el-icon><Calendar /></el-icon>

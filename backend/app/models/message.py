@@ -1,14 +1,31 @@
 from datetime import datetime
 from app.database import db
+import json
 
 MESSAGE_TYPE_SYSTEM = 'system'
 MESSAGE_TYPE_ORDER = 'order'
 MESSAGE_TYPE_ACTIVITY = 'activity'
+MESSAGE_TYPE_ANNOUNCEMENT = 'announcement'
 
 MESSAGE_TYPES = {
     MESSAGE_TYPE_SYSTEM: '系统通知',
     MESSAGE_TYPE_ORDER: '订单消息',
-    MESSAGE_TYPE_ACTIVITY: '活动消息'
+    MESSAGE_TYPE_ACTIVITY: '活动消息',
+    MESSAGE_TYPE_ANNOUNCEMENT: '公告通知'
+}
+
+ANNOUNCEMENT_SUBTYPES = {
+    'system': '系统公告',
+    'activity': '活动公告',
+    'promotion': '促销公告',
+    'update': '更新公告'
+}
+
+RECIPIENT_TYPES = {
+    'all': '全部用户',
+    'customer': '普通用户',
+    'teacher': '老师用户',
+    'specific': '指定用户'
 }
 
 
@@ -19,6 +36,7 @@ class Message(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
     
     type = db.Column(db.String(50), default=MESSAGE_TYPE_SYSTEM, nullable=False)
+    subtype = db.Column(db.String(50))
     title = db.Column(db.String(200), nullable=False)
     content = db.Column(db.Text, nullable=False)
     
@@ -32,11 +50,38 @@ class Message(db.Model):
     related_type = db.Column(db.String(50))
     
     recipient_role = db.Column(db.String(20), default='customer')
+    recipient_type = db.Column(db.String(20), default='all')
+    _target_user_ids = db.Column('target_user_ids', db.Text)
+    
+    expire_time = db.Column(db.DateTime)
+    is_announcement = db.Column(db.Boolean, default=False)
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     user = db.relationship('User', backref='messages', lazy=True)
+
+    @property
+    def target_user_ids(self):
+        if self._target_user_ids:
+            try:
+                return json.loads(self._target_user_ids)
+            except:
+                return []
+        return []
+
+    @target_user_ids.setter
+    def target_user_ids(self, value):
+        if isinstance(value, list):
+            self._target_user_ids = json.dumps(value, ensure_ascii=False)
+        else:
+            self._target_user_ids = value
+
+    @property
+    def is_expired(self):
+        if self.expire_time:
+            return datetime.utcnow() > self.expire_time
+        return False
 
     def to_dict(self):
         return {
@@ -45,6 +90,8 @@ class Message(db.Model):
             'user_id': self.user_id,
             'type': self.type,
             'type_name': MESSAGE_TYPES.get(self.type, '其他消息'),
+            'subtype': self.subtype,
+            'subtype_name': ANNOUNCEMENT_SUBTYPES.get(self.subtype, self.subtype) if self.subtype else None,
             'title': self.title,
             'content': self.content,
             'sender': self.sender,
@@ -54,6 +101,12 @@ class Message(db.Model):
             'related_id': self.related_id,
             'related_type': self.related_type,
             'recipient_role': self.recipient_role,
+            'recipient_type': self.recipient_type,
+            'recipient_type_name': RECIPIENT_TYPES.get(self.recipient_type, self.recipient_type),
+            'target_user_ids': self.target_user_ids,
+            'expire_time': self.expire_time.strftime('%Y-%m-%d %H:%M:%S') if self.expire_time else None,
+            'is_announcement': self.is_announcement,
+            'is_expired': self.is_expired,
             'create_time': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None,
             'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None,
             'update_time': self.updated_at.strftime('%Y-%m-%d %H:%M:%S') if self.updated_at else None

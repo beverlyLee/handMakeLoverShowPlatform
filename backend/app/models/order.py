@@ -110,6 +110,7 @@ class Order(db.Model):
     refund_reason = db.Column(db.String(500))
     refund_time = db.Column(db.DateTime)
     refund_approved_by = db.Column(db.Integer, db.ForeignKey('users.id'))
+    _refund_proofs = db.Column('refund_proofs', db.Text)
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -169,6 +170,22 @@ class Order(db.Model):
         if self.abnormal_reason_code:
             return ABNORMAL_REASONS.get(self.abnormal_reason_code, self.abnormal_reason_code)
         return None
+
+    @property
+    def refund_proofs(self):
+        if self._refund_proofs:
+            try:
+                return json.loads(self._refund_proofs)
+            except:
+                return []
+        return []
+
+    @refund_proofs.setter
+    def refund_proofs(self, value):
+        if isinstance(value, list):
+            self._refund_proofs = json.dumps(value, ensure_ascii=False)
+        else:
+            self._refund_proofs = value
 
     def calculate_estimated_arrival(self):
         if self.shipping_method == 'express' or self.shipping_method == 'sf':
@@ -246,7 +263,8 @@ class Order(db.Model):
             'refund_amount': self.refund_amount,
             'refund_reason': self.refund_reason,
             'refund_time': self.refund_time.strftime('%Y-%m-%d %H:%M:%S') if self.refund_time else None,
-            'refund_approved_by': self.refund_approved_by
+            'refund_approved_by': self.refund_approved_by,
+            'refund_proofs': self.refund_proofs
         }
         
         if include_detail:

@@ -151,6 +151,31 @@ function editOrder(orderId, data) {
   return put(`/orders/${orderId}/edit`, data);
 }
 
+/**
+ * 申请退款（用户端）
+ * @param {string} orderId - 订单ID
+ * @param {Object} data - 退款数据 { refund_reason, refund_proofs, refund_amount }
+ */
+function applyRefund(orderId, data) {
+  return post(`/orders/${orderId}/refund`, data);
+}
+
+/**
+ * 获取退款详情
+ * @param {string} orderId - 订单ID
+ */
+function getRefundDetail(orderId) {
+  return get(`/orders/${orderId}/refund`);
+}
+
+/**
+ * 取消退款申请（用户端）
+ * @param {string} orderId - 订单ID
+ */
+function cancelRefund(orderId) {
+  return post(`/orders/${orderId}/refund/cancel`);
+}
+
 module.exports = {
   getOrders,
   getOrderDetail,
@@ -169,5 +194,8 @@ module.exports = {
   getOrderLogistics,
   startMakingOrder,
   completeMakingOrder,
-  editOrder
+  editOrder,
+  applyRefund,
+  getRefundDetail,
+  cancelRefund
 };

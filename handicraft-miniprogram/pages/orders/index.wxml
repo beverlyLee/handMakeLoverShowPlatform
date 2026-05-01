@@ -191,6 +191,18 @@
             data-id="{{item.id}}"
           >确认收货</button>
           <button 
+            wx:if="{{currentRole !== 'teacher' && item.refund_status === 'pending'}}" 
+            class="action-btn warning"
+            bindtap="showRefundDetailDialog"
+            data-id="{{item.id}}"
+          >退款处理中</button>
+          <button 
+            wx:if="{{currentRole !== 'teacher' && (item.status === 'pending_accept' || item.status === 'in_progress' || item.status === 'paid' || item.status === 'shipped' || item.status === 'delivered') && !item.refund_status}}" 
+            class="action-btn danger"
+            bindtap="showRefundDialog"
+            data-id="{{item.id}}"
+          >申请退款</button>
+          <button 
             wx:if="{{currentRole !== 'teacher' && item.status === 'completed' && !item.is_reviewed}}" 
             class="action-btn primary"
             bindtap="goToReview"
@@ -720,6 +732,139 @@
     <view class="dialog-footer">
       <button class="dialog-btn dialog-btn-cancel" bindtap="closeEditDialog">取消</button>
       <button class="dialog-btn dialog-btn-confirm" bindtap="saveEdit">保存修改</button>
+    </view>
+  </view>
+</view>
+
+<view class="dialog-mask" wx:if="{{showRefundDialog && selectedOrder}}" catchtouchmove="stopPropagation">
+  <view class="dialog refund-dialog">
+    <view class="dialog-header">
+      <text class="dialog-title">申请退款</text>
+      <view class="dialog-close" bindtap="closeRefundDialog">
+        <text class="close-icon">×</text>
+      </view>
+    </view>
+    <view class="dialog-content">
+      <view class="info-item">
+        <text class="info-label">订单编号：</text>
+        <text class="info-value">{{selectedOrder.id}}</text>
+      </view>
+      <view class="info-item">
+        <text class="info-label">订单金额：</text>
+        <text class="info-value">¥{{selectedOrder.pay_amount}}</text>
+      </view>
+      <view class="form-item">
+        <text class="form-label">退款理由 <text class="required">*</text></text>
+        <textarea 
+          class="form-textarea" 
+          placeholder="请填写退款理由（最多200字）"
+          value="{{refundReason}}"
+          bindinput="onRefundReasonInput"
+          maxlength="200"
+        />
+        <text class="char-count">{{refundReason.length}}/200</text>
+      </view>
+      <view class="form-item">
+        <text class="form-label">退款金额 <text class="required">*</text></text>
+        <input 
+          class="form-input" 
+          type="digit"
+          placeholder="请输入退款金额"
+          value="{{refundAmount}}"
+          bindinput="onRefundAmountInput"
+        />
+        <text class="form-tip">退款金额不能超过订单金额¥{{selectedOrder.pay_amount}}</text>
+      </view>
+      <view class="form-item">
+        <text class="form-label">退款凭证（选填，最多3张）</text>
+        <view class="proof-list">
+          <view 
+            class="proof-item" 
+            wx:for="{{refundProofTempFiles}}" 
+            wx:key="index"
+          >
+            <image class="proof-image" src="{{item}}" mode="aspectFill" />
+            <view class="proof-remove" bindtap="removeRefundProof" data-index="{{index}}">
+              <text class="remove-icon">×</text>
+            </view>
+          </view>
+          <view 
+            class="proof-item proof-add" 
+            wx:if="{{refundProofTempFiles.length < 3}}"
+            bindtap="chooseRefundProof"
+          >
+            <text class="add-icon">+</text>
+            <text class="add-text">添加图片</text>
+          </view>
+        </view>
+      </view>
+    </view>
+    <view class="dialog-footer">
+      <button class="dialog-btn dialog-btn-cancel" bindtap="closeRefundDialog">取消</button>
+      <button class="dialog-btn dialog-btn-confirm" bindtap="submitRefund">提交申请</button>
+    </view>
+  </view>
+</view>
+
+<view class="dialog-mask" wx:if="{{showRefundDetailDialog && currentRefund}}" catchtouchmove="stopPropagation">
+  <view class="dialog refund-detail-dialog">
+    <view class="dialog-header">
+      <text class="dialog-title">退款详情</text>
+      <view class="dialog-close" bindtap="closeRefundDetailDialog">
+        <text class="close-icon">×</text>
+      </view>
+    </view>
+    <view class="dialog-content">
+      <view class="info-item">
+        <text class="info-label">退款状态：</text>
+        <text class="info-value status-{{currentRefund.refund_status}}">
+          {{currentRefund.refund_status === 'pending' ? '待审核' : 
+            currentRefund.refund_status === 'approved' ? '已同意' : 
+            currentRefund.refund_status === 'rejected' ? '已拒绝' : 
+            currentRefund.refund_status === 'completed' ? '已完成' : 
+            currentRefund.refund_status === 'failed' ? '退款失败' : '退款取消'}}
+        </text>
+      </view>
+      <view class="info-item">
+        <text class="info-label">退款金额：</text>
+        <text class="info-value refund-amount">¥{{currentRefund.refund_amount}}</text>
+      </view>
+      <view class="form-item">
+        <text class="form-label">退款理由</text>
+        <view class="refund-reason-box">
+          <text class="refund-reason-text">{{currentRefund.refund_reason || '无'}}</text>
+        </view>
+      </view>
+      <view class="form-item" wx:if="{{currentRefund.refund_proofs && currentRefund.refund_proofs.length > 0}}">
+        <text class="form-label">退款凭证</text>
+        <view class="proof-list">
+          <view class="proof-item" wx:for="{{currentRefund.refund_proofs}}" wx:key="index">
+            <image class="proof-image" src="{{item}}" mode="aspectFill" />
+          </view>
+        </view>
+      </view>
+      <view class="form-item" wx:if="{{currentRefund.reject_reason}}">
+        <text class="form-label">拒绝理由</text>
+        <view class="reject-reason-box">
+          <text class="reject-reason-text">{{currentRefund.reject_reason}}</text>
+        </view>
+      </view>
+      <view class="form-item" wx:if="{{currentRefund.audit_time}}">
+        <text class="form-label">处理时间</text>
+        <text class="form-value">{{currentRefund.audit_time}}</text>
+      </view>
+      <view class="form-item">
+        <text class="form-label">申请时间</text>
+        <text class="form-value">{{currentRefund.refund_time}}</text>
+      </view>
+    </view>
+    <view class="dialog-footer">
+      <button class="dialog-btn dialog-btn-cancel" bindtap="closeRefundDetailDialog">关闭</button>
+      <button 
+        class="dialog-btn dialog-btn-secondary" 
+        wx:if="{{currentRefund.refund_status === 'pending'}}"
+        bindtap="cancelRefundApp"
+      >取消申请</button>
     </view>
   </view>
 </view>
