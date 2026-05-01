@@ -53,12 +53,51 @@ a {
 }
 
 .el-button--primary {
-  --el-button-bg-color: $primary-color;
-  --el-button-border-color: $primary-color;
-  --el-button-hover-bg-color: $primary-light;
-  --el-button-hover-border-color: $primary-light;
-  --el-button-active-bg-color: $primary-dark;
-  --el-button-active-border-color: $primary-dark;
+  background-color: $primary-color !important;
+  border-color: $primary-color !important;
+  color: #ffffff !important;
+  
+  &:hover,
+  &:focus {
+    background-color: $primary-light !important;
+    border-color: $primary-light !important;
+    color: #ffffff !important;
+  }
+  
+  &:active {
+    background-color: $primary-dark !important;
+    border-color: $primary-dark !important;
+    color: #ffffff !important;
+  }
+  
+  &.is-disabled,
+  &:disabled,
+  &[disabled] {
+    background-color: #ffd4c4 !important;
+    border-color: #ffd4c4 !important;
+    color: #ffffff !important;
+  }
+}
+
+.el-button--primary.is-link {
+  background-color: transparent !important;
+  border-color: transparent !important;
+  color: $primary-color !important;
+  
+  &:hover,
+  &:focus {
+    color: $primary-light !important;
+  }
+  
+  &:active {
+    color: $primary-dark !important;
+  }
+  
+  &.is-disabled,
+  &:disabled,
+  &[disabled] {
+    color: #c0c4cc !important;
+  }
 }
 
 .el-tabs__item.is-active {

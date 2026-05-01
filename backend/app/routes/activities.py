@@ -4,7 +4,7 @@ from app.utils.response import success, error
 from app.common.auth import login_required
 from app.common.response_code import ResponseCode
 from app.database import db
-from app.models import Activity, ActivityRegistration, TeacherProfile, User, CRAFT_TYPES, ACTIVITY_TYPES
+from app.models import Activity, ActivityRegistration, TeacherProfile, User, CRAFT_TYPES, ACTIVITY_TYPES, ActivityType, Category
 
 activity_bp = Blueprint('activities', __name__)
 
@@ -38,9 +38,25 @@ def parse_datetime(datetime_str):
 
 @activity_bp.route('/types', methods=['GET'])
 def get_activity_types():
+    craft_types_db = Category.query.filter_by(status='active').order_by(Category.sort.asc()).all()
+    activity_types_db = ActivityType.query.filter_by(status='active').order_by(ActivityType.sort.asc()).all()
+    
+    craft_types = []
+    activity_types = []
+    
+    if craft_types_db and len(craft_types_db) > 0:
+        craft_types = [c.name for c in craft_types_db]
+    else:
+        craft_types = CRAFT_TYPES
+    
+    if activity_types_db and len(activity_types_db) > 0:
+        activity_types = [a.name for a in activity_types_db]
+    else:
+        activity_types = ACTIVITY_TYPES
+    
     return jsonify(success(data={
-        'craft_types': CRAFT_TYPES,
-        'activity_types': ACTIVITY_TYPES
+        'craft_types': craft_types,
+        'activity_types': activity_types
     }))
 
 

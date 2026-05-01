@@ -149,6 +149,14 @@ export function getTeacherReviews(teacherId, params) {
   })
 }
 
+export function getTeacherLikes(teacherId, params) {
+  return request({
+    url: `/admin/teachers/${teacherId}/likes`,
+    method: 'get',
+    params
+  })
+}
+
 export function getTeacherStats(params) {
   return request({
     url: '/admin/teachers/stats',

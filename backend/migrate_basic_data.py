@@ -16,7 +16,7 @@ def migrate():
     app = create_app(Config)
     
     with app.app_context():
-        from app.models import ActivityType, SystemConfig, Category
+        from app.models import ActivityType, SystemConfig, Category, Specialty
         
         print("Creating activity_types table...")
         db.create_all()
@@ -55,6 +55,37 @@ def migrate():
                     status='active'
                 )
                 db.session.add(at)
+        
+        if not Specialty.query.first():
+            print("\nInitializing specialties...")
+            specialties_data = [
+                {'name': '棒针编织', 'icon': '🧶', 'category': '编织', 'sort_order': 1, 'is_active': True},
+                {'name': '钩针编织', 'icon': '🧶', 'category': '编织', 'sort_order': 2, 'is_active': True},
+                {'name': '编织', 'icon': '🧶', 'category': '编织', 'sort_order': 3, 'is_active': True},
+                {'name': '陶艺', 'icon': '🏺', 'category': '陶艺', 'sort_order': 10, 'is_active': True},
+                {'name': '拉坯', 'icon': '🏺', 'category': '陶艺', 'sort_order': 11, 'is_active': True},
+                {'name': '釉上彩', 'icon': '🎨', 'category': '陶艺', 'sort_order': 12, 'is_active': True},
+                {'name': '皮革工艺', 'icon': '👜', 'category': '皮革', 'sort_order': 20, 'is_active': True},
+                {'name': '刺绣', 'icon': '🧵', 'category': '布艺', 'sort_order': 30, 'is_active': True},
+                {'name': '纸艺', 'icon': '📄', 'category': '纸艺', 'sort_order': 40, 'is_active': True},
+                {'name': '珠串', 'icon': '💎', 'category': '珠串', 'sort_order': 50, 'is_active': True},
+                {'name': '木艺', 'icon': '🪵', 'category': '木艺', 'sort_order': 60, 'is_active': True},
+                {'name': '布艺', 'icon': '🧵', 'category': '布艺', 'sort_order': 31, 'is_active': True},
+                {'name': '手工皂', 'icon': '🧼', 'category': '手工', 'sort_order': 70, 'is_active': True},
+                {'name': '蜡烛', 'icon': '🕯️', 'category': '手工', 'sort_order': 71, 'is_active': True},
+                {'name': '押花', 'icon': '🌸', 'category': '手工', 'sort_order': 72, 'is_active': True},
+                {'name': '热缩片', 'icon': '🔬', 'category': '手工', 'sort_order': 73, 'is_active': True},
+                {'name': '滴胶', 'icon': '💧', 'category': '手工', 'sort_order': 74, 'is_active': True},
+                {'name': '黏土', 'icon': '🟠', 'category': '手工', 'sort_order': 75, 'is_active': True}
+            ]
+            
+            for data in specialties_data:
+                existing = Specialty.query.filter_by(name=data['name']).first()
+                if not existing:
+                    specialty = Specialty(**data)
+                    db.session.add(specialty)
+            
+            print(f"Initialized {len(specialties_data)} specialties")
         
         default_configs = [
             ('site_name', '手作爱好者平台', '网站名称', 'general'),

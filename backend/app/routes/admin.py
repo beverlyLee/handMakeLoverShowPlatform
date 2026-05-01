@@ -318,7 +318,7 @@ def get_user_detail(user_id):
             'is_verified': teacher_profile.is_verified,
             'follower_count': teacher_profile.follower_count,
             'total_orders': Order.query.filter_by(teacher_id=user.id, status='completed').count(),
-            'total_products': Product.query.filter_by(user_id=user.id, status='active').count()
+            'total_products': Product.query.filter_by(teacher_id=teacher_profile.id, status='active').count()
         }
     
     user_dict['order_count'] = Order.query.filter_by(user_id=user.id).count()
@@ -755,10 +755,8 @@ def get_products_list():
         product_dict['likes_count'] = Like.query.filter_by(product_id=p.id).count()
         product_dict['reviews_count'] = Review.query.filter_by(product_id=p.id).count()
         
-        if p.user_id:
-            teacher = User.query.get(p.user_id)
-            if teacher:
-                product_dict['teacher_name'] = teacher.nickname or teacher.username
+        if p.teacher_profile and p.teacher_profile.user:
+            product_dict['teacher_name'] = p.teacher_profile.user.nickname or p.teacher_profile.user.username
         
         products.append(product_dict)
     
@@ -2138,8 +2136,8 @@ def verify_teacher(teacher_id):
 def get_teachers_list():
     page = request.args.get('page', 1, type=int)
     size = request.args.get('size', 10, type=int)
-    teacher_id = request.args.get('teacher_id', type=int)
-    keyword = request.args.get('keyword', '')
+    teacher_id = request.args.get('teacher_id', type=int) or request.args.get('id', type=int)
+    keyword = request.args.get('keyword', '') or request.args.get('name', '')
     specialty = request.args.get('specialty', '')
     verify_status = request.args.get('verify_status', '')
     sort = request.args.get('sort', 'newest')
@@ -2264,6 +2262,8 @@ def update_teacher(teacher_id):
         tp.studio_name = data['studio_name']
     if 'studio_address' in data:
         tp.studio_address = data['studio_address']
+    if 'experience_years' in data:
+        tp.experience_years = int(data['experience_years']) if data['experience_years'] else 0
     
     tp.updated_at = datetime.utcnow()
     
@@ -2446,6 +2446,89 @@ def get_teacher_reviews(teacher_id):
         'page': page,
         'size': size,
         'total_pages': pagination.pages
+    }))
+
+
+@admin_bp.route('/teachers/<int:teacher_id>/likes', methods=['GET'])
+@login_required
+def get_teacher_likes(teacher_id):
+    page = request.args.get('page', 1, type=int)
+    size = request.args.get('size', 20, type=int)
+    
+    tp = TeacherProfile.query.get(teacher_id)
+    if not tp:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='老师信息不存在')), 404
+    
+    teacher_products = Product.query.filter_by(teacher_id=tp.id).all()
+    product_ids = [p.id for p in teacher_products]
+    
+    if not product_ids:
+        return jsonify(success(data={
+            'list': [],
+            'total': 0,
+            'page': page,
+            'size': size,
+            'total_pages': 0,
+            'stats': {
+                'total_likes': 0,
+                'total_products': 0,
+                'product_likes': []
+            }
+        }))
+    
+    query = Like.query.filter(Like.product_id.in_(product_ids)).order_by(Like.created_at.desc())
+    pagination = query.paginate(page=page, per_page=size, error_out=False)
+    
+    likes = []
+    for like in pagination.items:
+        like_dict = like.to_dict()
+        user = User.query.get(like.user_id)
+        if user:
+            like_dict['user_nickname'] = user.nickname or user.username
+            like_dict['user_avatar'] = user.avatar
+        product = Product.query.get(like.product_id)
+        if product:
+            like_dict['product_title'] = product.title
+            like_dict['product_image'] = product.cover_image
+        likes.append(like_dict)
+    
+    total_likes = Like.query.filter(Like.product_id.in_(product_ids)).count()
+    
+    product_likes_stats = db.session.query(
+        Product.id,
+        Product.title,
+        Product.cover_image,
+        db.func.count(Like.id).label('like_count')
+    ).outerjoin(
+        Like, Product.id == Like.product_id
+    ).filter(
+        Product.id.in_(product_ids)
+    ).group_by(
+        Product.id, Product.title, Product.cover_image
+    ).order_by(
+        db.desc('like_count')
+    ).all()
+    
+    product_likes = []
+    for pl in product_likes_stats:
+        product_likes.append({
+            'product_id': pl.id,
+            'product_title': pl.title,
+            'product_image': pl.cover_image,
+            'like_count': pl.like_count or 0
+        })
+    
+    return jsonify(success(data={
+        'list': likes,
+        'total': pagination.total,
+        'page': page,
+        'size': size,
+        'total_pages': pagination.pages,
+        'stats': {
+            'total_likes': total_likes,
+            'total_products': len(product_ids),
+            'product_likes': product_likes
+        }
     }))
 
 

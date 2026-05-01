@@ -295,7 +295,87 @@
           </el-tab-pane>
           
           <el-tab-pane label="点赞统计" name="likes">
-            <el-empty description="暂无点赞统计数据" />
+            <div v-loading="likesLoading">
+              <div v-if="likesStats" style="margin-bottom: 20px;">
+                <el-row :gutter="20">
+                  <el-col :span="8">
+                    <el-card shadow="hover">
+                      <div style="text-align: center;">
+                        <div style="font-size: 32px; font-weight: bold; color: #409EFF;">
+                          {{ likesStats.total_likes || 0 }}
+                        </div>
+                        <div style="color: #999; margin-top: 8px;">总点赞数</div>
+                      </div>
+                    </el-card>
+                  </el-col>
+                  <el-col :span="8">
+                    <el-card shadow="hover">
+                      <div style="text-align: center;">
+                        <div style="font-size: 32px; font-weight: bold; color: #67C23A;">
+                          {{ likesStats.total_products || 0 }}
+                        </div>
+                        <div style="color: #999; margin-top: 8px;">作品数量</div>
+                      </div>
+                    </el-card>
+                  </el-col>
+                  <el-col :span="8">
+                    <el-card shadow="hover">
+                      <div style="text-align: center;">
+                        <div style="font-size: 32px; font-weight: bold; color: #E6A23C;">
+                          {{ likesStats.total_products > 0 ? (likesStats.total_likes / likesStats.total_products).toFixed(1) : 0 }}
+                        </div>
+                        <div style="color: #999; margin-top: 8px;">平均点赞/作品</div>
+                      </div>
+                    </el-card>
+                  </el-col>
+                </el-row>
+              </div>
+              
+              <div v-if="likesStats?.product_likes?.length > 0" style="margin-bottom: 20px;">
+                <h4 style="margin-bottom: 12px; color: #606266;">作品点赞排行</h4>
+                <el-table :data="likesStats.product_likes.slice(0, 10)" stripe size="small" style="width: 100%">
+                  <el-table-column prop="product_id" label="作品ID" width="80" />
+                  <el-table-column prop="product_title" label="作品标题" min-width="200" show-overflow-tooltip />
+                  <el-table-column prop="like_count" label="点赞数" width="100" sortable>
+                    <template #default="scope">
+                      <el-tag type="warning">{{ scope.row.like_count }}</el-tag>
+                    </template>
+                  </el-table-column>
+                </el-table>
+              </div>
+              
+              <div>
+                <h4 style="margin-bottom: 12px; color: #606266;">点赞记录</h4>
+                <el-table :data="likesList" stripe style="width: 100%">
+                  <el-table-column prop="id" label="ID" width="70" />
+                  <el-table-column label="点赞用户" width="150">
+                    <template #default="scope">
+                      <div class="user-info-cell" style="display: flex; align-items: center; gap: 8px;">
+                        <el-avatar :size="32" :src="scope.row.user_avatar" />
+                        <span>{{ scope.row.user_nickname || '未知' }}</span>
+                      </div>
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="product_title" label="作品" min-width="150" show-overflow-tooltip />
+                  <el-table-column prop="create_time" label="点赞时间" width="180" />
+                </el-table>
+                <div v-if="likesList.length === 0 && !likesLoading" style="margin-top: 20px;">
+                  <el-empty description="暂无点赞记录" />
+                </div>
+                <div v-if="likesTotal > 0" class="pagination-wrapper" style="margin-top: 16px;">
+                  <el-pagination
+                    v-model:current-page="likesPage"
+                    v-model:page-size="likesSize"
+                    :page-sizes="[5, 10, 20]"
+                    :total="likesTotal"
+                    layout="total, sizes, prev, pager, next"
+                    @size-change="fetchLikes"
+                    @current-change="fetchLikes"
+                    small
+                  />
+                </div>
+              </div>
+            </div>
           </el-tab-pane>
         </el-tabs>
       </div>
@@ -319,6 +399,7 @@ import {
   getTeacherProducts,
   getTeacherOrders,
   getTeacherReviews,
+  getTeacherLikes,
   getSpecialties
 } from '@/api/users'
 
@@ -352,6 +433,13 @@ const reviewsList = ref([])
 const reviewsTotal = ref(0)
 const reviewsPage = ref(1)
 const reviewsSize = ref(10)
+
+const likesLoading = ref(false)
+const likesList = ref([])
+const likesTotal = ref(0)
+const likesPage = ref(1)
+const likesSize = ref(10)
+const likesStats = ref(null)
 
 const queryParams = reactive({
   page: 1,
@@ -441,6 +529,8 @@ const handleView = async (row) => {
       productsPage.value = 1
       ordersPage.value = 1
       reviewsPage.value = 1
+      likesPage.value = 1
+      likesStats.value = null
     }
   } catch (e) {
     console.error('获取老师详情失败:', e)
@@ -505,6 +595,26 @@ const fetchReviews = async () => {
   }
 }
 
+const fetchLikes = async () => {
+  if (!detailTeacher.value) return
+  likesLoading.value = true
+  try {
+    const res = await getTeacherLikes(detailTeacher.value.id, {
+      page: likesPage.value,
+      size: likesSize.value
+    })
+    if (res.code === 0) {
+      likesList.value = res.data.list || []
+      likesTotal.value = res.data.total || 0
+      likesStats.value = res.data.stats || null
+    }
+  } catch (e) {
+    console.error('获取点赞列表失败:', e)
+  } finally {
+    likesLoading.value = false
+  }
+}
+
 watch(detailTab, (newVal) => {
   if (newVal === 'products') {
     fetchProducts()
@@ -512,6 +622,8 @@ watch(detailTab, (newVal) => {
     fetchOrders()
   } else if (newVal === 'reviews') {
     fetchReviews()
+  } else if (newVal === 'likes') {
+    fetchLikes()
   }
 })
 
