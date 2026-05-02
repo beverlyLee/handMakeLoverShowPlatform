@@ -1,5 +1,5 @@
 const { getTeacherPublicInfo, getTeacherPublicOrderStats, getUserInfo, updateTeacherInfo, updateUserInfo } = require('../../api/users');
-const { getProducts, createProduct: createProductApi, getCategories, updateProduct, deleteProduct, submitProductReview, takeProductOffline } = require('../../api/products');
+const { getProducts, getMyProducts, createProduct: createProductApi, getCategories, updateProduct, deleteProduct, submitProductReview, takeProductOffline } = require('../../api/products');
 const { getSpecialties } = require('../../api/specialties');
 const { uploadImages } = require('../../api/upload');
 const { 
@@ -372,7 +372,16 @@ Page({
         sort: 'newest'
       };
 
-      const result = await getProducts(params);
+      let result;
+      if (this.data.isOwner) {
+        result = await getMyProducts({
+          page: append ? this.data.productsPage : 1,
+          size: this.data.productsPageSize
+        });
+      } else {
+        result = await getProducts(params);
+      }
+      
       const newProducts = (result && result.list) || result || [];
       
       const processedProducts = newProducts.map(p => {

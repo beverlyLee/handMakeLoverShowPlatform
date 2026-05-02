@@ -176,6 +176,23 @@ function cancelRefund(orderId) {
   return post(`/orders/${orderId}/refund/cancel`);
 }
 
+/**
+ * 审核退款（老师端）
+ * @param {string} orderId - 订单ID
+ * @param {Object} data - 审核数据 { action: 'approve'|'reject', reason, refund_amount }
+ */
+function auditRefund(orderId, data) {
+  return post(`/orders/${orderId}/refund/audit`, data);
+}
+
+/**
+ * 获取老师待审核退款列表
+ * @param {Object} params - 查询参数 { page, size, refund_status }
+ */
+function getTeacherRefunds(params = {}) {
+  return get('/orders/teacher/refunds', params);
+}
+
 module.exports = {
   getOrders,
   getOrderDetail,
@@ -197,5 +214,7 @@ module.exports = {
   editOrder,
   applyRefund,
   getRefundDetail,
-  cancelRefund
+  cancelRefund,
+  auditRefund,
+  getTeacherRefunds
 };

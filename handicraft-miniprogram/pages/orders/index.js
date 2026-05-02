@@ -14,7 +14,8 @@ const {
   editOrder,
   applyRefund,
   getRefundDetail,
-  cancelRefund
+  cancelRefund,
+  auditRefund
 } = require('../../api/orders');
 const { contactThroughOrder } = require('../../api/messages');
 const { getOrderReview } = require('../../api/reviews');
@@ -130,7 +131,13 @@ Page({
     refundAmount: '',
     refundProofs: [],
     refundProofTempFiles: [],
-    currentRefund: null
+    currentRefund: null,
+
+    showTeacherRefundAuditDialog: false,
+    teacherRefundAction: 'approve',
+    teacherRefundReason: '',
+    teacherRefundAmount: '',
+    teacherRefundOrder: null
   },
 
   onLoad(options) {
@@ -1222,5 +1229,125 @@ Page({
         }
       }
     });
+  },
+
+  showTeacherRefundAuditDialog(e) {
+    const orderId = e.currentTarget.dataset.id;
+    const order = this.data.orders.find(o => o.id === orderId);
+
+    if (order && order.refund_status === 'pending') {
+      this.setData({
+        teacherRefundOrder: order,
+        showTeacherRefundAuditDialog: true,
+        teacherRefundAction: 'approve',
+        teacherRefundReason: '',
+        teacherRefundAmount: order.refund_amount ? order.refund_amount.toString() : (order.pay_amount ? order.pay_amount.toString() : '')
+      });
+    }
+  },
+
+  closeTeacherRefundAuditDialog() {
+    this.setData({
+      showTeacherRefundAuditDialog: false,
+      teacherRefundOrder: null,
+      teacherRefundAction: 'approve',
+      teacherRefundReason: '',
+      teacherRefundAmount: ''
+    });
+  },
+
+  onTeacherRefundActionChange(e) {
+    const action = e.detail.value;
+    this.setData({ teacherRefundAction: action });
+  },
+
+  onTeacherRefundReasonInput(e) {
+    this.setData({ teacherRefundReason: e.detail.value });
+  },
+
+  onTeacherRefundAmountInput(e) {
+    this.setData({ teacherRefundAmount: e.detail.value });
+  },
+
+  async submitTeacherRefundAudit() {
+    const { teacherRefundOrder, teacherRefundAction, teacherRefundReason, teacherRefundAmount } = this.data;
+    
+    if (!teacherRefundOrder) return;
+
+    if (teacherRefundAction === 'reject') {
+      if (!teacherRefundReason || teacherRefundReason.trim().length < 10) {
+        showToast('拒绝理由至少需要10个字符');
+        return;
+      }
+    }
+
+    const refundAmount = parseFloat(teacherRefundAmount) || 0;
+    if (teacherRefundAction === 'approve') {
+      if (refundAmount <= 0 || refundAmount > teacherRefundOrder.pay_amount) {
+        showToast(`退款金额必须大于0且不超过订单金额¥${teacherRefundOrder.pay_amount}`);
+        return;
+      }
+    }
+
+    wx.showLoading({ title: '提交中...', mask: true });
+
+    try {
+      const data = {
+        action: teacherRefundAction,
+        reason: teacherRefundReason
+      };
+
+      if (teacherRefundAction === 'approve') {
+        data.refund_amount = refundAmount;
+      }
+
+      const result = await auditRefund(teacherRefundOrder.id, data);
+      wx.hideLoading();
+
+      if (result.code === 0) {
+        const msg = teacherRefundAction === 'approve' ? '已同意退款' : '已拒绝退款';
+        showToast(msg, 'success');
+        this.closeTeacherRefundAuditDialog();
+
+        this.setData({ page: 1, orders: [], hasMore: true });
+        await Promise.all([
+          this.loadOrders(),
+          this.loadOrderStats()
+        ]);
+      } else {
+        showToast(result.msg || '操作失败');
+      }
+    } catch (error) {
+      wx.hideLoading();
+      console.error('审核退款失败:', error);
+      showToast('操作失败，请重试');
+    }
+  },
+
+  async showTeacherRefundDetailDialog(e) {
+    const orderId = e.currentTarget.dataset.id;
+    const order = this.data.orders.find(o => o.id === orderId);
+
+    if (order && order.refund_status) {
+      wx.showLoading({ title: '加载中...' });
+
+      try {
+        const result = await getRefundDetail(orderId);
+        wx.hideLoading();
+
+        if (result.code === 0) {
+          this.setData({
+            currentRefund: result.data,
+            showRefundDetailDialog: true
+          });
+        } else {
+          showToast(result.msg || '加载失败');
+        }
+      } catch (error) {
+        wx.hideLoading();
+        console.error('加载退款详情失败:', error);
+        showToast('加载失败，请重试');
+      }
+    }
   }
 });

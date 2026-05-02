@@ -196,7 +196,7 @@
                 详情
               </el-button>
               <el-button
-                v-if="(scope.row.refund_status === 'pending' && scope.row.is_teacher_overdue) || activeTab === 'abnormal'"
+                v-if="(scope.row.refund_status === 'pending') || activeTab === 'abnormal'"
                 type="success"
                 link
                 @click="handleAudit(scope.row)"
@@ -321,7 +321,7 @@
       <template #footer>
         <el-button @click="detailVisible = false">关闭</el-button>
         <el-button
-          v-if="(currentRefund.refund_status === 'pending' && currentRefund.is_teacher_overdue) || activeTab === 'abnormal'"
+          v-if="(currentRefund.refund_status === 'pending') || activeTab === 'abnormal'"
           type="success"
           @click="handleAudit(currentRefund)"
         >

@@ -7,7 +7,12 @@ from app.utils.response import success, error
 from app.common.auth import login_required
 from app.common.response_code import ResponseCode
 from app.database import db
-from app.models import User, Product, Order, Category, Activity, Review, TeacherProfile, OrderItem, Like, ActivityRegistration, CRAFT_TYPES, ACTIVITY_TYPES, ActivityType, SystemConfig, AuditLog, REFUND_STATUS_NAMES, ABNORMAL_REASONS
+from app.models import User, Product, Order, Category, Activity, Review, TeacherProfile, OrderItem, Like, ActivityRegistration, CRAFT_TYPES, ACTIVITY_TYPES, ActivityType, SystemConfig, AuditLog, REFUND_STATUS_NAMES, ABNORMAL_REASONS, RefundProgress
+from app.models.order import (
+    REFUND_STATUS_PENDING, REFUND_STATUS_APPROVED, REFUND_STATUS_PROCESSING,
+    REFUND_STATUS_COMPLETED, REFUND_STATUS_REJECTED, REFUND_STATUS_ABNORMAL,
+    REFUND_STEP_APPLY, REFUND_STEP_AUDIT, REFUND_STEP_PROCESS, REFUND_STEP_COMPLETE
+)
 from app.models.message import Message, Conversation, MESSAGE_TYPES, ANNOUNCEMENT_SUBTYPES, RECIPIENT_TYPES
 from app.services.message_service import MessageService
 
@@ -24,7 +29,8 @@ STATUS_NAMES = {
     'completed': '已完成',
     'cancelled': '已取消',
     'rejected': '已拒绝',
-    'deleted': '已删除'
+    'deleted': '已删除',
+    'refunding': '退款中'
 }
 
 def parse_datetime(datetime_str):
@@ -4266,10 +4272,7 @@ def get_refund_list():
     sort = request.args.get('sort', 'newest')
     
     query = Order.query.filter(
-        db.or_(
-            Order.refund_status.isnot(None),
-            Order.refund_status != ''
-        )
+        Order.refund_status.in_(['pending', 'approved', 'processing', 'completed'])
     )
     
     if refund_status:
@@ -4857,3 +4860,329 @@ def export_refund_stats():
         'filename': f'refund_stats_{datetime.now().strftime("%Y%m%d%H%M%S")}.csv',
         'total': len(data)
     }))
+
+
+@admin_bp.route('/orders/<order_id>/refund/official-intervene', methods=['POST'])
+@login_required
+def official_intervene_refund(order_id):
+    admin_id = g.get('user_id', 1)
+    order = Order.query.get(order_id)
+    
+    if not order:
+        return jsonify(error(code=ResponseCode.NOT_FOUND, msg='订单不存在')), 404
+    
+    if not order.refund_status or order.refund_status == '':
+        return jsonify(error(code=ResponseCode.OPERATION_FAILED, msg='该订单没有退款申请')), 400
+    
+    if order.refund_status == REFUND_STATUS_COMPLETED:
+        return jsonify(error(code=ResponseCode.OPERATION_FAILED, msg='该退款已完成，无需官方介入')), 400
+    
+    data = request.get_json() or {}
+    intervene_reason = data.get('reason', '')
+    
+    if not intervene_reason or len(intervene_reason.strip()) < 10:
+        return jsonify(error(code=ResponseCode.PARAM_ERROR, msg='介入理由至少需要10个字符')), 400
+    
+    old_order_data = json.dumps(order.to_dict(), ensure_ascii=False)
+    
+    order.is_abnormal = True
+    order.abnormal_reason = f'官方介入：{intervene_reason}'
+    order.abnormal_time = datetime.utcnow()
+    order.updated_at = datetime.utcnow()
+    
+    refund_progress = RefundProgress(
+        order_id=order.id,
+        step='official_intervene',
+        operator_id=admin_id,
+        operator_type='admin',
+        description='官方介入退款处理',
+        reason=intervene_reason
+    )
+    db.session.add(refund_progress)
+    
+    try:
+        db.session.commit()
+        
+        audit_log = AuditLog(
+            admin_id=admin_id,
+            target_type='order',
+            target_id=order.id if isinstance(order.id, int) else 0,
+            action='official_intervene_refund',
+            reason=intervene_reason,
+            before_data=old_order_data,
+            after_data=json.dumps(order.to_dict(), ensure_ascii=False)
+        )
+        db.session.add(audit_log)
+        db.session.commit()
+        
+        try:
+            MessageService.send_system_notification(
+                order.user_id,
+                '退款官方介入通知',
+                f'您的订单 {order.id} 的退款申请已被官方介入处理。介入原因：{intervene_reason}。请耐心等待处理结果。',
+                related_id=order.id,
+                related_type='order'
+            )
+        except Exception as e:
+            print(f'发送官方介入通知失败: {e}')
+        
+        return jsonify(success(data=order.to_dict(), msg='已标记为官方介入'))
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(error(code=ResponseCode.SYSTEM_ERROR, msg=f'操作失败: {str(e)}')), 500
+
+
+@admin_bp.route('/orders/<order_id>/refund/force-refund', methods=['POST'])
+@login_required
+def force_process_refund(order_id):
+    admin_id = g.get('user_id', 1)
+    order = Order.query.get(order_id)
+    
+    if not order:
+        return jsonify(error(code=ResponseCode.NOT_FOUND, msg='订单不存在')), 404
+    
+    if not order.refund_status or order.refund_status == '':
+        return jsonify(error(code=ResponseCode.OPERATION_FAILED, msg='该订单没有退款申请')), 400
+    
+    if order.refund_status == REFUND_STATUS_COMPLETED:
+        return jsonify(error(code=ResponseCode.OPERATION_FAILED, msg='该退款已完成')), 400
+    
+    data = request.get_json() or {}
+    refund_amount = data.get('refund_amount', order.refund_amount or order.pay_amount)
+    reason = data.get('reason', '管理员强制退款')
+    
+    if refund_amount <= 0 or refund_amount > order.pay_amount:
+        return jsonify(error(code=ResponseCode.PARAM_ERROR, msg=f'退款金额必须大于0且不超过订单金额¥{order.pay_amount}')), 400
+    
+    old_order_data = json.dumps(order.to_dict(), ensure_ascii=False)
+    
+    order.refund_status = REFUND_STATUS_COMPLETED
+    order.refund_amount = refund_amount
+    order.refund_approved_by = admin_id
+    order.refund_audit_time = datetime.utcnow()
+    order.refund_audit_by = admin_id
+    order.refund_audit_reason = reason
+    order.refund_process_time = datetime.utcnow()
+    order.refund_complete_time = datetime.utcnow()
+    order.status = 'cancelled'
+    order.is_abnormal = False
+    order.updated_at = datetime.utcnow()
+    
+    refund_progress_audit = RefundProgress(
+        order_id=order.id,
+        step=REFUND_STEP_AUDIT,
+        status='approved',
+        operator_id=admin_id,
+        operator_type='admin',
+        description='管理员审核通过退款',
+        reason=reason,
+        refund_amount=refund_amount
+    )
+    db.session.add(refund_progress_audit)
+    
+    refund_progress_complete = RefundProgress(
+        order_id=order.id,
+        step=REFUND_STEP_COMPLETE,
+        status='completed',
+        operator_id=admin_id,
+        operator_type='admin',
+        description='管理员强制完成退款',
+        reason=reason,
+        refund_amount=refund_amount
+    )
+    db.session.add(refund_progress_complete)
+    
+    try:
+        db.session.commit()
+        
+        audit_log = AuditLog(
+            admin_id=admin_id,
+            target_type='order',
+            target_id=order.id if isinstance(order.id, int) else 0,
+            action='force_refund',
+            reason=reason,
+            before_data=old_order_data,
+            after_data=json.dumps(order.to_dict(), ensure_ascii=False)
+        )
+        db.session.add(audit_log)
+        db.session.commit()
+        
+        try:
+            MessageService.send_refund_notification(order, 'completed', refund_amount, reason)
+        except Exception as e:
+            print(f'发送强制退款通知失败: {e}')
+        
+        return jsonify(success(data=order.to_dict(), msg='强制退款成功，订单已标记为退款完成'))
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(error(code=ResponseCode.SYSTEM_ERROR, msg=f'操作失败: {str(e)}')), 500
+
+
+@admin_bp.route('/orders/<order_id>/refund/mark-abnormal', methods=['POST'])
+@login_required
+def mark_refund_abnormal(order_id):
+    admin_id = g.get('user_id', 1)
+    order = Order.query.get(order_id)
+    
+    if not order:
+        return jsonify(error(code=ResponseCode.NOT_FOUND, msg='订单不存在')), 404
+    
+    if not order.refund_status or order.refund_status == '':
+        return jsonify(error(code=ResponseCode.OPERATION_FAILED, msg='该订单没有退款申请')), 400
+    
+    if order.refund_status == REFUND_STATUS_COMPLETED:
+        return jsonify(error(code=ResponseCode.OPERATION_FAILED, msg='该退款已完成')), 400
+    
+    data = request.get_json() or {}
+    abnormal_reason = data.get('reason', '')
+    
+    if not abnormal_reason or len(abnormal_reason.strip()) < 10:
+        return jsonify(error(code=ResponseCode.PARAM_ERROR, msg='异常理由至少需要10个字符')), 400
+    
+    old_order_data = json.dumps(order.to_dict(), ensure_ascii=False)
+    
+    order.refund_status = REFUND_STATUS_ABNORMAL
+    order.refund_abnormal_reason = abnormal_reason
+    order.refund_abnormal_time = datetime.utcnow()
+    order.is_abnormal = True
+    order.abnormal_reason = abnormal_reason
+    order.abnormal_time = datetime.utcnow()
+    order.updated_at = datetime.utcnow()
+    
+    refund_progress = RefundProgress(
+        order_id=order.id,
+        step='abnormal',
+        status='abnormal',
+        operator_id=admin_id,
+        operator_type='admin',
+        description='标记为退款异常',
+        reason=abnormal_reason
+    )
+    db.session.add(refund_progress)
+    
+    try:
+        db.session.commit()
+        
+        audit_log = AuditLog(
+            admin_id=admin_id,
+            target_type='order',
+            target_id=order.id if isinstance(order.id, int) else 0,
+            action='mark_refund_abnormal',
+            reason=abnormal_reason,
+            before_data=old_order_data,
+            after_data=json.dumps(order.to_dict(), ensure_ascii=False)
+        )
+        db.session.add(audit_log)
+        db.session.commit()
+        
+        try:
+            MessageService.send_system_notification(
+                order.user_id,
+                '退款异常通知',
+                f'您的订单 {order.id} 的退款申请出现异常。异常原因：{abnormal_reason}。请联系客服或重新提交退款申请。',
+                related_id=order.id,
+                related_type='order'
+            )
+        except Exception as e:
+            print(f'发送退款异常通知失败: {e}')
+        
+        return jsonify(success(data=order.to_dict(), msg='已标记为退款异常'))
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(error(code=ResponseCode.SYSTEM_ERROR, msg=f'操作失败: {str(e)}')), 500
+
+
+@admin_bp.route('/orders/<order_id>/refund/resolve-abnormal', methods=['POST'])
+@login_required
+def resolve_refund_abnormal(order_id):
+    admin_id = g.get('user_id', 1)
+    order = Order.query.get(order_id)
+    
+    if not order:
+        return jsonify(error(code=ResponseCode.NOT_FOUND, msg='订单不存在')), 404
+    
+    if order.refund_status != REFUND_STATUS_ABNORMAL:
+        return jsonify(error(code=ResponseCode.OPERATION_FAILED, msg='该订单不是退款异常状态')), 400
+    
+    data = request.get_json() or {}
+    resolution = data.get('resolution', '')
+    action = data.get('action', '')
+    
+    if not resolution or len(resolution.strip()) < 10:
+        return jsonify(error(code=ResponseCode.PARAM_ERROR, msg='处理方案至少需要10个字符')), 400
+    
+    if action not in ['reset_to_pending', 'reject', 'approve']:
+        return jsonify(error(code=ResponseCode.PARAM_ERROR, msg='无效的操作类型')), 400
+    
+    old_order_data = json.dumps(order.to_dict(), ensure_ascii=False)
+    
+    order.refund_abnormal_resolved_at = datetime.utcnow()
+    order.refund_abnormal_resolved_by = admin_id
+    order.is_abnormal = False
+    order.abnormal_resolved_at = datetime.utcnow()
+    order.abnormal_resolved_by = admin_id
+    
+    if action == 'reset_to_pending':
+        order.refund_status = REFUND_STATUS_PENDING
+        status_desc = '待审核'
+    elif action == 'reject':
+        order.refund_status = REFUND_STATUS_REJECTED
+        order.refund_audit_time = datetime.utcnow()
+        order.refund_audit_by = admin_id
+        order.refund_audit_reason = resolution
+        if order.original_status_before_refund:
+            order.status = order.original_status_before_refund
+        status_desc = '已拒绝'
+    else:
+        order.refund_status = REFUND_STATUS_COMPLETED
+        order.refund_audit_time = datetime.utcnow()
+        order.refund_audit_by = admin_id
+        order.refund_audit_reason = resolution
+        order.refund_process_time = datetime.utcnow()
+        order.refund_complete_time = datetime.utcnow()
+        order.status = 'cancelled'
+        status_desc = '已完成'
+    
+    order.updated_at = datetime.utcnow()
+    
+    refund_progress = RefundProgress(
+        order_id=order.id,
+        step='resolve_abnormal',
+        status=action,
+        operator_id=admin_id,
+        operator_type='admin',
+        description=f'管理员解决退款异常，状态变更为：{status_desc}',
+        reason=resolution
+    )
+    db.session.add(refund_progress)
+    
+    try:
+        db.session.commit()
+        
+        audit_log = AuditLog(
+            admin_id=admin_id,
+            target_type='order',
+            target_id=order.id if isinstance(order.id, int) else 0,
+            action=f'resolve_refund_abnormal_{action}',
+            reason=resolution,
+            before_data=old_order_data,
+            after_data=json.dumps(order.to_dict(), ensure_ascii=False)
+        )
+        db.session.add(audit_log)
+        db.session.commit()
+        
+        try:
+            MessageService.send_system_notification(
+                order.user_id,
+                '退款异常处理通知',
+                f'您的订单 {order.id} 的退款异常已处理。处理方案：{resolution}。当前退款状态：{status_desc}。',
+                related_id=order.id,
+                related_type='order'
+            )
+        except Exception as e:
+            print(f'发送退款异常处理通知失败: {e}')
+        
+        return jsonify(success(data=order.to_dict(), msg=f'退款异常已解决，状态变更为：{status_desc}'))
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(error(code=ResponseCode.SYSTEM_ERROR, msg=f'操作失败: {str(e)}')), 500

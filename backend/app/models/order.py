@@ -30,14 +30,18 @@ SHIPPING_COMPANIES = {
 
 REFUND_STATUS_PENDING = 'pending'
 REFUND_STATUS_APPROVED = 'approved'
-REFUND_STATUS_REJECTED = 'rejected'
+REFUND_STATUS_PROCESSING = 'processing'
 REFUND_STATUS_COMPLETED = 'completed'
+REFUND_STATUS_REJECTED = 'rejected'
+REFUND_STATUS_ABNORMAL = 'abnormal'
 
 REFUND_STATUS_NAMES = {
     'pending': '待审核',
     'approved': '已同意',
+    'processing': '退款中',
+    'completed': '退款完成',
     'rejected': '已拒绝',
-    'completed': '退款完成'
+    'abnormal': '退款异常'
 }
 
 ABNORMAL_REASONS = {
@@ -112,6 +116,20 @@ class Order(db.Model):
     refund_approved_by = db.Column(db.Integer, db.ForeignKey('users.id'))
     _refund_proofs = db.Column('refund_proofs', db.Text)
     
+    refund_audit_time = db.Column(db.DateTime)
+    refund_audit_reason = db.Column(db.String(500))
+    refund_audit_by = db.Column(db.Integer, db.ForeignKey('users.id'))
+    
+    refund_process_time = db.Column(db.DateTime)
+    refund_complete_time = db.Column(db.DateTime)
+    
+    refund_abnormal_reason = db.Column(db.String(500))
+    refund_abnormal_time = db.Column(db.DateTime)
+    refund_abnormal_resolved_at = db.Column(db.DateTime)
+    refund_abnormal_resolved_by = db.Column(db.Integer, db.ForeignKey('users.id'))
+    
+    original_status_before_refund = db.Column(db.String(20))
+    
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -135,7 +153,8 @@ class Order(db.Model):
         'completed': '已完成',
         'cancelled': '已取消',
         'rejected': '已拒绝',
-        'deleted': '已删除'
+        'deleted': '已删除',
+        'refunding': '退款中'
     }
 
     @property
@@ -264,7 +283,17 @@ class Order(db.Model):
             'refund_reason': self.refund_reason,
             'refund_time': self.refund_time.strftime('%Y-%m-%d %H:%M:%S') if self.refund_time else None,
             'refund_approved_by': self.refund_approved_by,
-            'refund_proofs': self.refund_proofs
+            'refund_proofs': self.refund_proofs,
+            'refund_audit_time': self.refund_audit_time.strftime('%Y-%m-%d %H:%M:%S') if self.refund_audit_time else None,
+            'refund_audit_reason': self.refund_audit_reason,
+            'refund_audit_by': self.refund_audit_by,
+            'refund_process_time': self.refund_process_time.strftime('%Y-%m-%d %H:%M:%S') if self.refund_process_time else None,
+            'refund_complete_time': self.refund_complete_time.strftime('%Y-%m-%d %H:%M:%S') if self.refund_complete_time else None,
+            'refund_abnormal_reason': self.refund_abnormal_reason,
+            'refund_abnormal_time': self.refund_abnormal_time.strftime('%Y-%m-%d %H:%M:%S') if self.refund_abnormal_time else None,
+            'refund_abnormal_resolved_at': self.refund_abnormal_resolved_at.strftime('%Y-%m-%d %H:%M:%S') if self.refund_abnormal_resolved_at else None,
+            'refund_abnormal_resolved_by': self.refund_abnormal_resolved_by,
+            'original_status_before_refund': self.original_status_before_refund
         }
         
         if include_detail:
@@ -427,3 +456,101 @@ class LogisticsItem(db.Model):
 
     def __repr__(self):
         return f'<LogisticsItem logistics_id={self.logistics_id}>'
+
+
+REFUND_STEP_APPLY = 'apply'
+REFUND_STEP_AUDIT = 'audit'
+REFUND_STEP_PROCESS = 'process'
+REFUND_STEP_COMPLETE = 'complete'
+REFUND_STEP_ABNORMAL = 'abnormal'
+REFUND_STEP_RESUBMIT = 'resubmit'
+
+REFUND_STEP_NAMES = {
+    'apply': '申请提交',
+    'audit': '审核阶段',
+    'process': '处理中',
+    'complete': '退款完成',
+    'abnormal': '退款异常',
+    'resubmit': '重新提交'
+}
+
+REFUND_STEP_ORDER = [
+    REFUND_STEP_APPLY,
+    REFUND_STEP_AUDIT,
+    REFUND_STEP_PROCESS,
+    REFUND_STEP_COMPLETE
+]
+
+
+class RefundProgress(db.Model):
+    __tablename__ = 'refund_progress'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.String(50), db.ForeignKey('orders.id'), nullable=False, index=True)
+    
+    step = db.Column(db.String(30), nullable=False)
+    step_name = db.Column(db.String(50))
+    
+    status = db.Column(db.String(20))
+    status_name = db.Column(db.String(50))
+    
+    operator_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    operator_type = db.Column(db.String(20))
+    
+    description = db.Column(db.String(1000))
+    reason = db.Column(db.String(500))
+    
+    refund_amount = db.Column(db.Float)
+    
+    _extra_data = db.Column('extra_data', db.Text)
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    order = db.relationship('Order', backref='refund_progresses', lazy='select')
+
+    @property
+    def extra_data(self):
+        if self._extra_data:
+            try:
+                return json.loads(self._extra_data)
+            except:
+                return {}
+        return {}
+
+    @extra_data.setter
+    def extra_data(self, value):
+        if isinstance(value, dict):
+            self._extra_data = json.dumps(value, ensure_ascii=False)
+        else:
+            self._extra_data = value
+
+    def to_dict(self):
+        operator_nickname = None
+        if self.operator_id:
+            from app.models import User
+            operator = User.query.get(self.operator_id)
+            if operator:
+                operator_nickname = operator.nickname or operator.username
+        
+        return {
+            'id': self.id,
+            'order_id': self.order_id,
+            'step': self.step,
+            'step_name': self.step_name or REFUND_STEP_NAMES.get(self.step, self.step),
+            'status': self.status,
+            'status_name': self.status_name,
+            'operator_id': self.operator_id,
+            'operator_nickname': operator_nickname,
+            'operator_type': self.operator_type,
+            'description': self.description,
+            'reason': self.reason,
+            'refund_amount': self.refund_amount,
+            'extra_data': self.extra_data,
+            'timestamp': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None,
+            'create_time': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None,
+            'update_time': self.updated_at.strftime('%Y-%m-%d %H:%M:%S') if self.updated_at else None
+        }
+
+    def __repr__(self):
+        return f'<RefundProgress order_id={self.order_id} step={self.step}>'

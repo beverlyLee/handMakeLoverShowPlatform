@@ -46,6 +46,7 @@ class MessageService:
         message = Message(
             user_id=user_id,
             type=message_type,
+            subtype=subtype,
             title=title,
             content=content,
             sender=sender,

@@ -122,6 +122,9 @@
         <view class="order-status {{item.status}}">
           <text class="status-text">{{currentRole === 'teacher' ? getTeacherStatusText(item.status) : getStatusText(item.status)}}</text>
         </view>
+        <view class="refund-status" wx:if="{{item.refund_status}}">
+          <text class="refund-status-text">{{item.refund_status === 'pending' ? '退款待审核' : item.refund_status === 'approved' ? '退款已同意' : item.refund_status === 'processing' ? '退款处理中' : item.refund_status === 'completed' ? '退款已完成' : item.refund_status === 'rejected' ? '退款已拒绝' : '退款异常'}}</text>
+        </view>
         <view class="pending-highlight" wx:if="{{item.isPendingAccept && currentTab !== 'reviewed'}}">
           <text class="highlight-text">待处理</text>
         </view>
@@ -250,6 +253,19 @@
             bindtap="showShipOrderDialog"
             data-id="{{item.id}}"
           >发货</button>
+
+          <button 
+            wx:if="{{currentRole === 'teacher' && item.refund_status === 'pending'}}" 
+            class="action-btn primary"
+            bindtap="showTeacherRefundAuditDialog"
+            data-id="{{item.id}}"
+          >审核退款</button>
+          <button 
+            wx:if="{{currentRole === 'teacher' && item.refund_status && item.refund_status !== 'pending'}}" 
+            class="action-btn secondary"
+            bindtap="showTeacherRefundDetailDialog"
+            data-id="{{item.id}}"
+          >查看退款详情</button>
 
           <button 
             wx:if="{{currentRole === 'teacher' && item.is_reviewed}}" 
@@ -862,9 +878,89 @@
       <button class="dialog-btn dialog-btn-cancel" bindtap="closeRefundDetailDialog">关闭</button>
       <button 
         class="dialog-btn dialog-btn-secondary" 
-        wx:if="{{currentRefund.refund_status === 'pending'}}"
+        wx:if="{{currentRefund.refund_status === 'pending' && currentRole !== 'teacher'}}"
         bindtap="cancelRefundApp"
       >取消申请</button>
+    </view>
+  </view>
+</view>
+
+<view class="dialog-mask" wx:if="{{showTeacherRefundAuditDialog && teacherRefundOrder}}" catchtouchmove="stopPropagation">
+  <view class="dialog teacher-refund-audit-dialog">
+    <view class="dialog-header">
+      <text class="dialog-title">审核退款申请</text>
+      <view class="dialog-close" bindtap="closeTeacherRefundAuditDialog">
+        <text class="close-icon">×</text>
+      </view>
+    </view>
+    <view class="dialog-content">
+      <view class="info-item">
+        <text class="info-label">订单号：</text>
+        <text class="info-value">{{teacherRefundOrder.id}}</text>
+      </view>
+      <view class="info-item">
+        <text class="info-label">订单金额：</text>
+        <text class="info-value">¥{{teacherRefundOrder.pay_amount}}</text>
+      </view>
+      <view class="info-item">
+        <text class="info-label">申请退款金额：</text>
+        <text class="info-value">¥{{teacherRefundOrder.refund_amount}}</text>
+      </view>
+      <view class="form-item">
+        <text class="form-label">申请理由</text>
+        <view class="refund-reason-box">
+          <text class="refund-reason-text">{{teacherRefundOrder.refund_reason || '无'}}</text>
+        </view>
+      </view>
+      <view class="form-item" wx:if="{{teacherRefundOrder.refund_proofs && teacherRefundOrder.refund_proofs.length > 0}}">
+        <text class="form-label">退款凭证</text>
+        <view class="proof-list">
+          <view class="proof-item" wx:for="{{teacherRefundOrder.refund_proofs}}" wx:key="index">
+            <image class="proof-image" src="{{item}}" mode="aspectFill" />
+          </view>
+        </view>
+      </view>
+      <view class="form-item">
+        <text class="form-label required">审核操作</text>
+        <radio-group class="action-radio-group" bindchange="onTeacherRefundActionChange" value="{{teacherRefundAction}}">
+          <label class="radio-item">
+            <radio value="approve" checked="{{teacherRefundAction === 'approve'}}" color="#FF6B6B"/>
+            <text class="radio-text">同意退款</text>
+          </label>
+          <label class="radio-item">
+            <radio value="reject" checked="{{teacherRefundAction === 'reject'}}" color="#FF6B6B"/>
+            <text class="radio-text">拒绝退款</text>
+          </label>
+        </radio-group>
+      </view>
+      <view class="form-item" wx:if="{{teacherRefundAction === 'approve'}}">
+        <text class="form-label required">退款金额</text>
+        <input 
+          class="form-input" 
+          type="digit" 
+          placeholder="请输入退款金额"
+          value="{{teacherRefundAmount}}"
+          bindinput="onTeacherRefundAmountInput"
+        />
+        <text class="input-hint">退款金额不能超过订单金额¥{{teacherRefundOrder.pay_amount}}</text>
+      </view>
+      <view class="form-item">
+        <text class="form-label {{teacherRefundAction === 'reject' ? 'required' : ''}}">处理说明</text>
+        <textarea 
+          class="form-textarea" 
+          placeholder="{{teacherRefundAction === 'reject' ? '请输入拒绝理由（至少10个字符）' : '请输入处理说明（选填）'}}"
+          value="{{teacherRefundReason}}"
+          bindinput="onTeacherRefundReasonInput"
+          maxlength="200"
+        ></textarea>
+      </view>
+    </view>
+    <view class="dialog-footer">
+      <button class="dialog-btn dialog-btn-cancel" bindtap="closeTeacherRefundAuditDialog">取消</button>
+      <button 
+        class="dialog-btn {{teacherRefundAction === 'approve' ? 'dialog-btn-primary' : 'dialog-btn-danger'}}"
+        bindtap="submitTeacherRefundAudit"
+      >{{teacherRefundAction === 'approve' ? '同意退款' : '拒绝退款'}}</button>
     </view>
   </view>
 </view>

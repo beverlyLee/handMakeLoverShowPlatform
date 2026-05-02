@@ -10,7 +10,7 @@ from app.models import (
     Category, Product, Specialty, Coupon, UserCoupon,
     Logistics, LogisticsItem, Image,
     Message, Conversation, ChatMessage, Like,
-    Activity, ActivityRegistration
+    Activity, ActivityRegistration, RefundProgress
 )
 
 app = create_app()
@@ -128,7 +128,7 @@ def migrate():
         print("\n【1/5】创建新表...")
         print("-"*40)
         
-        new_tables = ['coupons', 'user_coupons', 'logistics', 'logistics_items', 'images', 'messages', 'conversations', 'chat_messages', 'likes', 'activities', 'activity_registrations']
+        new_tables = ['coupons', 'user_coupons', 'logistics', 'logistics_items', 'images', 'messages', 'conversations', 'chat_messages', 'likes', 'activities', 'activity_registrations', 'refund_progress']
         for table in new_tables:
             if not check_table_exists(table):
                 print(f"  创建表: {table}")
@@ -159,11 +159,34 @@ def migrate():
         add_column_if_not_exists('orders', 'start_making_time DATETIME')
         add_column_if_not_exists('orders', 'complete_making_time DATETIME')
         
+        add_column_if_not_exists('orders', 'refund_status VARCHAR(20)')
+        add_column_if_not_exists('orders', 'refund_amount FLOAT DEFAULT 0.0')
+        add_column_if_not_exists('orders', 'refund_reason VARCHAR(500)')
+        add_column_if_not_exists('orders', 'refund_time DATETIME')
+        add_column_if_not_exists('orders', 'refund_approved_by INTEGER')
+        add_column_if_not_exists('orders', 'refund_proofs TEXT')
+        
+        add_column_if_not_exists('orders', 'refund_audit_time DATETIME')
+        add_column_if_not_exists('orders', 'refund_audit_reason VARCHAR(500)')
+        add_column_if_not_exists('orders', 'refund_audit_by INTEGER')
+        add_column_if_not_exists('orders', 'refund_process_time DATETIME')
+        add_column_if_not_exists('orders', 'refund_complete_time DATETIME')
+        add_column_if_not_exists('orders', 'refund_abnormal_reason VARCHAR(500)')
+        add_column_if_not_exists('orders', 'refund_abnormal_time DATETIME')
+        add_column_if_not_exists('orders', 'refund_abnormal_resolved_at DATETIME')
+        add_column_if_not_exists('orders', 'refund_abnormal_resolved_by INTEGER')
+        add_column_if_not_exists('orders', 'original_status_before_refund VARCHAR(20)')
+        
         print("\n正在检查 teacher_profiles 表:")
         add_column_if_not_exists('teacher_profiles', 'auto_accept BOOLEAN DEFAULT 0')
         
         print("\n正在检查 messages 表:")
         add_column_if_not_exists('messages', 'recipient_role VARCHAR(20) DEFAULT "customer"')
+        add_column_if_not_exists('messages', 'recipient_type VARCHAR(20) DEFAULT "all"')
+        add_column_if_not_exists('messages', 'subtype VARCHAR(50)')
+        add_column_if_not_exists('messages', 'target_user_ids TEXT')
+        add_column_if_not_exists('messages', 'expire_time DATETIME')
+        add_column_if_not_exists('messages', 'is_announcement BOOLEAN DEFAULT 0')
         
         print("\n正在检查 reviews 表:")
         add_column_if_not_exists('reviews', 'is_read BOOLEAN DEFAULT 0')

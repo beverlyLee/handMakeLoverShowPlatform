@@ -2,7 +2,14 @@ from flask import Blueprint, jsonify, request, g
 from app.utils.response import success, error
 from app.common.response_code import ResponseCode
 from app.common.auth import login_required
-from app.models import Order, OrderItem, User, TeacherProfile, UserCoupon, Coupon, Review
+from app.models import (
+    Order, OrderItem, User, TeacherProfile, UserCoupon, Coupon, Review,
+    RefundProgress, REFUND_STATUS_PENDING, REFUND_STATUS_APPROVED, 
+    REFUND_STATUS_PROCESSING, REFUND_STATUS_COMPLETED, REFUND_STATUS_REJECTED,
+    REFUND_STATUS_ABNORMAL, REFUND_STEP_APPLY, REFUND_STEP_AUDIT,
+    REFUND_STEP_PROCESS, REFUND_STEP_COMPLETE, REFUND_STEP_ABNORMAL,
+    REFUND_STEP_RESUBMIT
+)
 from app.database import db
 from app.services.user_service import UserService
 from app.services.message_service import MessageService
@@ -824,7 +831,7 @@ def apply_refund(order_id):
     if order.user_id != user_id:
         return jsonify(error(code=ResponseCode.PERMISSION_DENIED, msg='无权操作此订单')), 403
     
-    if order.refund_status in ['pending', 'approved']:
+    if order.refund_status in [REFUND_STATUS_PENDING, REFUND_STATUS_APPROVED, REFUND_STATUS_PROCESSING]:
         return jsonify(error(code=ResponseCode.OPERATION_FAILED, msg='已有退款申请正在处理中')), 400
     
     can_refund_statuses = ['pending_accept', 'in_progress', 'paid', 'shipped', 'delivered']
@@ -852,12 +859,23 @@ def apply_refund(order_id):
     else:
         order.refund_amount = order.pay_amount
     
-    order.refund_status = 'pending'
+    order.original_status_before_refund = order.status
+    order.refund_status = REFUND_STATUS_PENDING
     order.refund_reason = refund_reason
     order.refund_proofs = refund_proofs if isinstance(refund_proofs, list) else []
     order.refund_time = datetime.utcnow()
     order.updated_at = datetime.utcnow()
     
+    refund_progress = RefundProgress(
+        order_id=order.id,
+        step=REFUND_STEP_APPLY,
+        operator_id=user_id,
+        operator_type='customer',
+        description='客户提交退款申请',
+        reason=refund_reason,
+        refund_amount=order.refund_amount
+    )
+    db.session.add(refund_progress)
     db.session.commit()
     
     try:
@@ -908,15 +926,325 @@ def cancel_refund(order_id):
     if order.user_id != user_id:
         return jsonify(error(code=ResponseCode.PERMISSION_DENIED, msg='无权操作此订单')), 403
     
-    if order.refund_status != 'pending':
+    if order.refund_status != REFUND_STATUS_PENDING:
         return jsonify(error(code=ResponseCode.OPERATION_FAILED, msg='只有待审核状态的退款可以取消')), 400
     
     order.refund_status = None
     order.refund_reason = None
     order.refund_proofs = []
     order.refund_time = None
+    order.original_status_before_refund = None
     order.updated_at = datetime.utcnow()
     
     db.session.commit()
     
     return jsonify(success(data=order.to_dict(), msg='退款申请已取消'))
+
+
+@order_bp.route('/teacher/refunds', methods=['GET'])
+@login_required
+def get_teacher_pending_refunds():
+    user_dict, user_id = get_current_user()
+    
+    page = request.args.get('page', 1, type=int)
+    size = request.args.get('size', 10, type=int)
+    refund_status = request.args.get('refund_status', None)
+    
+    query = Order.query.filter(
+        Order.teacher_id == user_id,
+        Order.refund_status.isnot(None)
+    )
+    
+    if refund_status:
+        query = query.filter(Order.refund_status == refund_status)
+    
+    total = query.count()
+    query = query.order_by(Order.refund_time.desc())
+    paginated = query.offset((page - 1) * size).limit(size).all()
+    
+    pending_count = Order.query.filter(
+        Order.teacher_id == user_id,
+        Order.refund_status == REFUND_STATUS_PENDING
+    ).count()
+    
+    orders_list = []
+    for order in paginated:
+        order_dict = order.to_dict()
+        customer = User.query.get(order.user_id)
+        if customer:
+            order_dict['customer_nickname'] = customer.nickname or customer.username
+            order_dict['customer_avatar'] = customer.avatar
+        orders_list.append(order_dict)
+    
+    return jsonify(success(data={
+        'list': orders_list,
+        'total': total,
+        'page': page,
+        'size': size,
+        'pending_count': pending_count
+    }))
+
+
+@order_bp.route('/<order_id>/refund/audit', methods=['POST'])
+@login_required
+def audit_refund(order_id):
+    user_dict, user_id = get_current_user()
+    order = Order.query.get(order_id)
+    
+    if not order:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='订单不存在')), 404
+    
+    if order.teacher_id != user_id:
+        return jsonify(error(code=ResponseCode.PERMISSION_DENIED, msg='无权操作此订单')), 403
+    
+    if order.refund_status != REFUND_STATUS_PENDING:
+        return jsonify(error(code=ResponseCode.OPERATION_FAILED, msg='只有待审核状态的退款可以审核')), 400
+    
+    data = request.get_json() or {}
+    action = data.get('action')
+    reason = data.get('reason', '')
+    refund_amount = data.get('refund_amount', order.refund_amount)
+    
+    if action not in ['approve', 'reject']:
+        return jsonify(error(code=ResponseCode.PARAM_INVALID, msg='无效的审核操作')), 400
+    
+    if action == 'reject':
+        if not reason or len(reason.strip()) < 10:
+            return jsonify(error(code=ResponseCode.PARAM_ERROR, msg='拒绝理由至少需要10个字符')), 400
+    
+    if action == 'approve':
+        if refund_amount <= 0 or refund_amount > order.pay_amount:
+            return jsonify(error(code=ResponseCode.PARAM_ERROR, msg=f'退款金额必须大于0且不超过订单金额¥{order.pay_amount}')), 400
+        
+        order.refund_status = REFUND_STATUS_PROCESSING
+        order.refund_amount = refund_amount
+        order.refund_audit_time = datetime.utcnow()
+        order.refund_audit_by = user_id
+        order.refund_audit_reason = reason
+        order.refund_process_time = datetime.utcnow()
+        order.status = 'refunding'
+        
+        refund_progress = RefundProgress(
+            order_id=order.id,
+            step=REFUND_STEP_AUDIT,
+            status='approved',
+            operator_id=user_id,
+            operator_type='teacher',
+            description='老师同意退款申请',
+            reason=reason,
+            refund_amount=refund_amount
+        )
+    else:
+        order.refund_status = REFUND_STATUS_REJECTED
+        order.refund_audit_time = datetime.utcnow()
+        order.refund_audit_by = user_id
+        order.refund_audit_reason = reason
+        
+        if order.original_status_before_refund:
+            order.status = order.original_status_before_refund
+        
+        refund_progress = RefundProgress(
+            order_id=order.id,
+            step=REFUND_STEP_AUDIT,
+            status='rejected',
+            operator_id=user_id,
+            operator_type='teacher',
+            description='老师拒绝退款申请',
+            reason=reason
+        )
+    
+    order.updated_at = datetime.utcnow()
+    db.session.add(refund_progress)
+    db.session.commit()
+    
+    try:
+        status_to_send = 'approved' if action == 'approve' else 'rejected'
+        MessageService.send_refund_notification(order, status_to_send, order.refund_amount, reason)
+    except Exception as e:
+        print(f'发送退款审核通知失败: {e}')
+    
+    return jsonify(success(data=order.to_dict(), msg='审核成功'))
+
+
+@order_bp.route('/<order_id>/refund/progress', methods=['GET'])
+@login_required
+def get_refund_progress(order_id):
+    user_dict, user_id = get_current_user()
+    order = Order.query.get(order_id)
+    
+    if not order:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='订单不存在')), 404
+    
+    if order.user_id != user_id and order.teacher_id != user_id:
+        return jsonify(error(code=ResponseCode.PERMISSION_DENIED, msg='无权查看此订单')), 403
+    
+    progresses = RefundProgress.query.filter_by(
+        order_id=order_id
+    ).order_by(RefundProgress.created_at.asc()).all()
+    
+    progress_list = [p.to_dict() for p in progresses]
+    
+    steps = []
+    
+    steps.append({
+        'step': 'apply',
+        'step_name': '申请提交',
+        'status': 'completed',
+        'completed': True,
+        'timestamp': order.refund_time.strftime('%Y-%m-%d %H:%M:%S') if order.refund_time else None,
+        'description': '退款申请已提交'
+    })
+    
+    audit_step = {
+        'step': 'audit',
+        'step_name': '审核阶段',
+        'status': 'pending',
+        'completed': False,
+        'timestamp': None,
+        'description': None
+    }
+    
+    if order.refund_status in [REFUND_STATUS_PROCESSING, REFUND_STATUS_COMPLETED]:
+        audit_step['status'] = 'approved'
+        audit_step['completed'] = True
+        audit_step['timestamp'] = order.refund_audit_time.strftime('%Y-%m-%d %H:%M:%S') if order.refund_audit_time else None
+        audit_step['description'] = '审核通过，退款处理中'
+    elif order.refund_status == REFUND_STATUS_REJECTED:
+        audit_step['status'] = 'rejected'
+        audit_step['completed'] = True
+        audit_step['timestamp'] = order.refund_audit_time.strftime('%Y-%m-%d %H:%M:%S') if order.refund_audit_time else None
+        audit_step['description'] = f'审核拒绝: {order.refund_audit_reason or ""}'
+    elif order.refund_status == REFUND_STATUS_ABNORMAL:
+        audit_step['status'] = 'abnormal'
+        audit_step['description'] = '退款异常'
+    
+    steps.append(audit_step)
+    
+    process_step = {
+        'step': 'process',
+        'step_name': '处理中',
+        'status': 'pending',
+        'completed': False,
+        'timestamp': None,
+        'description': None
+    }
+    
+    if order.refund_status == REFUND_STATUS_PROCESSING:
+        process_step['status'] = 'processing'
+        process_step['timestamp'] = order.refund_process_time.strftime('%Y-%m-%d %H:%M:%S') if order.refund_process_time else None
+        process_step['description'] = '退款处理中'
+    elif order.refund_status == REFUND_STATUS_COMPLETED:
+        process_step['status'] = 'completed'
+        process_step['completed'] = True
+        process_step['timestamp'] = order.refund_process_time.strftime('%Y-%m-%d %H:%M:%S') if order.refund_process_time else None
+        process_step['description'] = '退款处理完成'
+    
+    steps.append(process_step)
+    
+    complete_step = {
+        'step': 'complete',
+        'step_name': '退款完成',
+        'status': 'pending',
+        'completed': False,
+        'timestamp': None,
+        'description': None
+    }
+    
+    if order.refund_status == REFUND_STATUS_COMPLETED:
+        complete_step['status'] = 'completed'
+        complete_step['completed'] = True
+        complete_step['timestamp'] = order.refund_complete_time.strftime('%Y-%m-%d %H:%M:%S') if order.refund_complete_time else None
+        complete_step['description'] = '退款已完成，款项已原路返回'
+    
+    steps.append(complete_step)
+    
+    refund_info = {
+        'order_id': order.id,
+        'refund_status': order.refund_status,
+        'refund_status_name': order.refund_status_name,
+        'refund_amount': order.refund_amount,
+        'refund_reason': order.refund_reason,
+        'refund_proofs': order.refund_proofs,
+        'refund_time': order.refund_time.strftime('%Y-%m-%d %H:%M:%S') if order.refund_time else None,
+        'refund_audit_time': order.refund_audit_time.strftime('%Y-%m-%d %H:%M:%S') if order.refund_audit_time else None,
+        'refund_audit_reason': order.refund_audit_reason,
+        'refund_process_time': order.refund_process_time.strftime('%Y-%m-%d %H:%M:%S') if order.refund_process_time else None,
+        'refund_complete_time': order.refund_complete_time.strftime('%Y-%m-%d %H:%M:%S') if order.refund_complete_time else None,
+        'pay_amount': order.pay_amount,
+        'status': order.status,
+        'status_name': order.status_name,
+        'is_abnormal': order.refund_status == REFUND_STATUS_ABNORMAL,
+        'abnormal_reason': order.refund_abnormal_reason
+    }
+    
+    return jsonify(success(data={
+        'refund_info': refund_info,
+        'steps': steps,
+        'progress_details': progress_list
+    }))
+
+
+@order_bp.route('/<order_id>/refund/resubmit', methods=['POST'])
+@login_required
+def resubmit_refund(order_id):
+    user_dict, user_id = get_current_user()
+    order = Order.query.get(order_id)
+    
+    if not order:
+        return jsonify(error(code=ResponseCode.DATA_NOT_FOUND, msg='订单不存在')), 404
+    
+    if order.user_id != user_id:
+        return jsonify(error(code=ResponseCode.PERMISSION_DENIED, msg='无权操作此订单')), 403
+    
+    if order.refund_status not in [REFUND_STATUS_REJECTED, REFUND_STATUS_ABNORMAL]:
+        return jsonify(error(code=ResponseCode.OPERATION_FAILED, msg='只有被拒绝或异常状态的退款可以重新提交')), 400
+    
+    data = request.get_json() or {}
+    refund_reason = data.get('refund_reason', order.refund_reason)
+    refund_proofs = data.get('refund_proofs', order.refund_proofs)
+    refund_amount = data.get('refund_amount', order.refund_amount)
+    
+    if not refund_reason or len(refund_reason.strip()) == 0:
+        return jsonify(error(code=ResponseCode.PARAM_MISSING, msg='请填写退款理由')), 400
+    
+    if len(refund_reason) > 200:
+        return jsonify(error(code=ResponseCode.PARAM_ERROR, msg='退款理由不能超过200个字符')), 400
+    
+    if refund_proofs and len(refund_proofs) > 3:
+        return jsonify(error(code=ResponseCode.PARAM_ERROR, msg='退款凭证最多上传3张')), 400
+    
+    if refund_amount <= 0 or refund_amount > order.pay_amount:
+        return jsonify(error(code=ResponseCode.PARAM_ERROR, msg=f'退款金额必须大于0且不超过订单金额¥{order.pay_amount}')), 400
+    
+    if order.refund_status == REFUND_STATUS_ABNORMAL:
+        order.refund_abnormal_resolved_at = datetime.utcnow()
+        order.refund_abnormal_resolved_by = user_id
+    
+    order.refund_status = REFUND_STATUS_PENDING
+    order.refund_reason = refund_reason
+    order.refund_proofs = refund_proofs if isinstance(refund_proofs, list) else []
+    order.refund_amount = refund_amount
+    order.refund_time = datetime.utcnow()
+    order.refund_audit_time = None
+    order.refund_audit_by = None
+    order.refund_audit_reason = None
+    order.updated_at = datetime.utcnow()
+    
+    refund_progress = RefundProgress(
+        order_id=order.id,
+        step=REFUND_STEP_RESUBMIT,
+        operator_id=user_id,
+        operator_type='customer',
+        description='客户重新提交退款申请',
+        reason=refund_reason,
+        refund_amount=refund_amount
+    )
+    db.session.add(refund_progress)
+    db.session.commit()
+    
+    try:
+        MessageService.send_refund_notification(order, 'pending', order.refund_amount, refund_reason)
+    except Exception as e:
+        print(f'发送退款申请通知失败: {e}')
+    
+    return jsonify(success(data=order.to_dict(), msg='退款申请已重新提交'))
